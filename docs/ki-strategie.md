@@ -11,6 +11,17 @@
 > gestützt. Spekulatives und Widerlegtes ist ausdrücklich als solches markiert.
 > Alle Paperclip-Wire-Details sind nur an der laufenden lokalen Instanz
 > (`localhost:3100`) verifizierbar, nicht aus der öffentlichen Doku.
+>
+> **⚠️ NACHTRAG 2026-07-21 (wichtig, auf Leons Hinweis):** v1 dieser Doku hat die
+> Puck-eigene Erweiterungsebene übersehen — die Doku-Sektionen „Extending Puck",
+> „Puck AI" und den AI-Block der API-Referenz. Die Nachrecherche steht in
+> **[puck-erweiterungsebene.md](puck-erweiterungsebene.md)** (inkl. vollständiger
+> Errata-Liste in dessen §5). Kernkorrektur: Ein In-Editor-KI-/Agenten-Kanal ist
+> **nicht** spekulativ — Puck sieht ihn offiziell vor (Plugin-Panel in der Rail +
+> Internal Puck API + `dispatch` als Schreibkanal) und praktiziert ihn selbst
+> (Puck AI streamt `PuckAction[]`). Ebenso liefert Puck den offiziellen, Node-fähigen
+> Daten-Werkzeugkasten für den Importer (`migrate`/`walkTree`/`transformProps`/
+> `resolveAllData`). Die Laufzeit-Grenze (Static Export, §3) bleibt unverändert gültig.
 
 ---
 
@@ -67,7 +78,7 @@ Daraus folgt eine **Drei-Kanal-Zuordnung** (keine Einheitslösung):
 **Ausdrücklich widerlegt — NICHT als Fakt weitertragen:**
 
 - **Paperclip ist in den Projekt-Docs NIRGENDS dem Importer zugeordnet.** Die Docs benennen für Stufe C einen eigens gebauten „lokalen LLM-Agent-Importer", nicht das Paperclip-Team. Dessen Existenz ist belegt, eine Website-Import-Fähigkeit ist es **nicht**. Die Paperclip-für-Importer-Idee ist ein Vorschlag, kein dokumentierter Beschluss.
-- **Es existiert kein In-Editor-Claude-API-Kanal** (kein Anthropic-SDK im Repo, nicht im Plan). Alt-Text/SEO/Rewrite via Claude sind **spekulativ**.
+- ~~Es existiert kein In-Editor-Claude-API-Kanal … spekulativ~~ — **KORRIGIERT im Nachtrag** (s. [puck-erweiterungsebene.md](puck-erweiterungsebene.md) §5.1): Im *Repo* existiert der Kanal (noch) nicht, aber Puck sieht ihn **offiziell** als Integrationspunkt vor (Plugin-Panel + Internal Puck API + `dispatch`) und er ist mit 0.22.2-Bordmitteln self-hosted baubar. Alt-Text/SEO/Rewrite als *Features* bleiben ungeplant/optional.
 
 ## 5. Empfohlener nächster KI-Schritt (klein, konkret)
 
@@ -78,6 +89,11 @@ Daraus folgt eine **Drei-Kanal-Zuordnung** (keine Einheitslösung):
 3. Das Ergebnis **hart gegen das Register validieren** (nur registrierte, serialisierbare Blöcke überleben) und Trefferquote + Flag-Ehrlichkeit von Hand bewerten.
 
 Das ist der billigste Weg, um zu messen, wie gut constrained Generation überhaupt trifft — bevor Infrastruktur-Entscheidungen (Companion-Dienst? Paperclip-Team? Agent SDK?) getroffen werden. Wichtig: **flach halten** — Anthropic Structured Outputs verbieten rekursive Schemas, Pucks echtes Slot-Modell ist aber rekursiv; ein einzelnes `json_schema` kann daher nur flaches `content[]` erzwingen, nicht den vollständigen verschachtelten Baum.
+
+> **Nachtrag:** Durch den Puck-Befund gibt es jetzt einen noch billigeren Schritt **davor**:
+> der **R2c-Spike „Agent-Panel-Skelett"** ([puck-erweiterungsebene.md](puck-erweiterungsebene.md) §6) —
+> ein Minimal-Plugin auf `/puck`, das `dispatch`-Operationen, Undo-Granularität und `onAction`
+> empirisch beweist, ganz **ohne** LLM/Netzwerk/Kosten. Erst danach die Stufe-C-Messung.
 
 ## 6. Offene Fragen für Leon
 
