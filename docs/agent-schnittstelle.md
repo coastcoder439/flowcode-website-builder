@@ -131,3 +131,51 @@ Bewusst **nicht** in dieser API: Stufe-C-Import (async, urteilslastig → Paperc
 8. **Overkill-Risiko** — der Kern-Mehrwert der Presse (SQLite-Mirror, sync, FTS5) zielt auf grosse Remote-APIs; bei unserer lokalen Datei-API bleiben als Gewinn die Agent-Konventionen + Skill + MCP "gratis" aus einem Spec. Wenn Schritt 7 negativ ausfaellt: Mini-MCP von Hand, die `openapi.yaml` aus Schritt 4 ist in beiden Faellen nicht verloren.
 9. **Governance-Risiko Upstream** — junges Projekt, Bus-Faktor ~2, 180 offene Issues: Release pinnen, Reprints bewusst und nicht automatisch fahren.
 10. **Leons vorgelagerte Weiche** (`docs/ki-strategie.md` §6) bleibt offen: KI nur zur Autoren-/Build-Zeit oder auch im deployten Editor? Davon haengt ab, ob die Builder-API je ueber die Autoren-Maschine hinaus muss (Companion-Dienst) — der gesamte Plan hier ist auf die Autoren-Maschine beschraenkt und praejudiziert diese Entscheidung nicht.
+
+---
+
+## 7. Print-Beweis + Bewertung (erbracht 2026-07-21, Windows 11)
+
+Schritt 5/6 des Plans durchgefuehrt. Ergebnis: **Der spec-first-Print funktioniert vollstaendig nativ auf Windows.**
+
+### Was bewiesen ist
+
+- **Toolchain:** Go 1.26.5 (winget, Hash-verifiziert). Printing Press auf **v4.29.0 gepinnt** via `go install github.com/mvanhorn/cli-printing-press/v4/cmd/cli-printing-press@v4.29.0`. Windows-Gotchas bestaetigt + geloest: (a) `git config --global core.longpaths true` noetig; (b) `go` muss im PATH der Shell sein, in der PP laeuft (sonst schlaegt das interne `go mod tidy`-Gate mit Exit 3 fehl — kein Qualitaetsproblem).
+- **Generierung** aus unserer `openapi.yaml` (6 Ressourcen, 9 Endpoints): alle Validierungs-Gates **PASS** — `go mod tidy`, `govulncheck` (Vuln-Scan), `go vet`, `go build`, lauffaehiges Binary, `--help`/`version`/`doctor`. Erzeugt: `flowcode-builder-pp-cli` + stdio-`flowcode-builder-pp-mcp` + `.mcpb`-Bundle. PP erkennt korrekt `auth: not required` (x-auth-type: none).
+- **CLI gegen den echten Server (:3113):** `doctor` → `api: reachable`, `base_url: http://127.0.0.1:3113`. `builder status --agent` → **live**-Antwort (name/version/komponentenTypen/9 Routen). Der Next-308-Redirect (trailingSlash) wird von Gos http.Client sauber gefolgt.
+- **MCP-Server (stdio):** `initialize` + `tools/list` liefert **26 Tools** — u.a. `builder_status`, `puck-seite_{lade,liste,speichere,loesche}`, `abbild_aktion`, `assets_aktion`, `vektorisieren_vektorisieren`, `flowcode-builder-autoren-import_grafik-setup`. Ein MCP-Client (Claude Code) kann das direkt einbinden.
+- **PP-Scorecard: 77/100, Grade B** (deterministischer Print ohne LLM-Polish). Stark: Auth/Error-Handling/Doctor/Agent-Native/MCP-Desc-Quality/Local-Cache (10/10). Schwach: Insight 2/10, Cache-Freshness 3/10, Vision 6/10 — allesamt LLM-/Store-Features.
+
+### Windows-Frage aus §6.1 — beantwortet
+
+Generator, gedruckte Binaries **und** MCP-Server laufen alle nativ auf Windows. Nur die Skill-Loop-**Automatik** (`/printing-press`-Slash-Command, `install.sh`) ist unix-lastig — die brauchen wir aber nicht, weil wir `generate` direkt aufrufen. **Der spec-first-Weg umgeht die Windows-Luecken vollstaendig.**
+
+### Bewertung: lohnt der Print? — Ja, mit einer Optimierung
+
+Aus einer Spec entstehen in ~30 s (nach Toolchain-Setup) ein CLI mit 20+ Kommandos + stdio-MCP mit produktions-tauglichen Agent-Konventionen (`--agent`/`--json`/`--compact`/`--dry-run`/`doctor`/`agent-context`), typisierten Exit-Codes und einem Vuln-Scan — von Hand waeren das Tage. Die `openapi.yaml` bleibt Single Source of Truth.
+
+**Optimierung fuer den naechsten Lauf:** Das self-learning-Paket (`internal/store` SQLite + ~10 der 26 MCP-Tools: `learnings*`/`teach*`/`recall`/`playbook`) ist fuer unsere lokale Datei-API Overkill und blaeht das Tool-Surface auf. Mit `learn.disabled: true` (Config) entsteht ein schlankeres, fokussiertes CLI mit nur den ~9 echten API-Tools. Empfehlung: so nachziehen, bevor das CLI produktiv genutzt wird.
+
+### Reproduktion (Windows)
+
+```powershell
+# einmalig
+winget install --id GoLang.Go        # Go >= 1.26.5
+git config --global core.longpaths true
+go install github.com/mvanhorn/cli-printing-press/v4/cmd/cli-printing-press@v4.29.0
+
+# drucken (go MUSS im PATH sein)
+$env:PATH = "C:\Program Files\Go\bin;" + $env:PATH
+cd <ordner-mit-openapi.yaml>
+cli-printing-press generate --spec ./openapi.yaml --name flowcode-builder `
+  --mcp-transport stdio --spec-source official --output <ziel-ausserhalb-des-next-repos>
+```
+
+Das gedruckte Go-Projekt gehoert **nicht** ins Next.js-Repo (falscher Stack). Solange es Evaluierungs-Artefakt ist, lebt es im Scratchpad; wird es produktiv, bekommt es ein eigenes Repo `flowcode-builder-cli` (Ordner == Repo-Name). Reproduzierbar aus `openapi.yaml` — deshalb ist nur der Vertrag versioniert, nicht das Erzeugnis.
+
+### Naechste offene Schritte
+
+- `learn.disabled`-Reprint (schlankeres CLI) — klein.
+- MCP in Claude Code registrieren (§6.3): `.mcpb`-Bundle liegt vor; der genaue Registrierungsweg (`claude mcp add` vs. `.mcp.json`) ist noch nicht durchgespielt.
+- Paperclip-Worker-Roundtrip (§6.5): Worker ruft das gedruckte CLI — nur an der lokalen Paperclip-Instanz pruefbar.
+- Puck-Editor (`/puck`) von localStorage auf die neue Seiten-API umstellen; R2c-Agent-Panel-Plugin (docs/puck-erweiterungsebene.md §6).
