@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
+    "@puckeditor/core": "^0.22.2",
     "lottie-web": "^5.12.2",
     "motion": "^12.42.2",
     "next": "15.5.20",
