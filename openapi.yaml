@@ -1,0 +1,456 @@
+# openapi.yaml — Vertrag der Autoren-API des Flowcode-Builders.
+#
+# DREIFACHE ROLLE (docs/agent-schnittstelle.md §5, Schritt 4):
+#   1. Menschen-Doku der Autoren-API (next dev, Port 3113, NUR 127.0.0.1)
+#   2. --spec-Input fuer Printing Press (druckt CLI + MCP-Server daraus)
+#   3. Diff-Anker fuer Reprints (API-Aenderung => Spec-Aenderung => Reprint)
+#
+# WICHTIG: Diese API existiert NUR auf der Autoren-Maschine unter `next dev`
+# (output:"export" — im Deploy gibt es keine Routen). Kein Auth-Layer noetig;
+# CSRF-Schutz via Origin-Gate (lib/api/server-helfer.ts), Bind auf Loopback.
+# Alle Operationen sind POST — output:"export" wuerde GET-Routen statisch
+# vorrendern (s. app/api/assets/route.ts, Kopfkommentar).
+
+openapi: 3.0.3
+info:
+  title: Flowcode Builder Autoren-API
+  description: >-
+    Lokale Autoren-API des flowcode-website-builder (Next.js Dev-Server).
+    Bedient von Menschen (Editor-UI), printed CLIs/MCP-Servern (Printing
+    Press) und Agenten (Claude Code, Paperclip-Worker). Schreibende
+    Operationen sind explizit; der Import ist dry-run-by-default.
+  version: "1.0.0"
+  x-auth-type: none
+  x-runtime: "next dev only (127.0.0.1:3113) — nicht im Static-Export-Deploy"
+servers:
+  - url: http://127.0.0.1:3113
+    description: Lokaler Dev-Server (Autoren-Maschine)
+
+paths:
+  /api/builder/status:
+    post:
+      operationId: builderStatus
+      summary: Health/Discovery (doctor-Ziel)
+      description: Name, Version, API-Version, registrierte Puck-Komponenten-Typen, Routenliste.
+      responses:
+        "200":
+          description: Builder erreichbar
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, version, apiVersion, zeit, komponentenTypen, routen]
+                properties:
+                  name: { type: string }
+                  version: { type: string }
+                  apiVersion: { type: integer }
+                  zeit: { type: string, format: date-time }
+                  komponentenTypen:
+                    type: array
+                    items: { type: string }
+                  routen:
+                    type: array
+                    items: { type: string }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
+  /api/puck-seite/liste:
+    post:
+      operationId: puckSeiteListe
+      summary: Gespeicherte Puck-Seiten auflisten
+      responses:
+        "200":
+          description: Liste (neueste zuerst)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [seiten]
+                properties:
+                  seiten:
+                    type: array
+                    items: { $ref: "#/components/schemas/SeitenInfo" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
+  /api/puck-seite/lade:
+    post:
+      operationId: puckSeiteLade
+      summary: Eine Puck-Seite laden
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { $ref: "#/components/schemas/SeitenName" }
+      responses:
+        "200":
+          description: Seite
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, gespeichert, version, data]
+                properties:
+                  name: { type: string }
+                  gespeichert: { type: string }
+                  version: { type: integer }
+                  data: { $ref: "#/components/schemas/PuckData" }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "404": { $ref: "#/components/responses/NichtGefunden" }
+
+  /api/puck-seite/speichere:
+    post:
+      operationId: puckSeiteSpeichere
+      summary: Eine Puck-Seite schreiben (konflikt-geschuetzt)
+      description: >-
+        Schreibt seiten/<name>.json. Existiert die Seite bereits, muss
+        erwartetGespeichert dem aktuellen Stand entsprechen ODER
+        ueberschreibe=true gesetzt sein — sonst 409 (agentensicheres
+        Konflikt-Modell). data wird strukturgeprueft, auf registrierte
+        Komponenten-Typen geklemmt und durch Pucks migrate() gehoben.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, data]
+              properties:
+                name: { $ref: "#/components/schemas/SeitenName" }
+                data: { $ref: "#/components/schemas/PuckData" }
+                erwartetGespeichert:
+                  type: string
+                  description: Der dem Aufrufer bekannte gespeichert-Zeitstempel.
+                ueberschreibe:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Geschrieben
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, pfad, gespeichert, contentAnzahl]
+                properties:
+                  name: { type: string }
+                  pfad: { type: string }
+                  gespeichert: { type: string }
+                  contentAnzahl: { type: integer }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "409":
+          description: Konflikt — Seite wurde zwischenzeitlich geaendert
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Fehler" }
+
+  /api/puck-seite/loesche:
+    post:
+      operationId: puckSeiteLoesche
+      summary: Eine Puck-Seite loeschen
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { $ref: "#/components/schemas/SeitenName" }
+      responses:
+        "200":
+          description: Geloescht
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, geloescht]
+                properties:
+                  name: { type: string }
+                  geloescht: { type: boolean }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "404": { $ref: "#/components/responses/NichtGefunden" }
+
+  /api/import/grafik-setup:
+    post:
+      operationId: importGrafikSetup
+      summary: "Importer Stufe A: GrafikSetup deterministisch nach Puck uebersetzen"
+      description: >-
+        Deterministischer Adapter (lib/import/grafik-setup-to-puck.ts) als
+        Endpunkt. Quelle ist entweder ein GrafikSetup im Body oder ein
+        gespeichertes Abbild (abbilder/<abbildName>.json). DRY-RUN BY
+        DEFAULT — geschrieben wird nur mit dryRun=false.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                setup: { $ref: "#/components/schemas/GrafikSetup" }
+                abbildName: { $ref: "#/components/schemas/SeitenName" }
+                zielSeite: { $ref: "#/components/schemas/SeitenName" }
+                dryRun:
+                  type: boolean
+                  default: true
+                erwartetGespeichert: { type: string }
+                ueberschreibe: { type: boolean, default: false }
+      responses:
+        "200":
+          description: Import-Bericht (bei dryRun=false inkl. pfad/gespeichert)
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [quelle, zielSeite, grafikenAnzahl, contentAnzahl, typen, dryRun]
+                properties:
+                  quelle: { type: string }
+                  zielSeite: { type: string }
+                  grafikenAnzahl: { type: integer }
+                  contentAnzahl: { type: integer }
+                  typen:
+                    type: array
+                    items: { type: string }
+                  dryRun: { type: boolean }
+                  pfad: { type: string }
+                  gespeichert: { type: string }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "404": { $ref: "#/components/responses/NichtGefunden" }
+        "409":
+          description: Konflikt mit bestehender Ziel-Seite
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Fehler" }
+
+  /api/abbild:
+    post:
+      operationId: abbildAktion
+      summary: "Bestand: Abbilder des Grafik-Editors (aktion-Dispatch)"
+      description: >-
+        Historische Sammel-Route des Grafik-Editors (app/api/abbild/route.ts).
+        Aktionen: liste | lade | speichere | loesche | standard ("Als
+        Standard setzen" schreibt grafik.config.json).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [aktion]
+                  properties:
+                    aktion: { type: string, enum: [liste] }
+                - type: object
+                  required: [aktion, name]
+                  properties:
+                    aktion: { type: string, enum: [lade, loesche] }
+                    name: { $ref: "#/components/schemas/SeitenName" }
+                - type: object
+                  required: [aktion, name, abbild]
+                  properties:
+                    aktion: { type: string, enum: [speichere] }
+                    name: { $ref: "#/components/schemas/SeitenName" }
+                    abbild: { $ref: "#/components/schemas/GrafikSetup" }
+                - type: object
+                  required: [aktion, abbild]
+                  properties:
+                    aktion: { type: string, enum: [standard] }
+                    abbild: { $ref: "#/components/schemas/GrafikSetup" }
+      responses:
+        "200":
+          description: Aktionsabhaengige Antwort (liste/lade/speichere/loesche/standard)
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "404": { $ref: "#/components/responses/NichtGefunden" }
+
+  /api/assets:
+    post:
+      operationId: assetsAktion
+      summary: "Bestand: Asset-Bibliothek aus public/ (aktion-Dispatch)"
+      description: >-
+        aktion=liste (Default bei jeder anderen Eingabe) listet public/
+        rekursiv; aktion=schreibe legt eine Base64-Data-URL als Datei unter
+        public/vektor/ ab (fuer vektorisierte SVGs).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  properties:
+                    aktion: { type: string, enum: [liste] }
+                - type: object
+                  required: [aktion, name, dataUrl]
+                  properties:
+                    aktion: { type: string, enum: [schreibe] }
+                    name: { type: string }
+                    dataUrl: { type: string, description: "data:image/...;base64,..." }
+      responses:
+        "200":
+          description: Asset-Liste bzw. Schreibbestaetigung
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
+  /api/vektorisieren:
+    post:
+      operationId: vektorisieren
+      summary: "Bestand: Raster→SVG-Vektorisierer (deterministisch, kein ML)"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataUrl]
+              properties:
+                dataUrl: { type: string, description: "data:image/...;base64,..." }
+                optionen: { type: object, description: "VektorOptionen (components/vektor/vektorisieren.ts)" }
+      responses:
+        "200":
+          description: SVG-Ergebnis
+          content:
+            application/json:
+              schema: { type: object }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
+components:
+  responses:
+    Ungueltig:
+      description: Ungueltige Eingabe
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Fehler" }
+    NichtGefunden:
+      description: Nicht gefunden
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Fehler" }
+    FremderUrsprung:
+      description: CSRF-Gate — fremder Browser-Origin abgelehnt
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Fehler" }
+
+  schemas:
+    Fehler:
+      type: object
+      required: [fehler]
+      properties:
+        fehler: { type: string }
+
+    SeitenName:
+      type: string
+      maxLength: 100
+      description: >-
+        Reiner Dateinamen-Baustein (kein Pfad, kein "..", keine
+        Windows-Sonderzeichen; Unicode-Buchstaben erlaubt) — Sanitisierung
+        in lib/api/server-helfer.ts (saubererName).
+
+    SeitenInfo:
+      type: object
+      required: [name, gespeichert, contentAnzahl]
+      properties:
+        name: { type: string }
+        gespeichert: { type: string }
+        contentAnzahl: { type: integer }
+
+    PuckData:
+      type: object
+      required: [content]
+      description: >-
+        Puck-Datenmodell (flach; Slots sind Props vom Typ ComponentData[]).
+        Nur in lib/puck-registry.ts registrierte Typen ueberleben das
+        Server-Gate.
+      properties:
+        root: { type: object }
+        content:
+          type: array
+          items: { $ref: "#/components/schemas/PuckContentItem" }
+
+    PuckContentItem:
+      type: object
+      required: [type, props]
+      properties:
+        type:
+          type: string
+          description: Registrierter Komponenten-Typ (z.B. ShapeAccent, GrafikLayer)
+        props:
+          type: object
+          required: [id]
+          properties:
+            id: { type: string }
+          additionalProperties: true
+
+    GrafikKeyframe:
+      type: object
+      required: [scrollY, x, y, scale, opacity, rotation]
+      properties:
+        scrollY: { type: number }
+        x: { type: number }
+        y: { type: number }
+        scale: { type: number }
+        opacity: { type: number }
+        rotation: { type: number }
+        easing:
+          type: array
+          items: { type: number }
+          minItems: 4
+          maxItems: 4
+        srcOverride: { type: string }
+
+    Grafik:
+      type: object
+      required: [id, name, src, art, breitePx, z, keyframes]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        src: { type: string }
+        art: { type: string, enum: [bild, lottie, video] }
+        breitePx: { type: number }
+        z: { type: number }
+        modus: { type: string, enum: [loop, scrub, still] }
+        stumm: { type: boolean }
+        versteckt: { type: boolean }
+        gesperrt: { type: boolean }
+        spiegelX: { type: boolean }
+        spiegelY: { type: boolean }
+        keyframes:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/GrafikKeyframe" }
+
+    GrafikSetup:
+      type: object
+      required: [grafiken]
+      description: Export-Format des Grafik-Editors (components/grafik/grafik-types.ts).
+      properties:
+        name: { type: string }
+        gespeichert: { type: string }
+        meta:
+          type: object
+          properties:
+            viewportW: { type: number }
+            viewportH: { type: number }
+            docH: { type: number }
+        grafiken:
+          type: array
+          items: { $ref: "#/components/schemas/Grafik" }
+        pool:
+          type: array
+          items: { type: object }
+        uebernommen:
+          type: array
+          items: { type: string }

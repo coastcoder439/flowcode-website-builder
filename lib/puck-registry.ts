@@ -1,0 +1,25 @@
+/*
+ * lib/puck-registry.ts — die im Puck-Editor registrierten Komponenten-Typen
+ * als reine Daten-Konstante.
+ *
+ * Warum nicht direkt aus app/puck/puck.config.tsx ableiten? Die Config
+ * importiert React-Komponenten (motion, GrafikMedium) — sie in einer
+ * Server-Route zu importieren zoege das komplette UI-Bundle in den
+ * API-Handler. Die Registry ist deshalb die geteilte, UI-freie Wahrheit
+ * fuers Server-seitige Validieren (docs/puck-erweiterungsebene.md §2.3:
+ * Puck selbst validiert nichts, <Render> verschluckt unbekannte Typen
+ * still — dieses Gate ist unsere Pflicht).
+ *
+ * SYNCHRONPFLICHT: Muss mit `config.components` in app/puck/puck.config.tsx
+ * uebereinstimmen — beim Registrieren einer neuen Komponente dort HIER
+ * nachziehen (der API-Roundtrip-Test scripts/api-roundtrip.mjs faellt sonst
+ * beim Import auf).
+ */
+
+export const PUCK_KOMPONENTEN_TYPEN = ["ShapeAccent", "GrafikLayer"] as const;
+
+export type PuckKomponentenTyp = (typeof PUCK_KOMPONENTEN_TYPEN)[number];
+
+export function istRegistrierterTyp(typ: string): typ is PuckKomponentenTyp {
+  return (PUCK_KOMPONENTEN_TYPEN as readonly string[]).includes(typ);
+}

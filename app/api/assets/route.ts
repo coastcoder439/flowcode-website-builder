@@ -18,6 +18,7 @@
 import { readdir, writeFile, mkdir } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { NextResponse, type NextRequest } from "next/server";
+import { AnfrageFehler, pruefeUrsprung } from "@/lib/api/server-helfer";
 
 /* NUR POST, kein GET — und das ist Absicht:
    Mit output:"export" verlangt Next von jeder GET-Route, dass sie statisch
@@ -108,6 +109,16 @@ async function liste() {
  */
 export async function POST(req: NextRequest) {
   try {
+    /* CSRF-Gate der Agenten-Schnittstelle (lib/api/server-helfer.ts):
+       fremder Browser-Origin -> 403; CLI-/Agenten-Aufrufe ohne Origin ok. */
+    try {
+      pruefeUrsprung(req);
+    } catch (e) {
+      if (e instanceof AnfrageFehler) {
+        return NextResponse.json({ fehler: e.message }, { status: e.status });
+      }
+      throw e;
+    }
     const body = (await req.json()) as {
       aktion?: unknown;
       name?: unknown;

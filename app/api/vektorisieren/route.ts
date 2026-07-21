@@ -17,6 +17,9 @@
 import { NextResponse, type NextRequest } from "next/server";
 import sharp from "sharp";
 import { vektorisiere, type VektorErgebnis, type VektorOptionen } from "@/components/vektor/vektorisieren";
+/* CSRF-Gate der Agenten-Schnittstelle; Alias, weil diese Route ihre eigene
+   (aeltere) AnfrageFehler-Klasse hat — beide werden im catch behandelt. */
+import { AnfrageFehler as ApiAnfrageFehler, pruefeUrsprung } from "@/lib/api/server-helfer";
 
 export const runtime = "nodejs";
 
@@ -194,6 +197,7 @@ function fehlerAntwort(status: number, meldung: string): NextResponse<{ fehler: 
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
+    pruefeUrsprung(request);
     const text = await leseBegrenzt(request, MAX_BODY_BYTES);
     const { dataUrl, optionen } = parseAnfrage(text);
     const { rgba, breite, hoehe, herunterskaliert } = await ladeRaster(dataUrl);
@@ -203,6 +207,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       : ergebnis;
     return NextResponse.json(antwort);
   } catch (error) {
+    if (error instanceof ApiAnfrageFehler) {
+      return fehlerAntwort(error.status, error.message);
+    }
     if (error instanceof AnfrageFehler) {
       return fehlerAntwort(error.status, error.message);
     }
