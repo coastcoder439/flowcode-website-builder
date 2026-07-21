@@ -81,7 +81,8 @@ committen + pushen (git -C auf den Projektordner), nie in den Workspace.
 
 ## Zielbild (Kurzform)
 
-Drei Schichten: **Animation** = unsere Tools (fertig) · **Komposition** = Puck-Editor `@puckeditor/core`
-(NICHT „Puck CMS", ein unverwandtes C#-Produkt) · **Inhalt** = Decap. Der **Website-Importer** ist ein
+ZWEI Schichten: **Animation** = unsere Tools (fertig) · **Komposition + Inhalt = Puck-Editor** `@puckeditor/core`
+(NICHT „Puck CMS", ein unverwandtes C#-Produkt) — Inhalt (Text/Bilder) = Baustein-Props, `seiten/*.json` in Git,
+**kein separates CMS** (Decap gestrichen 2026-07-22). Der **Website-Importer** ist ein
 eigener Baustein (Stufe A deterministischer Adapter / B Codemod+Agent / C LLM-Agent), KEIN Puck-Feature.
 Vollständig: `docs/zielbuild-und-stand.md`.

@@ -17,7 +17,13 @@
 > **v5-Nachtrag (Decap-Frage + Reframe + Roadmap):** Content-Layer-Entscheidung Decap (Abschnitt 0.5);
 > Fluss-Editor wird zum **Animations-Editor** (AP-I); universeller kompakter Export + HTML/weitere
 > Formate (AP-J); Roadmap „Full-End-Website-Editor-Dashboard im Agentic OS auf OSS-Basis" (Abschnitt 0.6).
-> FOKUS ZUERST: Grafik- + Animations-Editor (Scroll-Animation) — Puck/Decap kommen als spätere Phasen.
+> FOKUS ZUERST: Grafik- + Animations-Editor (Scroll-Animation) — Puck kommt als spätere Phase.
+> **v6-Nachtrag (2026-07-22, Leon):** ⚠️ **DECAP GESTRICHEN.** Die v5-Content-Layer-Entscheidung (§0.5b) ist
+> verworfen — KEIN separates CMS. Nur noch **ZWEI Schichten**: Animation (unsere Tools) + **Komposition UND Inhalt
+> = Puck** (Text/Bilder = Props der Puck-Bausteine, direkt im Editor editiert, als `seiten/*.json` in Git versioniert).
+> Alle Decap/Sveltia-Stellen unten (§0.5b, Roadmap R3, Checkliste) sind ab hier **historisch/überholt** — nicht mehr
+> als aktuelle Architektur lesen. Projekt jetzt eigenständig: `user-projects/flowcode-website-builder`
+> (Repo `coastcoder439/flowcode-website-builder`); die Projekt-/Repo-Angaben unten stammen vom WEE-Ursprung vor dem Whitelabel-Split.
 > Ausführung über `/multi-execute .claude/plan/builder-vereinheitlichung.md`.
 > **Projekt:** `user-projects/wee-website-refactoring/site-versions/wee-website-ben-refactor/v3`
 > **Dev-Server läuft auf Port 3113 — im Execute NIE `npm run build`, NIE `.next` löschen.**
@@ -86,7 +92,10 @@ BEVOR wir die Hülle (AP-A) auf Puck umstellen. Scheitert der Spike, bleibt unse
 [Top 5 React Page Builders (dev.to)](https://dev.to/fede_bonel_tozzi/top-5-page-builders-for-react-190g) ·
 [@imgly/background-removal](https://github.com/imgly/background-removal-js)
 
-### 0.5b Content-Layer — Decap (Bens Werkzeug) · recherchiert & entschieden (v5)
+### 0.5b Content-Layer — Decap · ~~entschieden (v5)~~ · ✂️ GESTRICHEN (v6, 2026-07-22)
+
+> ⚠️ **ÜBERHOLT — nur Historie.** Decap ist verworfen; Inhalt läuft über Puck (Baustein-Props, `seiten/*.json` in Git),
+> kein separates CMS. Der folgende Abschnitt bleibt nur zur Nachvollziehbarkeit stehen.
 
 Ben arbeitet mit **Decap CMS**. Recherche (belegt): Decap ist ein **Git-basiertes Headless-CONTENT-CMS**
 (MIT), KEIN visueller Page-Builder. Inhalte = Markdown/YAML/JSON im Git-Repo; Admin = React-SPA unter

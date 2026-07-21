@@ -1,8 +1,14 @@
 # Zielbuild & Stand — WEE Website-Builder
 
-> Stand: 2026-07-19 · Kompakte Zusammenfassung von Zielbild, Architektur und Ist-Stand.
-> Ausführlicher Master-Plan: [builder-plan.md](builder-plan.md). Beides lebt im Projekt-Repo
-> `coastcoder439/wee-website-refactoring` und wird mit dem Projekt versioniert.
+> Stand: 2026-07-22 · Kompakte Zusammenfassung von Zielbild, Architektur und Ist-Stand.
+> Ausführlicher Master-Plan: [builder-plan.md](builder-plan.md). Lebt im Projekt-Repo
+> `coastcoder439/flowcode-website-builder` und wird mit dem Projekt versioniert.
+>
+> ⚠️ **ARCHITEKTUR-KORREKTUR 2026-07-22:** Die frühere **Decap**-Content-Schicht (builder-plan §0.5b,
+> „drei Schichten") ist **gestrichen**. Es gibt **ZWEI** Schichten: Animation (unsere Tools) +
+> **Komposition UND Inhalt = Puck**. Text/Bilder sind **Props der Puck-Bausteine**, direkt im Editor
+> editiert und als `seiten/*.json` in Git versioniert — **kein separates CMS** (kein Decap, kein Sveltia).
+> Die Decap-Abschnitte in builder-plan.md sind damit historisch/überholt.
 
 ---
 
@@ -14,8 +20,7 @@ als Dashboard im Agentic OS, auf Open-Source-Basis. Drei Schichten, die sich nic
 | Schicht | Werkzeug | Status |
 |---|---|---|
 | **Animation** (Scroll-Keyframes, Fluss, Vektorisierung) | **unsere Tools** — das Alleinstellungsmerkmal, das kein OSS-Tool liefert | ✅ gebaut (R1) |
-| **Komposition** (Seiten, Sektionen, Layout, Blöcke) | **Puck-Editor** (`@puckeditor/core`, MIT, React-nativ) — NICHT „Puck CMS" (das ist ein unverwandtes C#-Produkt) | ⬜ R2 |
-| **Inhalt** (Text, Bilder, Daten in Git) | **Decap** (Bens Workflow) bzw. später Sveltia | ⬜ R3 |
+| **Komposition + Inhalt** (Seiten, Sektionen, Layout, Blöcke UND Text/Bilder — als Props der Bausteine) | **Puck-Editor** (`@puckeditor/core`, MIT, React-nativ) — NICHT „Puck CMS" (unverwandtes C#-Produkt). Inhalt = Baustein-Props, direkt im Editor editiert, gespeichert als `seiten/*.json` in Git → **kein separates CMS** | 🟡 R2 (Grundlagen stehen) |
 
 **Betriebs-Modus:** Seiten leben im Tool (gebaut oder importiert). Für bestehende Fremdseiten,
 die NICHT importiert werden, bleibt der Overlay-Embed die Brücke (best effort).
@@ -82,7 +87,7 @@ Für nicht-importierte Fremdseiten: Overlay-Embed (existiert, s.u.).
 | **R2a** | **Puck-Spike**: unsere Komponenten in `config.components` registrieren, ein Tool (Grafik-Layer) als Puck-Komponente beweisen | ⬜ nächster Schritt |
 | **R2b** | **Website-Importer** Stufe A (deterministischer Adapter für datengetriebene Seiten) → dann B (Codemod+Agent) → dann C (Agent-Importer) | ⬜ NEU als fester Baustein |
 | **R2c** | Puck als visuelle Hülle; Animation als nativer Layer (relative Koordinaten, echte CSS/DOM-Integration — löst das Overlay-Fusions-Problem) | ⬜ |
-| **R3** | Decap als Git-Content-Backend (Bens Workflow), Grenze Inhalt↔Präsentation | ⬜ |
+| ~~R3~~ | **ENTFÄLLT** — Inhalt läuft über Puck (Text/Bilder = Baustein-Props, `seiten/*.json` in Git). Kein separates Content-Backend mehr. | ✂️ gestrichen 2026-07-22 |
 | **R4** | Export-Pipeline produktiv (ganze Seiten + Elemente, self-hosted deploybar) | ⬜ teils via Embed vorhanden |
 | **R5** | Dashboard im Agentic OS (mehrere Projekte, Rollen, Vorschau-Deploys) | ⬜ Vision |
 
