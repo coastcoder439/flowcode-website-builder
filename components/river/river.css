@@ -1,0 +1,235 @@
+/* river.css – Layout-Gerüst der Fluss-Zone (WP0-Fundament). Bewegung/Optik
+   folgt in Folge-WPs; hier nur strukturelle Platzierung (Compositing-
+   freundlich, keine Layout-Eigenschaften animiert). */
+
+/* Umschließt alle Landing-Sektionen, hinter denen der Fluss durchläuft
+   (RiverFlow). Referenzpunkt für die absolut positionierte SVG-Ebene. */
+.river-zone {
+  position: relative;
+}
+
+/* Der Fluss-SVG-Layer liegt hinter dem Content, fängt nie Interaktionen ab
+   und erstreckt sich über die gesamte Fluss-Zone (nicht nur den Viewport).
+   F1a: feste 1200px-Design-Spalte wie im Kunden-Original – zentriert, auf
+   schmaleren Screens proportional skaliert (viewBox 1200×H + "meet" in
+   RiverFlow.tsx bewahren das Artwork unverzerrt). */
+.river-svg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, 1200px);
+  pointer-events: none;
+  /* Kundenvorgabe: Der Fluss taucht NICHT hinter den grünen Sektions-Panels
+     (Haltung, Stats) ab, sondern läuft ÜBER sie hinweg — deshalb liegt der
+     SVG-Layer ÜBER den Sektions-Hintergründen (z 1), während der eigentliche
+     Inhalt (.container: Text, weiße Karten) auf z 2 ÜBER dem Fluss bleibt.
+     Ergebnis: Panels unter dem Fluss, Karten/Text über ihm — der Fluss kann
+     konstruktionsbedingt nie Text überdecken, und in Bausteine bleibt er
+     hinter den weißen Karten sichtbar. */
+  z-index: 1;
+  /* Naht-Überlappung zur Vorhang-Bühne (TitleCurtain endet exakt an der
+     Fluss-Zonen-Kante) – schließt einen möglichen Sub-Pixel-Spalt. */
+  margin-top: -2px;
+}
+
+/* Sektionen: position relative OHNE z-index — sie dürfen KEINEN Stacking-
+   Context bilden, damit ihre .container-Kinder (z 2) über den SVG-Layer
+   (z 1) steigen können, während die Sektions-Hintergründe darunter bleiben. */
+.river-zone .section {
+  position: relative;
+}
+
+/* Aller Sektions-INHALT liegt über dem Fluss (Text, weiße Karten, CTA-
+   Karten). Deko-Ebenen außerhalb von .container (TextureField, tal-cliff)
+   bleiben bewusst unter dem Fluss. */
+.river-zone .section .container {
+  position: relative;
+  z-index: 2;
+}
+
+/* =====================================================================
+   RiverFeatures (WP4) – Flora, Wasserfälle, Felswand, See
+   ===================================================================== */
+
+/* Die .tal-cliff-Zone (#tal, 340px) muss den SVG-Layer durchscheinen lassen,
+   damit die Felswand/der große Wasserfall (RiverFeatures) sichtbar werden.
+   #tal trägt selbst einen dunklen Sektions-Hintergrund (app-seitig gesetzt),
+   der aber deckungsgleich mit .tal-floor (dem Talboden direkt darunter) ist –
+   .tal-floor hat bereits eine eigene, deckende Hintergrundfarbe, daher hat
+   das Entfernen von #tal's eigenem Hintergrund außerhalb der Cliff-Zone
+   keinerlei sichtbaren Effekt. Additive Regel, keine bestehende verändert. */
+#tal {
+  background: transparent;
+}
+
+/* --- Flora: Sprout-Reveal (scale 0→1 mit Overshoot, transform-box:
+   fill-box macht "bottom center"/"top center" unabhängig von den
+   tatsächlich verwendeten Pfad-Koordinaten – siehe crownTransform in
+   RiverFeatures.tsx). */
+.rf-flora {
+  transform-box: fill-box;
+  transform-origin: bottom center;
+  transform: scale(0);
+  transition: transform 640ms var(--ease-bounce);
+}
+.rf-flora--sprout {
+  transform: scale(1);
+}
+/* Efeu hängt von oben herab statt aus dem Boden zu wachsen. */
+.rf-flora--efeu {
+  transform-origin: top center;
+}
+
+.rf-tree-trunk {
+  fill: var(--green-900);
+}
+.rf-tree-crown-main {
+  fill: var(--green-600);
+}
+.rf-tree-crown-accent {
+  fill: var(--green-400);
+}
+
+.rf-ivy-stem {
+  fill: none;
+  stroke: var(--green-600);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.rf-ivy-leaf-a {
+  fill: var(--green-600);
+}
+.rf-ivy-leaf-b {
+  fill: var(--green-400);
+}
+.rf-ivy-berry {
+  fill: var(--orange-400);
+}
+
+/* --- Wasserfall-Kaskaden (Box + Felswand teilen sich dieselbe Optik) --- */
+.rf-waterfall-lip {
+  fill: var(--water-500);
+  opacity: 0.9;
+}
+/* Lauftextur: rAF animiert gradientTransform auf dem <linearGradient>
+   (RiverFeatures.tsx) – dieser Overlay-Rect trägt nur den Blend-Modus. */
+.rf-waterfall-flow {
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.rf-waterfall-foam .rf-foam-dot {
+  fill: #fff;
+  opacity: 0.6;
+}
+.rf-splash-arc {
+  fill: none;
+  stroke: var(--water-300);
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.7;
+}
+.rf-splash-pulse {
+  fill: var(--water-300);
+  opacity: 0.65;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* --- Felswand (nur beim Wasserfall-Typ "cliff") --- */
+.rf-cliff-back {
+  fill: var(--ink-300);
+}
+.rf-cliff-mid {
+  fill: var(--ink-500);
+}
+.rf-cliff-front {
+  fill: var(--ink-700);
+}
+.rf-cliff-joint {
+  stroke: var(--ink-900);
+  stroke-width: 1.5;
+  opacity: 0.25;
+  fill: none;
+}
+
+/* --- See --- */
+.rf-lake-basin {
+  fill: var(--water-800);
+  stroke: var(--bank-500);
+  stroke-width: 6;
+}
+.rf-lake-ring {
+  fill: none;
+  stroke: var(--water-300);
+  stroke-width: 1.5;
+  opacity: 0.3;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.rf-lake-glare {
+  fill: #fff;
+  opacity: 0.2;
+}
+.rf-lake-foam {
+  fill: #fff;
+  opacity: 0.55;
+}
+
+/* --- Schaumfront an der Reveal-Kante (Kundenwunsch "Bubble-Schaum",
+   abgeleitet von den Glitzer-Bubbles im Wasser). Die Gruppe wird von
+   RiverFeatures als Geschwister der geclippten Reveal-Gruppe in den
+   SVG-Root gehängt (Portal) – Position/Waber schreibt der rAF-Loop. --- */
+.rf-foamfront {
+  pointer-events: none;
+}
+/* Fließfront-Partikel (3 Schichten). Kein Schaumsaum-Blob mehr — die Front
+   entsteht allein aus der Partikelwolke (Kundenentscheid). */
+.rf-foam-bubble {
+  fill: #fff;
+}
+/* Gischt: kühl angehaucht, wirkt vor der Front wie zerstäubtes Wasser. */
+.rf-foam-bubble--gischt {
+  fill: var(--water-300);
+}
+/* Schaum: reines Weiß, die Krone der Front. */
+.rf-foam-bubble--schaum {
+  fill: #fff;
+}
+/* Nachlauf: bereits im Wasser aufgehende Reste. */
+.rf-foam-bubble--nachlauf {
+  fill: var(--water-400);
+}
+
+/* Nebelkante: weiche Wolken über der Fließkante. Das blur() sitzt inline
+   auf der Gruppe (Regler im Editor) — hier nur die Farbe. */
+.rf-mist-wolke {
+  fill: #fff;
+}
+
+/* --- Reduced Motion: alles statisch (Flora voll ausgewachsen, Kaskaden
+   ohne Lauftextur, See ohne Atmung) --- */
+@media (prefers-reduced-motion: reduce) {
+  .rf-flora {
+    transition: none !important;
+    transform: scale(1) !important;
+  }
+  .rf-waterfall-flow {
+    display: none;
+  }
+  .rf-foam-dot,
+  .rf-lake-glare,
+  .rf-lake-foam {
+    opacity: 0.55 !important;
+  }
+  .rf-splash-pulse,
+  .rf-lake-ring {
+    transform: scale(1) !important;
+  }
+  /* Kein Schaum bei reduced-motion (Fluss ist dort komplett aufgedeckt);
+     RiverFeatures rendert ihn dann gar nicht erst – doppelte Absicherung. */
+  .rf-foamfront {
+    display: none;
+  }
+}

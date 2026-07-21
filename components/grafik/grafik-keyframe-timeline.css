@@ -1,0 +1,77 @@
+/* grafik-keyframe-timeline.css – Keyframe-Zeitleiste (GrafikKeyframeTimeline.
+   tsx), gerendert im Reiter „Keyframes" von GrafikEditor.tsx. Gleiche Optik
+   wie die übrigen Bausteine (dunkel rgba(0,0,0,.2)-Flächen, grün #3f6e3a,
+   gelber Akzent #e8b400, helle Werte #9fd68a) — eigene Datei/Klassen-Präfix
+   nach demselben Muster wie grafik-easing.css/grafik-objekt-menue.css. */
+
+.gre-kft {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gre-kft-spur {
+  position: relative;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+  touch-action: none;
+}
+
+/* Waagerechte Mittellinie als Spur-Andeutung (rein dekorativ). */
+.gre-kft-spur::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 50%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-50%);
+}
+
+.gre-panel button.gre-kft-marker {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  background: #3f6e3a;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #eaf6e4;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  cursor: grab;
+  transform: translate(-50%, -50%);
+  touch-action: none;
+}
+
+.gre-panel button.gre-kft-marker:hover {
+  background: #4f8a49;
+}
+
+.gre-panel button.gre-kft-marker:active {
+  cursor: grabbing;
+}
+
+.gre-panel button.gre-kft-marker--aktiv {
+  background: #e8b400;
+  border-color: #2a2000;
+  color: #2a2000;
+}
+
+.gre-kft-marker-nr {
+  pointer-events: none;
+}
+
+.gre-kft-spanne {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: monospace;
+  opacity: 0.6;
+}

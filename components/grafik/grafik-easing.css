@@ -1,0 +1,65 @@
+/* grafik-easing.css – Kurven-Editor (EasingKurve.tsx), gerendert im Reiter
+   „Keyframes" von GrafikEditor.tsx (dort innerhalb von .gre-panel). Gleiche
+   Optik wie die übrigen Bausteine (dunkel rgba(20,30,24,.92)-Panel, grün
+   #3f6e3a, gelber Akzent #e8b400, helle Werte #9fd68a) — eigene Datei/
+   Klassen-Präfix nach demselben Muster wie grafik-inspector.css. */
+
+.gre-easing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.gre-easing-feld {
+  touch-action: none;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+}
+
+.gre-easing-rahmen {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 1;
+}
+
+.gre-easing-diagonale {
+  stroke: rgba(255, 255, 255, 0.15);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.gre-easing-kurve {
+  fill: none;
+  stroke: #9fd68a;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.gre-easing-griffleine {
+  stroke: #e8b400;
+  stroke-width: 1;
+  opacity: 0.7;
+}
+
+.gre-easing-griff {
+  fill: #e8b400;
+  stroke: #2a2000;
+  stroke-width: 1;
+  cursor: grab;
+}
+
+.gre-easing-griff:hover,
+.gre-easing-griff:active {
+  fill: #ffd23f;
+}
+
+.gre-easing-presets {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.gre-panel .gre-easing-presets button {
+  font-size: 10.5px;
+  padding: 3px 7px;
+}

@@ -1,0 +1,65 @@
+/* river-birth.css – Geburt des Flusses (F1b). Phasen laut BirthPhases:
+   crossfade → fall → splash → spring. Bewegung kommt ausschließlich aus
+   motion (transform/opacity/fill) bzw. direkten Attribut-Updates (siehe
+   RiverBirth.tsx); hier stehen nur Compositing-freundliche Basis-Stile. */
+
+.rb-root {
+  position: absolute;
+  inset: 0;
+  /* Über allen Vorhang-Ebenen (Bäume/Sonne z1, Gras/Fauna/Hint z2), unter
+     dem .tc-overlay-eigenen z-index (5) – reicht, da dieser Wrapper selbst
+     schon der letzte Layer VOR dem Hero-Dissolve ist. */
+  z-index: 3;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.rb-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* Der Tropfen mit exakter Logo-Silhouette (logo-drop-path.ts). Füllung wird
+   inline gescrubbt (Weiß → #4395A7), deshalb hier bewusst KEIN fill und
+   KEIN Kontur-Stroke (Kundenkritik: falsche Farbe/ungenaue Form). */
+.rb-drop {
+  stroke: none;
+}
+
+/* Dezenter hellerer Glanzpunkt im Tropfenbauch – erscheint mit der
+   Blaufärbung (Opacity inline gescrubbt). */
+.rb-drop-glanz {
+  fill: #bce8e5;
+  stroke: none;
+}
+
+/* Ferner Aufprall-Glint am Horizont (splash-Phase): winziger Ring + Funken
+   – klein und fein, weil weit weg. */
+.rb-glint-ring {
+  fill: none;
+  stroke: var(--water-300);
+  stroke-width: 1.5;
+}
+
+.rb-glint-funke {
+  fill: var(--water-300);
+  stroke: none;
+}
+
+/* HINWEIS (Kundenvorgabe „nur EIN Fluss"): RiverBirth zeichnet keinen
+   Bühnen-Fluss/See mehr — der eine Fluss inkl. Mini-See lebt komplett in
+   RiverFlow (Master-Pfade, riverPath.ts). Die früheren Klassen
+   .rb-trichter-… und .rb-see-… sowie der Ellipse-Hide-Hack sind daher
+   entfernt.
+   ACHTUNG beim Bearbeiten: hier KEIN Sternchen direkt vor einem Schrägstrich
+   schreiben. Genau das („.rb-trichter-*" + "/") hat den Kommentar früher
+   vorzeitig geschlossen — der Rest wurde als Selektor gelesen und hat
+   `next build` gekillt, während `next dev` klaglos weiterlief. */
+
+@media (prefers-reduced-motion: reduce) {
+  .rb-root {
+    display: none;
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "name": "flowcode-website-builder",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3113",
+    "build": "node scripts/build-embed.mjs && next build",
+    "start": "next start",
+    "build:embed": "node scripts/build-embed.mjs"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "lottie-web": "^5.12.2",
+    "motion": "^12.42.2",
+    "next": "15.5.20",
+    "onnxruntime-web": "1.21.0",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "@types/react": "19.0.2",
+    "@types/react-dom": "19.0.2",
+    "esbuild": "^0.28.1",
+    "typescript": "5.7.2"
+  }
+}

@@ -1,0 +1,219 @@
+/* grafik-hilfe.css – Fragezeichen-Hilfen (HilfeIcon) + Einstiegs-Tutorial
+   (GrafikTutorial) für /grafik-editor. Gleiche Optik wie grafik-editor.css
+   und grafik-objekt-menue.css (dunkel rgba(20,30,24,.92), grün #3f6e3a,
+   gelber Akzent #e8b400) — eigene Datei/Klassen-Präfix, weil beide Bausteine
+   NICHT Teil von .gre-panel sind (position:fixed, s. Kommentar dort). */
+
+/* --- HilfeIcon: kleines "?"-Badge --------------------------------------- */
+
+.gre-panel button.gre-hilfe-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(159, 214, 138, 0.28);
+  color: #eaf6e4;
+  border: 1px solid rgba(159, 214, 138, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  cursor: help;
+  vertical-align: middle;
+}
+
+.gre-panel button.gre-hilfe-icon:hover,
+.gre-panel button.gre-hilfe-icon:focus-visible,
+.gre-panel button.gre-hilfe-icon[aria-expanded="true"] {
+  background: #3f6e3a;
+  border-color: #9fd68a;
+  color: #fff;
+}
+
+.gre-hilfe-popover {
+  position: fixed;
+  z-index: 90; /* über .gre-panel (60) und .gre-objektmenue (70) */
+  max-width: 230px;
+  background: rgba(15, 24, 19, 0.98);
+  color: #f2efe7;
+  border: 1px solid #3f6e3a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: 11.5px/1.5 system-ui, sans-serif;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+/* --- Reiter-Kopf: Tab-Titel + HilfeIcon im Inhalt (s. GrafikEditor.tsx) -- */
+
+.gre-reiter-kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9fd68a;
+}
+
+/* --- Panel-Kopf: "? Hilfe"-Knopf zum erneuten Öffnen des Tutorials ------ */
+
+.gre-panel button.gre-hilfe-knopf {
+  flex: 0 0 auto;
+  background: rgba(159, 214, 138, 0.18);
+  color: #eaf6e4;
+  font-size: 10.5px;
+  padding: 3px 7px;
+  white-space: nowrap;
+}
+
+.gre-panel button.gre-hilfe-knopf:hover,
+.gre-panel button.gre-hilfe-knopf:focus-visible {
+  background: #3f6e3a;
+  color: #fff;
+}
+
+/* Kopfzeile darf auf zwei Zeilen umbrechen, falls der neue Knopf zusammen
+   mit Titel/Verlauf/Fluss-Link auf 266px Panel-Breite eng wird — bricht bei
+   Bedarf sauber um, statt etwas abzuschneiden oder zu verdecken. */
+.gre-kopf {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* --- Tutorial: Vollbild-Hintergrund + zentrierte Box -------------------- */
+
+.gre-tutorial-hintergrund {
+  position: fixed;
+  inset: 0;
+  z-index: 300; /* über allem im Editor, auch über .gre-vektor-overlay (200) */
+  display: grid;
+  place-items: center;
+  background: rgba(8, 13, 10, 0.72);
+  padding: 20px;
+}
+
+.gre-tutorial-box {
+  width: min(420px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  background: rgba(20, 30, 24, 0.97);
+  color: #f2efe7;
+  border-radius: 12px;
+  padding: 20px;
+  font: 13px/1.5 system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.gre-tutorial-kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.gre-tutorial-kopf strong {
+  font-size: 16px;
+}
+
+.gre-tutorial-box button.gre-tutorial-x {
+  background: transparent;
+  color: #f2efe7;
+  border: 0;
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  font-size: 13px;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.gre-tutorial-box button.gre-tutorial-x:hover,
+.gre-tutorial-box button.gre-tutorial-x:focus-visible {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.gre-tutorial-sicher {
+  font-size: 12px;
+  background: rgba(63, 110, 58, 0.28);
+  border: 1px solid #3f6e3a;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.gre-tutorial-schritte {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.gre-tutorial-schritte li {
+  padding-left: 2px;
+}
+
+.gre-tutorial-kuerzel-titel {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9fd68a;
+  margin-bottom: 5px;
+}
+
+.gre-tutorial-kuerzel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.gre-tutorial-kuerzel td {
+  padding: 3px 6px 3px 0;
+  vertical-align: top;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.gre-tutorial-kuerzel tr:first-child td {
+  border-top: none;
+}
+
+.gre-tutorial-kuerzel kbd {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 5px;
+  padding: 2px 6px;
+  font: 11px/1.3 ui-monospace, monospace;
+  white-space: nowrap;
+}
+
+.gre-tutorial-box button.gre-tutorial-los {
+  align-self: flex-end;
+  background: #3f6e3a;
+  color: #fff;
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 18px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gre-tutorial-box button.gre-tutorial-los:hover,
+.gre-tutorial-box button.gre-tutorial-los:focus-visible {
+  background: #4d8546;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gre-hilfe-popover,
+  .gre-tutorial-hintergrund,
+  .gre-tutorial-box {
+    transition: none;
+  }
+}

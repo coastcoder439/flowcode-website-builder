@@ -1,0 +1,129 @@
+/* =====================================================================
+   World Eden Era – Design Tokens
+   1:1 übernommen aus dem Standalone Design System
+   (design-system/World-Eden-Era-Design-System.html)
+   Diese Datei ist die EINZIGE Quelle für Farben, Typo, Spacing & Effekte.
+   ===================================================================== */
+:root {
+  /* --- Green scale --- */
+  --green-950:#0E2117; --green-900:#143021; --green-800:#1E4530; --green-700:#2C5234;
+  --green-600:#3F6E3A; --green-500:#72AC43; --green-400:#8FBF64; --green-300:#B0D38C;
+  --green-200:#D0E4BA; --green-100:#E6F1D8; --green-50:#F2F8EA;
+
+  /* --- Sand scale --- */
+  --sand-50:#FBF8F2; --sand-100:#F5EFE3; --sand-200:#ECE2CF; --sand-300:#DECCAC;
+  --sand-400:#CBB389; --sand-500:#B49968;
+
+  /* --- Orange scale --- */
+  --orange-50:#FEF7EA; --orange-100:#FDECD0; --orange-200:#FBD89A; --orange-300:#F8C060;
+  --orange-400:#F3A730; --orange-500:#EA8914; --orange-600:#C47210; --orange-700:#9C5B0C;
+  --orange-800:#754408; --orange-900:#502F05;
+
+  /* --- Ink / neutrals --- */
+  --ink-900:#16201A; --ink-700:#2E3A33; --ink-500:#5A6960;
+  --ink-400:#82908A; --ink-300:#A9B4AE; --ink-200:#CBD2CD; --white:#FFFFFF;
+
+  /* --- Semantic --- */
+  --success:#3F8F4E; --warning:#E0A52E; --danger:#C9442E; --info:#3F7E8F;
+  --purple-500:#9810FA;
+
+  /* --- Accent (Design-Überarbeitung: Lebendigkeit, Mid-Century-Farbakzent) ---
+     Bewusst sparsam eingesetzt (Stats-Zahlen, alternierende Icon-Badges,
+     ctaBand-Hervorhebung, Shape-Akzente) -- keine dritte Grundfläche. */
+  --accent-500:var(--orange-500); --accent-600:var(--orange-600);
+  --accent-glow:color-mix(in srgb, var(--orange-500) 45%, transparent);
+
+  /* --- Surfaces & text --- */
+  --bg-page:#F5EFE3; --surface:#FFFFFF; --surface-sunken:#ECE2CF;
+  --text-strong:#16201A; --text-body:#2E3A33; --text-muted:#5A6960; --text-faint:#82908A;
+
+  /* --- Borders & focus --- */
+  --border-subtle:color-mix(in srgb,#2E3A33 12%,transparent);
+  --border-default:color-mix(in srgb,#2E3A33 20%,transparent);
+  --border-strong:color-mix(in srgb,#2E3A33 38%,transparent);
+  --focus-ring:color-mix(in srgb,#72AC43 55%,transparent);
+
+  /* --- Typography --- */
+  --font-display:"Syne","Trebuchet MS",system-ui,sans-serif;
+  --font-body:"Montserrat",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --text-2xs:.6875rem; --text-xs:.75rem; --text-sm:.875rem; --text-md:1rem;
+  --text-lg:1.125rem; --text-xl:1.375rem; --text-2xl:1.75rem; --text-3xl:2.25rem;
+  --text-4xl:3rem; --text-5xl:4rem; --text-6xl:5.25rem;
+  --fw-regular:400; --fw-medium:500; --fw-semibold:600; --fw-bold:700; --fw-extrabold:800;
+  --lh-tight:1.04; --lh-snug:1.18; --lh-normal:1.5; --lh-relaxed:1.65;
+  --ls-tight:-0.02em; --ls-snug:-0.01em; --ls-caps:0.12em;
+
+  /* --- Radii --- */
+  --radius-xs:6px; --radius-sm:10px; --radius-md:16px; --radius-lg:24px;
+  --radius-xl:32px; --radius-2xl:44px; --radius-pill:999px;
+
+  /* --- Shadows --- */
+  --shadow-xs:0 1px 2px rgba(20,48,33,.06); --shadow-sm:0 2px 6px rgba(20,48,33,.08);
+  --shadow-md:0 8px 22px -8px rgba(20,48,33,.18); --shadow-lg:0 20px 48px -16px rgba(20,48,33,.24);
+  --shadow-xl:0 36px 80px -24px rgba(20,48,33,.30);
+  --shadow-glow:0 10px 40px -8px rgba(114,172,67,.45);
+
+  /* --- Glass / effects (Design-Überarbeitung 2.0: leichter, markentönt statt
+     generisch milchig-weiß, dezentes Sheen statt reinem Flat-Tint) --- */
+  --glass-blur:14px; --glass-blur-strong:22px;
+  --glass-tint:var(--green-50);
+  --glass-light:color-mix(in srgb,var(--glass-tint) 52%,transparent);
+  --glass-light-scrolled:color-mix(in srgb,var(--glass-tint) 74%,transparent);
+  --glass-light-edge:color-mix(in srgb,#fff 92%,transparent);
+  --glass-sheen:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,0) 55%);
+  --glass-dark:color-mix(in srgb,#0E2117 38%,transparent);
+  --glass-dark-edge:color-mix(in srgb,#fff 20%,transparent);
+  --glass-edge-light:inset 0 1px 0 0 var(--glass-light-edge),inset 0 0 0 1px rgba(255,255,255,.14);
+  --glass-edge-dark:inset 0 1px 0 0 var(--glass-dark-edge),inset 0 0 0 1px rgba(255,255,255,.08);
+  --glass-shadow:0 10px 32px -14px rgba(14,33,23,.38);
+
+  /* --- Nav-Glass (Design-Überarbeitung 2.0, Phase "Nav-Rework"): eigene,
+     transparentere Variante nur für die Hauptnavigation – bewusst getrennt
+     von --glass-light/-scrolled, damit Cookie-Hinweis und Passwort-Gate
+     (site-gate) ihre kräftigere Tönung/Kontrast behalten. */
+  --nav-glass-blur:20px; --nav-glass-blur-strong:28px;
+  /* Opazität bewusst deutlich höher als frühere 24%/38%: die Navbar sitzt auf
+     fast jeder Seite über einem dunklen Bild-Hero-Overlay (bis 90% green-950,
+     siehe .block-hero--image .block-hero__overlay) – bei zu dünnem Glas scheint
+     das Dunkel fast ungefiltert durch und der dunkle Nav-Text (--text-body/-strong)
+     verliert Kontrast. Mix zusätzlich mit Weiß statt nur Grün-Tint, damit das
+     Glas auch über Dunkel spürbar aufhellt statt nur leicht einzufärben. */
+  --nav-glass-light:color-mix(in srgb, color-mix(in srgb, var(--glass-tint) 60%, #fff 40%) 55%, transparent);
+  --nav-glass-light-scrolled:color-mix(in srgb, color-mix(in srgb, var(--glass-tint) 60%, #fff 40%) 70%, transparent);
+
+  /* --- Motion --- */
+  --ease-out:cubic-bezier(.22,1,.36,1); --ease-bounce:cubic-bezier(.34,1.56,.64,1);
+  --dur-fast:130ms; --dur-base:220ms; --dur-slow:420ms;
+
+  /* --- Layout helpers (Relaunch) --- */
+  --container-max:1160px;
+  --container-narrow:760px;
+  --container-wide:1340px;
+  /* Nav-Rework: eigener, breiterer Deckel nur für den Header-Container,
+     damit die Glass-Pille auf Ultrawide-Screens mehr vom Screen ausfüllt,
+     statt bei --container-max (1160px) zu kappen. */
+  --container-header-wide:clamp(1160px, 94vw, 1900px);
+  --space-section:clamp(3.5rem, 8vw, 7rem);
+  --header-h:84px;
+
+  /* --- Editorial marks (Redesign) --- */
+  --rule-color:var(--border-default);
+  --rule-color-on-dark:color-mix(in srgb, #fff 22%, transparent);
+  /* Dezente Fließlinien-Textur (Design-Überarbeitung 2.0, ersetzt die
+     symmetrischen "WLAN-Kreisbögen" --texture-topo): eine verzweigte,
+     unregelmäßige Linie, die gleichzeitig an Blattadern/Wurzeln und an
+     sanfte Wasserströmung erinnert – passend zum Aquaponik-/
+     Wachstums-Thema, ohne Foto-Asset. --texture-flow für dunkle Bänder
+     (weißer Strich), --texture-flow-card für helle Card-Flächen (grüner
+     Strich, noch dezenter). */
+  --texture-flow:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M14,286 C54,268 50,228 32,198 C14,168 46,146 82,156 C120,167 132,124 112,96 C95,72 118,54 148,58'/%3E%3Cpath d='M32,198 C54,184 62,158 56,128'/%3E%3Cpath d='M82,156 C94,180 122,190 140,214'/%3E%3Cpath d='M112,96 C136,100 146,80 170,84'/%3E%3Cpath d='M148,58 C172,48 178,24 206,18'/%3E%3C/g%3E%3C/svg%3E");
+  --texture-flow-card:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='none' stroke='%232C5234' stroke-opacity='0.035' stroke-width='1' stroke-linecap='round'%3E%3Cpath d='M14,286 C54,268 50,228 32,198 C14,168 46,146 82,156 C120,167 132,124 112,96 C95,72 118,54 148,58'/%3E%3Cpath d='M32,198 C54,184 62,158 56,128'/%3E%3Cpath d='M82,156 C94,180 122,190 140,214'/%3E%3Cpath d='M112,96 C136,100 146,80 170,84'/%3E%3Cpath d='M148,58 C172,48 178,24 206,18'/%3E%3C/g%3E%3C/svg%3E");
+
+  /* --- Fluss-Feature ("Der Fluss") ---
+     Wasser-Skala aus dem Kunden-Referenzprototyp (Wellenfarben hell→dunkel:
+     700..300; 800/900 = Basis-Fill/Tiefe des Flusses). Sandufer-Stroke
+     50px als eigener Bank-Ton, --bank-400 = hellere Variante für Highlights. */
+  --water-900:#264B57; --water-800:#4395A7; --water-700:#52A8B6; --water-600:#68BAC4;
+  --water-500:#81CAD4; --water-400:#96D5D5; --water-300:#BCE8E5;
+  --bank-500:#CDA475; --bank-400:#DCC094;
+}

@@ -1,0 +1,134 @@
+/* grafik-inspector.css – Bearbeitungs-Fenster für die ausgewählte Grafik
+   (GrafikInspector.tsx), gerendert im Reiter „Bild" von GrafikEditor.tsx.
+   Gleiche Optik wie die übrigen Bausteine (dunkel rgba(20,30,24,.92), grün
+   #3f6e3a, gelber Akzent #e8b400) — eigene Datei/Klassen-Präfix nach
+   demselben Muster wie grafik-objekt-menue.css/grafik-hilfe.css. Anders als
+   dort sitzt dieser Baustein ABER INNERHALB von .gre-panel (kein eigenes
+   position:fixed) und erbt darüber automatisch Basis-Stile für Buttons,
+   Regler (.gre-regler/.gre-regler-kopf/.gre-wert), Reiter-Kopf und Hilfe-
+   Icons (s. grafik-editor.css/grafik-hilfe.css) — hier stehen nur die
+   Layout-Klassen, die es sonst nirgendwo gibt. */
+
+.gre-inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gre-inspector-kopf {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gre-inspector-thumb {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  padding: 3px;
+  background: #10201a;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.gre-inspector-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.gre-inspector-kopf-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.gre-inspector-name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gre-inspector-art {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.gre-inspector-abschnitt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 8px;
+}
+
+/* Live-Anzeige des interpolierten Zustands (zustandBei) — bewusst nur
+   Anzeige, keine Regler: bearbeitet wird das weiterhin ausschließlich über
+   Keyframes (s. Kommentar in GrafikInspector.tsx). */
+.gre-inspector-zustand {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 10.5px;
+  font-family: monospace;
+  opacity: 0.65;
+}
+
+.gre-panel button.gre-inspector-vektor-knopf {
+  width: 100%;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.gre-panel button.gre-inspector-vektor-knopf:disabled {
+  background: rgba(63, 110, 58, 0.35);
+  color: rgba(242, 239, 231, 0.4);
+  cursor: not-allowed;
+}
+
+/* Spiegeln (GrafikInspector.tsx, Abschnitt „Spiegeln & Zuschneiden") — der
+   "gedrückt"-Zustand nutzt bewusst dieselbe Klasse wie der Tausch-Modus
+   (.gre-tausch-aktiv, s. grafik-editor.css) statt eigener Farbregeln: beides
+   bedeutet hier "dieser Knopf ist gerade aktiv/umgeschaltet", eine zweite,
+   optisch identische Regel wäre reine Doppelung. */
+.gre-inspector-spiegeln {
+  display: flex;
+  gap: 6px;
+}
+
+.gre-inspector-spiegeln button {
+  flex: 1;
+}
+
+/* Kurzer, ehrlicher Hinweistext (z.B. Lizenz-/Download-Hinweis bei
+   Freistellen) — gleiche Optik wie .gre-hilfe in grafik-editor.css, eigene
+   Klasse nur damit dieser Baustein ohne den Import von dort auskommt. */
+.gre-inspector-hinweis {
+  font-size: 11px;
+  line-height: 1.4;
+  opacity: 0.65;
+}
+
+.gre-inspector-aktionen {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+}
+
+.gre-panel .gre-inspector-aktionen button {
+  font-size: 11.5px;
+  padding: 6px 7px;
+  text-align: left;
+}
+
+.gre-panel button.gre-inspector-loeschen {
+  grid-column: 1 / -1;
+  background: #8a2b2b;
+}
+
+.gre-panel button.gre-inspector-loeschen:hover {
+  background: #a83737;
+}

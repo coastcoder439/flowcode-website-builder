@@ -1,0 +1,13 @@
+{
+  "$doc": "Fest hinterlegte Scroll-Grafiken der Landing (GrafikLayer in app/page.tsx). ÜBERGABE-WEG: Leon baut das Setup unter /grafik-editor, klickt dort 'Export JSON', und der Inhalt des gewünschten Setups (dessen 'grafiken'-Array) wird hier in 'grafiken' eingesetzt. Format = exakt Grafik[] aus components/grafik/grafik-types.ts. Leer = die Landing zeigt keine Grafiken (Ausgangszustand). Der Editor lädt diese Liste als Startpunkt, damit man den LIVE-Stand weiterbearbeitet statt bei Null anzufangen.",
+  "$koordinaten": "keyframes[].x/y sind DOKUMENT-Koordinaten des Grafik-MITTELPUNKTS, keyframes[].scrollY ist die Scrollposition, bei der dieser Zustand gilt. Zwischen zwei Keyframes wird linear interpoliert, davor/danach geklemmt. Bleibt die Position über zwei Keyframes gleich -> scrollt mit; waechst sie 1:1 mit dem Scroll -> steht fix im Bild; dazwischen -> Parallax.",
+  "$meta": "viewport, unter dem das Setup gebaut wurde (nur zur Nachvollziehbarkeit, wird nicht ausgewertet).",
+  "$uebernommen": "Stabile Plaetze ('ebene:seite:index', s. components/grafik/GrafikSeiteTab.tsx), die aus einer seiteneigenen Zeichnung (aktuell: die Vorhang-Baeume aus curtain.config.json) in 'grafiken' uebernommen wurden. TitleCurtain ueberspringt genau diese Plaetze beim Rendern, curtain.config.json selbst bleibt dabei unveraendert. Leer = der Vorhang zeichnet alle Baeume wie ohne dieses Feature (Ausgangszustand).",
+  "meta": {
+    "viewportW": 0,
+    "viewportH": 0,
+    "docH": 0
+  },
+  "grafiken": [],
+  "uebernommen": []
+}

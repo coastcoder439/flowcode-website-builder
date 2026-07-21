@@ -1,0 +1,66 @@
+/* grafik-layer.css – Darstellungs-Ebene der platzierten Grafiken.
+   Liegt über dem Dokument, fängt aber NIE Klicks ab (der Editor macht die
+   Auswahl-Treffer selbst über data-grafik-id). */
+
+.grafik-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  /* Über den Sektionen, aber unter dem Editor-Panel (z 60). */
+  z-index: 30;
+}
+
+.grafik-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* transform/opacity schreibt der rAF-Loop (GrafikLayer). */
+  will-change: transform, opacity;
+}
+
+.grafik-item img,
+.grafik-item video {
+  display: block;
+  width: 100%;
+  height: auto;
+  user-select: none;
+}
+
+/* Lottie rendert ein <svg> in diesen Host — es soll die Breite der Ebene
+   fuellen und die Hoehe aus dem Seitenverhaeltnis der Animation ziehen. */
+.grafik-lottie {
+  width: 100%;
+}
+
+.grafik-lottie svg {
+  display: block;
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* Nur im Editor anfassbar — auf der Landing bleibt alles klick-durchlässig. */
+.grafik-item--editierbar {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.grafik-item--editierbar:active {
+  cursor: grabbing;
+}
+
+/* Auswahl-Rahmen nur im Editor (Klasse wird dort gesetzt). */
+.grafik-item--aktiv {
+  outline: 2px dashed #e8b400;
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grafik-item {
+    will-change: auto;
+  }
+}

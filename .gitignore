@@ -1,0 +1,28 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Ergebnisse der Vektorisierer-Tests (nur zum Draufschauen, jederzeit
+# neu erzeugbar via: npx tsx scripts/test-vektor.ts).
+.vektor-test/
+
+# Zugangsdaten (Canva client_secret o.ä.) — duerfen NIE ins Repo.
+# .env.local.example bleibt bewusst getrackt: nur Variablennamen, keine Werte.
+.env
+.env.*
+!.env.*.example
+
+# Build-Ordner der isolierten Builds (NEXT_DIST_DIR).
+.next-build/
+
+# Standalone Embed-Bundle (Phase 2) — generiertes Artefakt aus
+# components/embed/, nicht committen. Wird von `npm run build` (s.
+# package.json: laeuft vor `next build`) und manuell via
+# `npm run build:embed` neu erzeugt.
+public/wee-embed.js
+public/wee-embed.css
+
+# Dev-Server-Logs (Durchlaufposten, nie committen)
+.next-dev-*.log

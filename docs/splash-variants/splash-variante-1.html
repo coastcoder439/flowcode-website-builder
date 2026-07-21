@@ -1,0 +1,167 @@
+<!-- ============================================================= -->
+<!-- WEE SPLASH — VARIANTE 1: "Dezent-Organisch"                    -->
+<!-- Tropfen fällt in den Klecks-See, kleiner weicher Einschlag,     -->
+<!-- ausbreitende Wellenringe + feine Mini-Spritzer, See beruhigt    -->
+<!-- sich. Loopt. Klick spielt erneut ab. Autark & kopierbar.        -->
+<!--                                                                 -->
+<!-- TUNING (in .v1-lake style):  --v1-cycle = Gesamtdauer eines     -->
+<!-- Durchlaufs. Einschlagpunkt = 104,92 (viewBox-Koordinaten).      -->
+<!-- ============================================================= -->
+<div class="v1-lake" style="position: relative; width: 240px; height: 240px;" title="Klick = erneut abspielen">
+
+    <style>
+        /* ---- Takt & Einschlagpunkt zentral steuerbar ---- */
+        .v1-lake { --v1-cycle: 5.5s; cursor: pointer; }
+
+        /* ===== 1) BESTEHENDER SEE — Grundwellen (aus See-Snippet) ===== */
+        .v1-lake .v1-ring-1 { animation: v1lr1 var(--v1-cycle) alternate ease-in-out infinite; fill: #52A8B6; }
+        @keyframes v1lr1 {
+            0%   { d: path('M105,30 C155,30 180,60 180,90 C180,125 150,150 105,150 C60,150 30,125 30,90 C30,60 55,30 105,30 Z'); }
+            100% { d: path('M105,35 C150,30 185,65 175,95 C165,125 145,145 105,145 C65,145 40,125 35,95 C30,65 60,40 105,35 Z'); }
+        }
+        .v1-lake .v1-ring-2 { animation: v1lr2 var(--v1-cycle) alternate ease-in-out infinite; fill: #68BAC4; }
+        @keyframes v1lr2 {
+            0%   { d: path('M105,45 C140,45 160,70 160,90 C160,115 135,135 105,135 C70,135 50,115 50,90 C50,70 70,45 105,45 Z'); }
+            100% { d: path('M105,40 C145,45 165,65 165,90 C165,115 140,140 105,140 C65,140 45,120 45,90 C45,65 65,35 105,40 Z'); }
+        }
+        .v1-lake .v1-ring-3 { animation: v1lr3 var(--v1-cycle) alternate ease-in-out infinite; fill: #81CAD4; }
+        @keyframes v1lr3 {
+            0%   { d: path('M105,60 C125,60 140,75 140,90 C140,105 120,120 105,120 C85,120 70,105 70,90 C70,75 85,60 105,60 Z'); }
+            100% { d: path('M105,55 C130,55 145,80 145,95 C145,110 125,125 105,125 C80,125 65,110 65,90 C65,70 80,55 105,55 Z'); }
+        }
+        .v1-lake .v1-ring-4 { animation: v1lr4 var(--v1-cycle) alternate ease-in-out infinite; fill: #96D5D5; }
+        @keyframes v1lr4 {
+            0%   { d: path('M105,70 C115,70 125,80 125,90 C125,100 115,110 105,110 C95,110 85,100 85,90 C85,80 95,70 105,70 Z'); }
+            100% { d: path('M105,75 C115,70 130,85 125,95 C120,105 110,105 105,105 C95,105 80,100 85,90 C90,80 95,80 105,75 Z'); }
+        }
+        .v1-lake .v1-ring-5 { animation: v1lr5 var(--v1-cycle) alternate ease-in-out infinite; fill: #BCE8E5; }
+        @keyframes v1lr5 {
+            0%   { d: path('M105,82 C110,82 112,85 112,90 C112,95 110,98 105,98 C100,98 98,95 98,90 C98,85 100,82 105,82 Z'); }
+            100% { d: path('M105,80 C110,82 115,88 112,92 C109,96 105,95 105,95 C100,95 95,95 97,90 C99,85 100,78 105,80 Z'); }
+        }
+
+        /* ===== 2) FALLENDER TROPFEN (WEE-Logo-Tropfenform) ===== */
+        .v1-lake .v1-drop {
+            transform-box: fill-box;
+            transform-origin: bottom center; /* Spitze unten = Einschlag */
+            animation: v1-fall var(--v1-cycle) ease-in infinite;
+        }
+        @keyframes v1-fall {
+            0%   { transform: translateY(-150px) scaleY(1.15) scaleX(0.9); opacity: 0; }
+            6%   { opacity: 1; }
+            30%  { transform: translateY(-6px)   scaleY(1.28) scaleX(0.82); opacity: 1; } /* gestreckt kurz vor Aufschlag */
+            34%  { transform: translateY(0)      scaleY(0.55) scaleX(1.35); opacity: 1; } /* Squash beim Aufschlag */
+            40%  { transform: translateY(0)      scaleY(0.2)  scaleX(1.5);  opacity: 0; } /* wird vom See geschluckt */
+            100% { transform: translateY(0)      scaleY(0.2)  scaleX(1.5);  opacity: 0; }
+        }
+
+        /* ===== 3) EINSCHLAG-RINGE (weich ausbreitend) ===== */
+        .v1-lake .v1-ripple {
+            transform-box: view-box;
+            transform-origin: 104px 92px;
+            fill: none;
+            stroke-linejoin: round;
+            opacity: 0;
+        }
+        .v1-lake .v1-ripple-a { stroke: #BCE8E5; stroke-width: 2.4; animation: v1-ripple var(--v1-cycle) ease-out infinite; }
+        .v1-lake .v1-ripple-b { stroke: #96D5D5; stroke-width: 2.0; animation: v1-ripple var(--v1-cycle) ease-out infinite; animation-delay: -0.16s; }
+        .v1-lake .v1-ripple-c { stroke: #81CAD4; stroke-width: 1.6; animation: v1-ripple var(--v1-cycle) ease-out infinite; animation-delay: -0.34s; }
+        @keyframes v1-ripple {
+            0%, 32% { transform: scale(0.12); opacity: 0; }
+            37%     { opacity: 0.95; }
+            60%     { opacity: 0.35; }
+            74%     { transform: scale(1.15); opacity: 0; }
+            100%    { transform: scale(1.15); opacity: 0; }
+        }
+
+        /* ===== 4) FEINE MINI-SPRITZER (organisch, asymmetrisch) ===== */
+        .v1-lake .v1-splash { transform-box: view-box; transform-origin: 104px 92px; fill: #BCE8E5; opacity: 0; }
+        .v1-lake .v1-s1 { animation: v1-sp1 var(--v1-cycle) ease-out infinite; }
+        .v1-lake .v1-s2 { animation: v1-sp2 var(--v1-cycle) ease-out infinite; }
+        .v1-lake .v1-s3 { animation: v1-sp3 var(--v1-cycle) ease-out infinite; }
+        .v1-lake .v1-s4 { animation: v1-sp4 var(--v1-cycle) ease-out infinite; }
+        @keyframes v1-sp1 { 0%,33%{transform:translate(0,0) scale(0.2);opacity:0;} 36%{opacity:1;} 48%{transform:translate(-13px,-15px) scale(0.9);opacity:0.9;} 60%{transform:translate(-17px,4px) scale(0.5);opacity:0;} 100%{opacity:0;} }
+        @keyframes v1-sp2 { 0%,33%{transform:translate(0,0) scale(0.2);opacity:0;} 37%{opacity:1;} 49%{transform:translate(11px,-17px) scale(1);opacity:0.9;} 61%{transform:translate(16px,2px) scale(0.5);opacity:0;} 100%{opacity:0;} }
+        @keyframes v1-sp3 { 0%,34%{transform:translate(0,0) scale(0.2);opacity:0;} 38%{opacity:1;} 50%{transform:translate(-6px,-20px) scale(0.8);opacity:0.85;} 62%{transform:translate(-8px,-2px) scale(0.4);opacity:0;} 100%{opacity:0;} }
+        @keyframes v1-sp4 { 0%,34%{transform:translate(0,0) scale(0.2);opacity:0;} 39%{opacity:1;} 51%{transform:translate(6px,-13px) scale(0.7);opacity:0.85;} 63%{transform:translate(9px,3px) scale(0.4);opacity:0;} 100%{opacity:0;} }
+
+        /* ===== 5) REDUCED MOTION: statisches, ruhiges Endbild ===== */
+        @media (prefers-reduced-motion: reduce) {
+            .v1-lake .v1-ring-1, .v1-lake .v1-ring-2, .v1-lake .v1-ring-3,
+            .v1-lake .v1-ring-4, .v1-lake .v1-ring-5,
+            .v1-lake .v1-drop, .v1-lake .v1-ripple, .v1-lake .v1-splash {
+                animation: none !important;
+            }
+            .v1-lake .v1-drop, .v1-lake .v1-ripple, .v1-lake .v1-splash { opacity: 0; }
+        }
+    </style>
+
+    <svg viewBox="0 0 200 200" width="100%" height="100%">
+        <defs>
+            <clipPath id="v1-blob-clip">
+                <path d="M 40 100 C 10 50, 70 20, 100 40 C 140 10, 190 50, 170 90 C 190 140, 150 180, 110 160 C 70 190, 20 150, 40 100 Z" />
+            </clipPath>
+            <filter id="v1-shadow-blur"><feGaussianBlur stdDeviation="3" /></filter>
+            <radialGradient id="v1-drop-fill" cx="38%" cy="30%" r="75%">
+                <stop offset="0%"  stop-color="#BCE8E5" />
+                <stop offset="55%" stop-color="#68BAC4" />
+                <stop offset="100%" stop-color="#4395A7" />
+            </radialGradient>
+        </defs>
+
+        <!-- Äußerer trockener Sand (Klecks-Form) -->
+        <path d="M 40 100 C 10 50, 70 20, 100 40 C 140 10, 190 50, 170 90 C 190 140, 150 180, 110 160 C 70 190, 20 150, 40 100 Z"
+              fill="none" stroke="#DDB98B" stroke-width="18" stroke-linejoin="round" />
+
+        <!-- Wasser (auf Klecks beschnitten) -->
+        <g clip-path="url(#v1-blob-clip)">
+            <rect width="200" height="200" fill="#4395A7" />
+
+            <!-- Grundwellen -->
+            <path class="v1-ring-1" d="M105,30 C155,30 180,60 180,90 C180,125 150,150 105,150 C60,150 30,125 30,90 C30,60 55,30 105,30 Z"></path>
+            <path class="v1-ring-2" d="M105,45 C140,45 160,70 160,90 C160,115 135,135 105,135 C70,135 50,115 50,90 C50,70 70,45 105,45 Z"></path>
+            <path class="v1-ring-3" d="M105,60 C125,60 140,75 140,90 C140,105 120,120 105,120 C85,120 70,105 70,90 C70,75 85,60 105,60 Z"></path>
+            <path class="v1-ring-4" d="M105,70 C115,70 125,80 125,90 C125,100 115,110 105,110 C95,110 85,100 85,90 C85,80 95,70 105,70 Z"></path>
+            <path class="v1-ring-5" d="M105,82 C110,82 112,85 112,90 C112,95 110,98 105,98 C100,98 98,95 98,90 C98,85 100,82 105,82 Z"></path>
+
+            <!-- Einschlag-Ringe (breiten sich vom Punkt aus) -->
+            <ellipse class="v1-ripple v1-ripple-a" cx="104" cy="92" rx="46" ry="34"></ellipse>
+            <ellipse class="v1-ripple v1-ripple-b" cx="104" cy="92" rx="46" ry="34"></ellipse>
+            <ellipse class="v1-ripple v1-ripple-c" cx="104" cy="92" rx="46" ry="34"></ellipse>
+
+            <!-- Feine Mini-Spritzer -->
+            <circle class="v1-splash v1-s1" cx="104" cy="92" r="2.4"></circle>
+            <circle class="v1-splash v1-s2" cx="104" cy="92" r="2.6"></circle>
+            <circle class="v1-splash v1-s3" cx="104" cy="92" r="2.0"></circle>
+            <circle class="v1-splash v1-s4" cx="104" cy="92" r="2.0"></circle>
+
+            <!-- Innerer Uferschatten (nasser Sand) -->
+            <path d="M 40 100 C 10 50, 70 20, 100 40 C 140 10, 190 50, 170 90 C 190 140, 150 180, 110 160 C 70 190, 20 150, 40 100 Z"
+                  fill="none" stroke="rgba(38,62,36,0.6)" stroke-width="12" filter="url(#v1-shadow-blur)"/>
+        </g>
+
+        <!-- Fallender Tropfen (über allem, zielt auf 104,92) -->
+        <g transform="translate(104 92)">
+            <path class="v1-drop" fill="url(#v1-drop-fill)" stroke="#4395A7" stroke-width="0.6"
+                  d="M0,0 C5,-8 8,-11 8,-16 A8,8 0 1 0 -8,-16 C-8,-11 -5,-8 0,0 Z"></path>
+            <!-- Glanzlicht -->
+            <ellipse class="v1-drop" cx="-3" cy="-17" rx="2.4" ry="3.2" fill="#EFFAF8" opacity="0.85"></ellipse>
+        </g>
+    </svg>
+
+    <script>
+        /* Klick = Zyklus neu starten (autark, kein Fremd-Code). */
+        (function () {
+            var lake = document.currentScript.closest('.v1-lake');
+            if (!lake) return;
+            lake.addEventListener('click', function () {
+                var anim = lake.querySelectorAll('.v1-drop, .v1-ripple, .v1-splash');
+                anim.forEach(function (el) {
+                    el.style.animation = 'none';
+                    void el.offsetWidth;      /* Reflow erzwingen */
+                    el.style.animation = '';
+                });
+            });
+        })();
+    </script>
+</div>

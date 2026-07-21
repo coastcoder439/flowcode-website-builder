@@ -1,0 +1,1015 @@
+/* Prototyp-Basis: schlanker Reset + Demo-Inhalte.
+   Farben/Typo/Spacing kommen ausschließlich aus design-tokens.css. */
+
+/* next/font liefert die self-gehosteten Familien als Variablen –
+   hier auf die Token-Namen der Hauptseite gemappt. */
+:root {
+  --font-display: var(--font-syne), "Trebuchet MS", system-ui, sans-serif;
+  --font-body: var(--font-montserrat), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* ---------- Custom Cursor: Wassertropfen (Kundenfeedback, ans WEE-Logo
+   angelehnt – Spitze nach oben, runder Bauch unten). Als Daten-URI
+   eingebunden, gleiche Encoding-Konvention wie --texture-flow oben in
+   design-tokens.css (nur <, > und # prozentkodiert). Hotspot (letztes
+   Zahlenpaar vor dem Fallback-Keyword) liegt exakt auf der Tropfenspitze,
+   dem eigentlichen Klickpunkt. Geltungsbereich: gesamte Seite. */
+html,
+body {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16,4 C12,9 8,13 8,20 A8,8 0 0,0 24,20 C24,13 20,9 16,4 Z' fill='%23FFFFFF' stroke='%230E2117' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='13' cy='17' r='1.5' fill='%23D0E4BA'/%3E%3C/svg%3E")
+    16 4,
+    auto;
+}
+
+/* Interaktive Elemente: minimal groessere Tropfen-Variante mit
+   Akzent-Glanzpunkt (--orange-400) statt Standard-Pointer. Gleiche
+   Hotspot-Logik (Spitze = Klickpunkt), Fallback bleibt "pointer". */
+a,
+button,
+[role="button"] {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M16,3 C11,9 7,13 7,21 A9,9 0 0,0 25,21 C25,13 21,9 16,3 Z' fill='%23FFFFFF' stroke='%230E2117' stroke-width='1.7' stroke-linejoin='round'/%3E%3Ccircle cx='12.5' cy='17' r='1.8' fill='%23F3A730'/%3E%3C/svg%3E")
+    16 3,
+    pointer;
+}
+
+body {
+  margin: 0;
+  background: var(--bg-page);
+  color: var(--text-body);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: var(--lh-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  color: var(--text-strong);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+/* ---------- Demo-Hero (der "echte" Seiten-Hero hinter der Titelkarte) ---------- */
+
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-end;
+  overflow: clip;
+  background: var(--green-950);
+}
+
+.hero__bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--green-950) 88%, transparent) 0%,
+    color-mix(in srgb, var(--green-950) 30%, transparent) 45%,
+    color-mix(in srgb, var(--green-950) 12%, transparent) 100%
+  );
+}
+
+.hero__inner {
+  position: relative;
+  width: min(var(--container-max), 100% - 3rem);
+  margin-inline: auto;
+  padding-block: clamp(3rem, 9vh, 6.5rem);
+  color: var(--white);
+}
+
+.hero__kicker {
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  color: var(--green-300);
+  margin-bottom: 1rem;
+}
+
+.hero__title {
+  color: var(--white);
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
+  font-weight: var(--fw-extrabold);
+  max-width: 14ch;
+  margin-bottom: 1.25rem;
+}
+
+.hero__lead {
+  max-width: 52ch;
+  font-size: var(--text-lg);
+  line-height: var(--lh-relaxed);
+  color: color-mix(in srgb, var(--white) 86%, transparent);
+  margin-bottom: 2rem;
+}
+
+.hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  font-size: var(--text-sm);
+  letter-spacing: 0.02em;
+  padding: 0.9rem 1.6rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  text-decoration: none;
+  /* kein eigenes cursor: pointer mehr -- .btn sitzt immer auf a/button,
+     der globale Tropfen-Cursor (siehe oben) greift bereits und würde durch
+     die höhere Klassen-Spezifität hier sonst überschrieben. */
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background-color var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn--primary {
+  background: var(--green-500);
+  color: var(--green-950);
+}
+
+.btn--primary:hover {
+  background: var(--green-400);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--green-800);
+  border-color: var(--border-strong);
+}
+
+.btn--outline:hover {
+  background: color-mix(in srgb, var(--green-500) 10%, transparent);
+}
+
+/* Hero liegt auf einem dunklen Bild – Outline-Button dort weiß statt
+   dunkel (identisches Muster zu Bens .block-hero--image .btn--outline). */
+.hero .btn--outline {
+  color: #fff;
+  border-color: color-mix(in srgb, #fff 55%, transparent);
+}
+
+.hero .btn--outline:hover {
+  background: color-mix(in srgb, #fff 14%, transparent);
+}
+
+/* =====================================================================
+   Ab hier: Bens echtes Design-System (1:1 aus WEE-Website-V2-main-ben-
+   aktuell/app/globals.css übernommen – Klassen, Werte, Struktur). Nur die
+   auf der Startseite tatsächlich genutzten Block-Typen sind portiert:
+   prose, statement, features (variant cycle), cards, stats, ctaBand.
+   Reveal/RevealGroup/RevealItem (Scroll-Eintritts-Animation) und TiltCard
+   (Maus-3D-Tilt) sind bewusst NICHT portiert – das sind Bewegungs-
+   Verfeinerungen, keine Box-/Element-Gestaltung; die Klassennamen, auf
+   denen ihre Styles sitzen, werden hier direkt auf normale Elemente
+   angewendet, der Endzustand ist damit optisch identisch.
+   ===================================================================== */
+
+.container {
+  width: 100%;
+  max-width: var(--container-max);
+  margin-inline: auto;
+  padding-inline: 1.25rem;
+}
+
+.section {
+  padding-block: var(--space-section);
+}
+
+main {
+  counter-reset: chapter;
+}
+
+.kicker,
+.eyebrow {
+  counter-increment: chapter;
+  display: flex;
+  align-items: baseline;
+  gap: 0.55em;
+}
+
+.kicker::before,
+.eyebrow::before {
+  content: counter(chapter, decimal-leading-zero);
+  font-weight: var(--fw-medium);
+  letter-spacing: normal;
+  opacity: 0.5;
+}
+
+.kicker {
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
+  font-size: var(--text-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--green-600);
+  margin: 0 0 0.5rem;
+}
+
+.eyebrow {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--ls-caps);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  color: var(--green-600);
+  margin: 0 0 0.5rem;
+}
+
+.eyebrow--on-dark {
+  color: var(--green-300);
+}
+
+.cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.block-intro {
+  color: var(--text-muted);
+  max-width: 62ch;
+  margin-bottom: 2rem;
+}
+
+.section h2 {
+  font-size: clamp(1.9rem, 3.6vw, var(--text-4xl));
+  letter-spacing: var(--ls-tight);
+  margin-bottom: 1.25rem;
+}
+
+/* --- Grid (2 Spalten, wie Bens .grid--2): Rest-Zeile bei ungerader
+   Elementzahl zentriert statt am linken Rand hängend. --- */
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid--2 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid--2 > * {
+  grid-column: span 2;
+}
+
+.grid--2 > *:last-child:nth-child(2n + 1) {
+  grid-column: 2 / span 2;
+}
+
+@media (max-width: 640px) {
+  .grid--2 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid--2 > * {
+    grid-column: auto;
+  }
+}
+
+/* --- Karte (Basis) --- */
+.card {
+  position: relative;
+  background: var(--texture-flow-card), var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition:
+    transform var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: color-mix(in srgb, var(--green-500) 40%, transparent);
+}
+
+.card h3 {
+  margin-top: 0.75rem;
+}
+
+.card p {
+  color: var(--text-muted);
+  line-height: var(--lh-relaxed);
+}
+
+/* --- Deko-Formen (ShapeAccent-Komponente) --- */
+.shape-accent {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.shape-accent svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.shape-accent--top-right {
+  top: -2rem;
+  right: -2rem;
+}
+
+.shape-accent--top-left {
+  top: -2rem;
+  left: -2rem;
+}
+
+.shape-accent--bottom-right {
+  bottom: -2rem;
+  right: -2rem;
+}
+
+.shape-accent--bottom-left {
+  bottom: -2rem;
+  left: -2rem;
+}
+
+.shape-accent--center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.shape-accent--arc,
+.shape-accent--sunburst {
+  opacity: 0.18;
+}
+
+.shape-accent--blob-a,
+.shape-accent--blob-b,
+.shape-accent--blob-c {
+  opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+  .shape-accent--arc,
+  .shape-accent--sunburst {
+    opacity: 0.12;
+  }
+
+  .shape-accent--blob-a,
+  .shape-accent--blob-b,
+  .shape-accent--blob-c {
+    opacity: 0.55;
+  }
+}
+
+.block-stats .shape-accent--blob-a,
+.block-stats .shape-accent--blob-b,
+.block-stats .shape-accent--blob-c {
+  opacity: 0.28;
+}
+
+@media (max-width: 640px) {
+  .block-stats .shape-accent--blob-a,
+  .block-stats .shape-accent--blob-b,
+  .block-stats .shape-accent--blob-c {
+    opacity: 0.16;
+  }
+}
+
+/* --- Textur-Overlay (TextureField-Komponente) --- */
+.section-texture {
+  position: absolute;
+  inset: -60px 0;
+  z-index: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+}
+
+.section-texture--dark {
+  background-image: var(--texture-flow);
+}
+
+.section-texture--light {
+  background-image: var(--texture-flow-card);
+}
+
+.section-texture ~ .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Prose (Mission / Project Oasis): Bens block-prose ---------- */
+
+.block-prose {
+  position: relative;
+  overflow: hidden;
+}
+
+.block-prose p {
+  line-height: var(--lh-relaxed);
+}
+
+.block-prose__inner {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: 1fr;
+  align-items: center;
+}
+
+@media (min-width: 860px) {
+  .block-prose__inner {
+    grid-template-columns: 1.1fr 0.9fr;
+  }
+}
+
+.block-prose__inner--reverse .block-prose__text {
+  order: 2;
+}
+
+.block-prose__inner--reverse .block-prose__media-cell {
+  order: 1;
+}
+
+@media (min-width: 860px) {
+  .block-prose__inner--reverse {
+    grid-template-columns: 0.9fr 1.1fr;
+  }
+}
+
+.block-prose__media {
+  position: relative;
+}
+
+.block-prose__media img {
+  position: relative;
+  z-index: 1;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.block-prose__inner.block-prose__inner--text-only {
+  grid-template-columns: 1fr;
+}
+
+.block-prose__inner--text-only .block-prose__text {
+  /* Schmaler als Bens 68ch (Kundenvorgabe „hartes Muster": Fluss bleibt
+     links, Text rechts – die Box rückt für Abstand zum Fluss zusammen). */
+  max-width: 54ch;
+}
+
+/* Mission/Oasis-Prose: einzige bewusste Abweichung von Bens Standardlayout
+   (Kundenvorgabe „Fluss linke Seite, Text rechte Seite" – hartes Muster für
+   beide --text-only-Sektionen). Der Text bleibt Bens echte .block-prose__text-
+   Box, nur ohne Bild-Spalte und mit Rechtsbündigkeit statt Default-Linksfluss. */
+#mission .block-prose__text,
+#oasis-prose .block-prose__text {
+  margin-left: auto;
+}
+
+/* Erst unter 600px (echte Handys, nebeneinander passt nichts mehr) fällt die
+   Rechtsbündigkeit weg — zwischen 600 und 860 bleibt das Kundenmuster „Fluss
+   links, Text rechts" erhalten (der Kurs braucht den linken Streifen; bei
+   linksbündiger Box müsste er die Box kreuzen — Leons Overlap-Screenshot). */
+@media (max-width: 600px) {
+  #mission .block-prose__text,
+  #oasis-prose .block-prose__text {
+    margin-left: 0;
+  }
+}
+
+/* ---------- Statement (Haltung): Bens block-statement ---------- */
+
+.block-statement {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(130% 130% at 85% 15%, var(--green-800), var(--green-950) 72%);
+  color: var(--sand-100);
+}
+
+.block-statement__inner {
+  max-width: 960px;
+  position: relative;
+  z-index: 1;
+  padding-left: 1.75rem;
+}
+
+/* Haltung: hartes Muster „Fluss linke Seite, Text rechte Seite" ersetzt den
+   vorherigen Linksversatz – Box zusätzlich schmaler für Abstand zum Fluss.
+   .block-statement__inner trägt zugleich die .container-Klasse (die selbst
+   margin-inline:auto setzt) – margin-right muss daher explizit auf 0, sonst
+   zentriert die Box statt rechtsbündig zu werden. */
+#haltung .block-statement__inner {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+@media (max-width: 600px) {
+  #haltung .block-statement__inner {
+    max-width: none;
+    margin-left: 0;
+  }
+}
+
+.block-statement__inner::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  width: 5px;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(var(--green-400), var(--green-600));
+}
+
+.block-statement .eyebrow {
+  color: var(--green-300);
+}
+
+.block-statement__text {
+  font-family: var(--font-display);
+  font-weight: var(--fw-semibold);
+  font-size: clamp(1.5rem, 3.2vw, var(--text-4xl));
+  line-height: var(--lh-snug);
+  letter-spacing: var(--ls-snug);
+  color: var(--sand-50);
+  max-width: none;
+  margin-bottom: 0.5rem;
+}
+
+/* ---------- Features variant="cycle" (Bausteine/Project Oasis) ---------- */
+
+.block-features {
+  background: var(--sand-50);
+}
+
+.features-cycle {
+  position: relative;
+  margin-top: 2.5rem;
+}
+
+.features-cycle__loop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  color: var(--green-300);
+  opacity: 0.55;
+}
+
+.features-cycle__grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.features-cycle__item {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem 1.5rem 1.75rem;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.features-cycle__no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--green-500);
+  color: var(--green-950);
+  font-family: var(--font-display);
+  font-weight: var(--fw-bold);
+  font-size: var(--text-sm);
+}
+
+.features-cycle__item h3 {
+  margin: 0;
+}
+
+.features-cycle__item p {
+  margin: 0;
+}
+
+/* Diagonale Treppen-Anordnung (Kunden-Vorgabe, ersetzt Bens Standard-Grid
+   für diese Sektion): Aquaponik+Geo-Dome oben links, eine Zeile Platz,
+   darunter Permakultur+Community unten rechts – die Karten selbst
+   (.features-cycle__item/__no) bleiben Bens echte Elemente. */
+.features-cycle__grid--diagonal {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.features-cycle__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(200px, 1fr));
+  gap: 1.5rem;
+  width: min(560px, 100%);
+}
+
+.features-cycle__row--top {
+  margin-right: auto;
+}
+
+.features-cycle__row--bottom {
+  margin-left: auto;
+}
+
+@media (max-width: 860px) {
+  .features-cycle__row {
+    width: 100%;
+    margin-inline: 0;
+  }
+}
+
+/* ---------- Cards (Projekte): Bens block-cards ---------- */
+
+.block-cards .grid--2 {
+  align-items: start;
+}
+
+.block-cards__item {
+  position: relative;
+}
+
+.card--media {
+  padding: 0;
+  overflow: hidden;
+}
+
+.card--media img {
+  border-radius: 0;
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  position: relative;
+  z-index: 1;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+
+.card--media:hover img {
+  transform: scale(1.07);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card--media:hover img {
+    transform: none;
+  }
+}
+
+.card--media h3,
+.card--media p,
+.card--media .cta-row {
+  padding-inline: 1.5rem;
+}
+
+.card--media h3 {
+  padding-top: 1.25rem;
+}
+
+.card--media .cta-row {
+  padding-bottom: 1.5rem;
+}
+
+.block-cards .card--media {
+  position: relative;
+  box-shadow: var(--shadow-md);
+}
+
+.block-cards .card--media::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--green-500);
+}
+
+.block-cards__item:nth-child(2) {
+  margin-top: clamp(1.5rem, 6vw, 4.5rem);
+}
+
+.block-cards__item:nth-child(2) .card--media::after {
+  background: var(--orange-500);
+}
+
+.block-cards__item:nth-child(1) .card--media img {
+  aspect-ratio: 4 / 3;
+}
+
+/* ---------- Stats: Bens block-stats (dunkles Band, Ghost/Live-Zahlen) ---------- */
+
+.block-stats {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--green-950), var(--green-700));
+  color: var(--sand-100);
+}
+
+.block-stats h2 {
+  color: #fff;
+}
+
+.block-stats .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* Stats („WEE in Zahlen"): hartes Muster „Fluss linke Seite, Text rechte
+   Seite" — Inhalt rückt wie bei #haltung als schmalere, rechtsbündige Box
+   zusammen, der Fluss läuft links ÜBER das dunkle Panel (z-Ordnung siehe
+   river.css, Kurs-Führung siehe riverPath.ts KURS_SPEC). margin-right:0
+   nötig, weil .container selbst margin-inline:auto setzt (sonst zentriert). */
+#stats .container {
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+@media (max-width: 600px) {
+  #stats .container {
+    max-width: none;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+.stats-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    320px circle at calc(var(--glow-x, 50) * 1%) calc(var(--glow-y, 50) * 1%),
+    var(--accent-glow),
+    transparent 70%
+  );
+}
+
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 2.25rem;
+  border-top: 1px solid var(--rule-color-on-dark);
+}
+
+.stat-tile {
+  flex: 1 1 180px;
+  padding: 2rem 1.85rem 0 0;
+  margin-bottom: 2rem;
+  border-right: 1px solid var(--rule-color-on-dark);
+}
+
+.stat-tile:last-child {
+  border-right: none;
+}
+
+.stat-value-shell {
+  position: relative;
+  display: inline-block;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: var(--fw-extrabold);
+  font-size: clamp(2.5rem, 5vw, var(--text-5xl));
+  line-height: 1;
+  letter-spacing: var(--ls-tight);
+  color: var(--green-300);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stat-value--ghost {
+  visibility: hidden;
+}
+
+.stat-value--live {
+  position: absolute;
+  inset: 0;
+  color: var(--accent-500);
+}
+
+.stat-label {
+  margin-top: 0.75rem;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-caps);
+  font-weight: var(--fw-semibold);
+  color: var(--sand-300);
+}
+
+/* ---------- CtaBand (Werde selbst aktiv): Bens block-ctaband ---------- */
+
+.block-ctaband {
+  position: relative;
+  overflow: hidden;
+  background: var(--green-50);
+  border-top: 1px solid var(--border-subtle);
+  padding-bottom: calc(var(--space-section) * 1.6);
+}
+
+.block-ctaband .container {
+  position: relative;
+  z-index: 1;
+}
+
+.block-ctaband .grid--3 {
+  margin-top: 0.5rem;
+}
+
+.grid--3 {
+  grid-template-columns: repeat(6, 1fr);
+}
+
+.grid--3 > * {
+  grid-column: span 2;
+}
+
+.grid--3 > *:last-child:nth-child(3n + 1) {
+  grid-column: 3 / span 2;
+}
+
+.grid--3 > *:nth-last-child(2):nth-child(3n + 1) {
+  grid-column: 2 / span 2;
+}
+
+.grid--3 > *:last-child:nth-child(3n + 2) {
+  grid-column: 4 / span 2;
+}
+
+@media (max-width: 860px) {
+  .grid--3 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .grid--3 > *:last-child:nth-child(3n + 1),
+  .grid--3 > *:nth-last-child(2):nth-child(3n + 1),
+  .grid--3 > *:last-child:nth-child(3n + 2) {
+    grid-column: span 2;
+  }
+
+  .grid--3 > *:last-child:nth-child(odd) {
+    grid-column: 2 / span 2;
+  }
+}
+
+@media (max-width: 640px) {
+  .grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .grid--3 > * {
+    grid-column: auto;
+  }
+}
+
+.block-ctaband .card {
+  border-left: 1px solid var(--border-subtle);
+  padding-left: 1.5rem;
+  background: none;
+  box-shadow: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+}
+
+.block-ctaband .card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.block-ctaband .card h3 {
+  transition: color var(--dur-base) var(--ease-out);
+}
+
+.block-ctaband .card:hover h3 {
+  color: var(--green-700);
+}
+
+.block-ctaband .grid--3 > .card:first-child:not(.card--accent) {
+  border-left: none;
+  padding-left: 0;
+}
+
+.block-ctaband .card--accent {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  box-shadow: var(--shadow-md);
+}
+
+.block-ctaband .card--accent h3,
+.block-ctaband .card--accent p,
+.block-ctaband .card--accent .cta-row {
+  position: relative;
+  z-index: 1;
+}
+
+.block-ctaband .card--accent h3 {
+  color: var(--accent-600);
+}
+
+.block-ctaband .card--accent:hover h3 {
+  color: var(--accent-600);
+}
+
+/* ---------- Tal: Felswand-Freiraum + Talboden (v3-eigene Erweiterung für
+   das Fluss-Finale – existiert auf Bens echter Seite nicht, bewusst
+   separat von den oben 1:1 portierten Bens-Blöcken). ---------- */
+
+.section--tal {
+  --tal-cliff-h: 340px;
+  background: var(--green-950);
+  padding-block: 0;
+  overflow: clip;
+}
+
+/* Platzhalter-Zone für die Felswand + den Wasserfall (F2/F3 zeichnet hier). */
+.tal-cliff {
+  height: var(--tal-cliff-h);
+}
+
+.tal-floor {
+  background: color-mix(in srgb, var(--green-950) 88%, black 12%);
+  /* Ben setzt padding-top normalerweise über den äußeren .section-Wrapper;
+     hier ist .section--tal{padding-block:0} (Felswand-Zone braucht keinen
+     Abstand nach oben), daher trägt der Talboden selbst den Top-Abstand. */
+  padding-top: var(--space-section);
+}
+
+/* Bens .block-ctaband ist normalerweise auf hellem --green-50-Grund
+   (dunkler Titel/Text lesbar). Der Tal-Boden hier ist dunkel (eigene
+   Erweiterung fürs Fluss-Finale) – Titel/Intro brauchen daher denselben
+   Hell-auf-Dunkel-Kontrast wie Bens .block-stats h2{color:#fff}. Die
+   Ask-Karten selbst (.card, weiße Fläche) bleiben unverändert dunkel-auf-
+   hell lesbar. */
+.tal-floor h2 {
+  color: #fff;
+}
+
+.tal-floor .block-intro {
+  color: color-mix(in srgb, var(--sand-100) 80%, transparent);
+}
+
+/* Freiraum unterhalb des Ask-Grids für den Tal-See (F2/F3). */
+.cta-band__lake-space {
+  height: clamp(4rem, 10vw, 8rem);
+}

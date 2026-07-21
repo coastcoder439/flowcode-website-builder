@@ -1,0 +1,167 @@
+/* backdrop.css – Rendering (Backdrop.tsx) + Panel-UI (BackdropAuswahl.tsx,
+   BackdropHilfeIcon.tsx) des Backdrop-Modus.
+
+   Eigenes Klassen-Praefix "hg-" (Hintergrund) statt gre-/rke--Klassen zu
+   kapern: BackdropAuswahl sitzt in BEIDEN Editor-Panels (.gre-panel UND
+   .rke-panel), darf also nicht vom CSS eines der beiden abhaengen. Lehnt
+   sich optisch an dieselbe dunkle Palette an (rgba(20,30,24,.92)-Panels,
+   Gruen #3f6e3a, Gruen-Akzent #9fd68a) — bewusste Wiederholung der Werte
+   statt eines Imports, damit backdrop.css eigenstaendig bleibt. */
+
+/* --- Rendering (Backdrop.tsx) ------------------------------------------- */
+
+.hg-backdrop-bild {
+  display: block;
+  width: 100%;
+  height: auto;
+  pointer-events: none;
+  user-select: none;
+}
+
+.hg-backdrop-html {
+  display: block;
+  width: 100%;
+  border: 0;
+  pointer-events: none;
+}
+
+/* Platzhalter-Hinweis des Ordner-Backdrops (BackdropOrdner in Backdrop.tsx),
+   solange der Cache noch befuellt wird bzw. bei fehlendem Zugriff — bewusst
+   NICHT interaktiv (pointer-events:none wie alles in Backdrop.tsx): der
+   tatsaechliche "erneut freigeben"-Knopf lebt im immer bedienbaren Panel
+   (BackdropAuswahl, s. .hg-freischalten unten), nicht im Backdrop selbst. */
+.hg-backdrop-hinweis {
+  padding: 32px 16px;
+  text-align: center;
+  font: 13px/1.5 system-ui, sans-serif;
+  color: #6b7d67;
+  pointer-events: none;
+}
+
+/* --- Panel-UI (BackdropAuswahl.tsx) ------------------------------------- */
+
+.hg-hilfe {
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+.hg-reiter-kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9fd68a;
+}
+
+.hg-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.hg-aktuell {
+  font-size: 11.5px;
+  background: rgba(63, 110, 58, 0.28);
+  border: 1px solid #3f6e3a;
+  border-radius: 8px;
+  padding: 6px 8px;
+  word-break: break-word;
+}
+
+.hg-aktuell b {
+  color: #eaf6e4;
+}
+
+.hg-leer {
+  font-size: 11.5px;
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.hg-status {
+  font-size: 11.5px;
+  color: #9fd68a;
+}
+
+/* :disabled als Pseudoklasse gibt (0,2,1) Spezifitaet (Klasse + Pseudoklasse
+   + Element) — schlaegt ".gre-panel button"/".rke-panel button" (je (0,1,1))
+   unabhaengig von der CSS-Ladereihenfolge, ganz ohne Klassen-Verdopplung. */
+.hg-row button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* "Ordner erneut freigeben" — bewusst auffaellig (Amber statt der neutralen
+   Panel-Buttons): zeigt an, dass hier eine Aktion NOETIG ist, nicht nur
+   moeglich. Gleiche Farbe/Optik wie GrafikEditor.tsx' Bibliotheks-Ordner
+   (.gre-freischalten in grafik-editor.css) — eigene "hg-"-Klasse statt
+   Wiederverwendung, s. Dateikopf (kein Panel-Import). */
+button.hg-freischalten.hg-freischalten {
+  background: #e8b400;
+  color: #2a2000;
+  font-weight: 600;
+  width: 100%;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+button.hg-freischalten.hg-freischalten:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* --- Hilfe-Icon (BackdropHilfeIcon.tsx) ---------------------------------
+   Eigenstaendige Kopie der Optik von grafik-hilfe.css: die dortige Regel
+   ".gre-panel button.gre-hilfe-icon" traefe im Fluss-Editor-Panel
+   (.rke-panel) nicht — hier deshalb voellig unabhaengig vom Eltern-Panel.
+   Klasse doppelt im Selektor (Spezifitaets-Trick, (0,2,1) statt (0,1,1)):
+   gewinnt so IMMER gegen ".gre-panel button"/".rke-panel button" (ebenfalls
+   (0,1,1)), unabhaengig von der CSS-Ladereihenfolge der beiden Panels. */
+button.hg-hilfe-icon.hg-hilfe-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  padding: 0;
+  border-radius: 50%;
+  background: rgba(159, 214, 138, 0.28);
+  color: #eaf6e4;
+  border: 1px solid rgba(159, 214, 138, 0.5);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  display: inline-grid;
+  place-items: center;
+  cursor: help;
+  vertical-align: middle;
+}
+
+button.hg-hilfe-icon.hg-hilfe-icon:hover,
+button.hg-hilfe-icon.hg-hilfe-icon:focus-visible,
+button.hg-hilfe-icon.hg-hilfe-icon[aria-expanded="true"] {
+  background: #3f6e3a;
+  border-color: #9fd68a;
+  color: #fff;
+}
+
+.hg-hilfe-popover {
+  position: fixed;
+  z-index: 90;
+  max-width: 230px;
+  background: rgba(15, 24, 19, 0.98);
+  color: #f2efe7;
+  border: 1px solid #3f6e3a;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: 11.5px/1.5 system-ui, sans-serif;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hg-hilfe-popover {
+    transition: none;
+  }
+}

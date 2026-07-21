@@ -1,0 +1,129 @@
+/* grafik-crop.css – Zuschneide-Overlay (GrafikCrop.tsx), Reiter „Bild" im
+   Grafik-Editor. Gleiche Optik/Overlay-Prinzip wie .gre-vektor-overlay in
+   grafik-editor.css (dunkles Vollbild-Overlay, dieselbe Panel-Farbe #141e18,
+   Akzent #e8b400) — eigene, höhere z-index, damit das Overlay in jedem Fall
+   über dem Vektorisieren-Ladeschirm liegt.
+
+   Button-Regeln bewusst über ZWEI Klassen (.gre-crop-box .gre-crop-btn statt
+   nur .gre-crop-btn) — das hebt die Spezifität sicher über die generische
+   ".gre-panel button"-Regel aus grafik-editor.css (dieses Overlay hängt als
+   Kind im DOM unter .gre-panel, s. GrafikInspector.tsx-Kommentar zu
+   position:fixed dort), unabhängig davon, in welcher Reihenfolge Next.js die
+   beiden CSS-Dateien bündelt. */
+
+.gre-crop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 16, 12, 0.8);
+  padding: 16px;
+}
+
+.gre-crop-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(20, 30, 24, 0.97);
+  color: #f2efe7;
+  border-radius: 10px;
+  padding: 14px;
+  font: 13px/1.45 system-ui, sans-serif;
+  max-width: min(92vw, 820px);
+}
+
+.gre-crop-kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.gre-crop-box button.gre-crop-x {
+  background: transparent;
+  border: 0;
+  color: #f2efe7;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.gre-crop-box button.gre-crop-x:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.gre-crop-wrapper {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  align-self: center;
+  border-radius: 4px;
+  line-height: 0;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.gre-crop-bild {
+  display: block;
+  max-width: min(84vw, 760px);
+  max-height: min(65vh, 560px);
+  user-select: none;
+}
+
+.gre-crop-rahmen {
+  position: absolute;
+  border: 2px dashed #e8b400;
+  /* Riesiger, geclippter box-shadow statt vier Dimm-Panels: dunkelt alles
+     AUSSERHALB des Rechtecks ab (wrapper hat overflow:hidden). */
+  box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+}
+
+.gre-crop-fuss {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gre-crop-status {
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+.gre-crop-aktionen {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.gre-crop-box .gre-crop-btn {
+  background: #3f6e3a;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gre-crop-box .gre-crop-btn:disabled {
+  background: rgba(63, 110, 58, 0.35);
+  color: rgba(242, 239, 231, 0.4);
+  cursor: not-allowed;
+}
+
+.gre-crop-box .gre-crop-btn--anwenden {
+  background: #e8b400;
+  color: #2a2000;
+  font-weight: 700;
+}
+
+.gre-crop-box .gre-crop-btn--anwenden:disabled {
+  background: rgba(232, 180, 0, 0.3);
+  color: rgba(42, 32, 0, 0.5);
+}

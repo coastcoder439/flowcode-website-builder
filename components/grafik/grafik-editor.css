@@ -1,0 +1,602 @@
+/* grafik-editor.css – Overlay-Panel der Seite /grafik-editor.
+   Wird nur dort geladen (Import in GrafikEditor), betrifft die Landing nicht.
+   Panel sitzt LINKS, damit es sich nicht mit dem Fluss-Editor-Panel (rechts)
+   beißt, falls beide Seiten mal nebeneinander offen sind. */
+
+.gre-panel {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 60;
+  width: 290px;
+  max-height: calc(100vh - 24px);
+  overflow: auto;
+  background: rgba(20, 30, 24, 0.92);
+  color: #f2efe7;
+  border-radius: 10px;
+  padding: 12px;
+  font: 13px/1.45 system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gre-kopf {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+/* Rückgängig/Wiederholen (↶ ↷) im Panel-Kopf — s. GrafikContext.tsx
+   commit/undo/redo. */
+.gre-verlauf {
+  display: flex;
+  gap: 3px;
+}
+
+.gre-panel button.gre-verlauf-btn {
+  padding: 3px 8px;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.gre-panel button.gre-verlauf-btn:disabled {
+  background: rgba(63, 110, 58, 0.35);
+  color: rgba(242, 239, 231, 0.4);
+  cursor: not-allowed;
+}
+
+.gre-scroll {
+  font-size: 11px;
+  opacity: 0.6;
+  font-family: monospace;
+}
+
+/* Wechsel zum Fluss-Editor — verhindert das Suchen nach der URL. */
+.gre-wechsel {
+  font-size: 11px;
+  color: #9fd68a;
+  text-decoration: none;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.gre-wechsel:hover {
+  background: #3f6e3a;
+  color: #fff;
+}
+
+.gre-tabs {
+  display: flex;
+  gap: 2px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.gre-panel button {
+  background: #3f6e3a;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 5px 9px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gre-panel button.gre-tab {
+  flex: 1;
+  background: transparent;
+  padding: 5px 4px;
+  font-size: 11.5px;
+  border-radius: 5px;
+  opacity: 0.7;
+}
+
+.gre-panel button.gre-tab--aktiv {
+  background: #3f6e3a;
+  opacity: 1;
+  font-weight: 600;
+}
+
+.gre-hilfe {
+  font-size: 11.5px;
+  opacity: 0.75;
+}
+
+.gre-leer {
+  font-size: 11.5px;
+  opacity: 0.55;
+  font-style: italic;
+}
+
+.gre-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.gre-row--aktiv {
+  outline: 1px solid #e8b400;
+  border-radius: 7px;
+  padding: 2px;
+}
+
+.gre-panel button.gre-lade {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: #2c4a3a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gre-panel input[type="text"],
+.gre-panel input:not([type]) {
+  flex: 1;
+  min-width: 0;
+  background: #10201a;
+  color: inherit;
+  border: 1px solid #3f6e3a;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+/* --- Export-Reiter: <select> (Fluss-Verlauf) + Checkbox-Zeile ----------- */
+
+.gre-panel select {
+  width: 100%;
+  min-width: 0;
+  background: #10201a;
+  color: inherit;
+  border: 1px solid #3f6e3a;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.gre-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.gre-checkbox-row label {
+  flex: 1;
+}
+
+.gre-checkbox-row input[type="checkbox"] {
+  accent-color: #3f6e3a;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.gre-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 6px;
+}
+
+/* --- Ordner-Verbindung --- */
+
+.gre-panel button.gre-freischalten {
+  background: #e8b400;
+  color: #2a2000;
+  font-weight: 600;
+  width: 100%;
+}
+
+.gre-verbunden {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.gre-verbunden b {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #9fd68a;
+}
+
+.gre-panel .gre-verbunden button {
+  padding: 1px 6px;
+  font-size: 11px;
+}
+
+/* --- Asset-Pool (Bibliothek): Thumbnail-Raster --- */
+
+.gre-pool {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+  max-height: 42vh;
+  overflow: auto;
+  padding: 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 6px;
+}
+
+.gre-pool-item-wrap {
+  position: relative;
+}
+
+.gre-panel button.gre-pool-weg {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border-radius: 50%;
+  background: #8a2b2b;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0;
+}
+
+.gre-pool-item-wrap:hover .gre-pool-weg {
+  opacity: 1;
+}
+
+.gre-panel button.gre-pool-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 3px;
+  background: #10201a;
+  border: 1px solid transparent;
+}
+
+.gre-panel button.gre-pool-item:hover {
+  border-color: #9fd68a;
+  background: #16302a;
+}
+
+.gre-pool-item img {
+  width: 100%;
+  height: 44px;
+  object-fit: contain;
+}
+
+.gre-pool-item span {
+  font-size: 9.5px;
+  line-height: 1.2;
+  opacity: 0.75;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* --- Asset-Eintrag in der Bibliothek --- */
+
+.gre-asset {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 5px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.gre-asset--aktiv {
+  outline: 1px solid #e8b400;
+}
+
+.gre-panel button.gre-thumb {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  padding: 2px;
+  background: #10201a;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.gre-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.gre-panel input.gre-name {
+  flex: 1;
+  min-width: 0;
+  background: #10201a;
+  color: inherit;
+  border: 1px solid #3f6e3a;
+  border-radius: 6px;
+  padding: 4px 7px;
+  font: inherit;
+  font-size: 12px;
+}
+
+.gre-meta {
+  flex: 1;
+  font-size: 10.5px;
+  font-family: monospace;
+  opacity: 0.6;
+}
+
+.gre-regler {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.gre-regler-kopf {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+
+.gre-wert {
+  font-family: monospace;
+  color: #9fd68a;
+}
+
+.gre-regler input[type="range"] {
+  width: 100%;
+  accent-color: #3f6e3a;
+}
+
+.gre-panel button.gre-canva {
+  background: #00c4cc; /* Canva-Türkis */
+  color: #0b2b2d;
+  font-weight: 600;
+}
+
+/* Tausch-Modus: erste Ebene gewaehlt, wartet auf die zweite. */
+.gre-panel button.gre-tausch-aktiv {
+  background: #e8b400;
+  color: #2a2000;
+  font-weight: 700;
+}
+
+.gre-tausch-hinweis {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  background: rgba(232, 180, 0, 0.18);
+  border: 1px solid #e8b400;
+  border-radius: 6px;
+  padding: 4px 6px;
+}
+
+.gre-tausch-hinweis button {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 10.5px;
+}
+
+/* Platzhalter fuer Lottie/Video in der Bibliothek (kein <img>-Thumbnail). */
+.gre-pool-icon {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 44px;
+  font-size: 20px;
+  color: #9fd68a;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.gre-lock {
+  font-size: 11.5px;
+  color: #ffe58a;
+  font-weight: 600;
+}
+
+.gre-drop {
+  font-size: 11.5px;
+  color: #0b2b2d;
+  background: #9fd68a;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-weight: 600;
+}
+
+.gre-status {
+  font-size: 11.5px;
+  color: #9fd68a;
+}
+
+/* --- Vektorisieren: Regler-Aufklapper --- */
+
+.gre-panel details.gre-vektor-regler {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.gre-panel details.gre-vektor-regler summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9fd68a;
+  list-style: none;
+}
+
+.gre-panel details.gre-vektor-regler summary::-webkit-details-marker {
+  display: none;
+}
+
+.gre-panel details.gre-vektor-regler[open] summary {
+  margin-bottom: 6px;
+}
+
+.gre-panel details.gre-vektor-regler .gre-regler + .gre-regler {
+  margin-top: 6px;
+}
+
+/* Vektorisieren-Knopf im Bibliotheks-Raster: Gegenstueck zu .gre-pool-weg
+   (oben rechts), hier oben links, gruen statt rot, gleiches Hover-Verhalten. */
+.gre-panel button.gre-pool-vektor {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  border-radius: 50%;
+  background: #3f6e3a;
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0;
+}
+
+.gre-pool-item-wrap:hover .gre-pool-vektor {
+  opacity: 1;
+}
+
+/* --- Bibliothek: Ordner-Gruppen (Server-Assets aus public/, s.
+   GrafikEditor Auto-Laden) — dieselbe Aufklapper-Optik wie
+   .gre-vektor-regler oben. */
+
+.gre-panel details.gre-pool-gruppe {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 7px;
+  padding: 6px 8px;
+}
+
+.gre-panel details.gre-pool-gruppe + details.gre-pool-gruppe {
+  margin-top: 4px;
+}
+
+.gre-panel details.gre-pool-gruppe summary {
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #9fd68a;
+  list-style: none;
+}
+
+.gre-panel details.gre-pool-gruppe summary::-webkit-details-marker {
+  display: none;
+}
+
+.gre-panel details.gre-pool-gruppe[open] summary {
+  margin-bottom: 6px;
+}
+
+.gre-panel details.gre-pool-gruppe .gre-pool {
+  border-top: none;
+  padding-top: 0;
+}
+
+.gre-gruppe-anzahl {
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+/* --- Vektorisieren: blockierendes Lade-Overlay --- */
+
+.gre-vektor-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 16, 12, 0.72);
+}
+
+.gre-vektor-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: rgba(20, 30, 24, 0.96);
+  color: #f2efe7;
+  border-radius: 10px;
+  padding: 22px 28px;
+  font: 13px/1.45 system-ui, sans-serif;
+  text-align: center;
+}
+
+.gre-vektor-hinweis {
+  font-size: 11.5px;
+  opacity: 0.7;
+}
+
+.gre-vektor-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid rgba(159, 214, 138, 0.25);
+  border-top-color: #9fd68a;
+  animation: gre-spin 0.8s linear infinite;
+}
+
+@keyframes gre-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gre-vektor-spinner {
+    animation: none;
+  }
+}
+
+/* --- Mehrfachauswahl: Auswahl-Rechteck (Rubber-Band) --------------------
+   Eigenes Geschwister-Element außerhalb von .gre-panel (s. GrafikEditor.tsx
+   Kommentar bei GrafikObjektMenue) — muss über der GANZEN Seite liegen,
+   nicht nur im Panel. */
+.gre-rubberband {
+  position: fixed;
+  z-index: 55; /* unter .gre-panel (60), über der Grafik-Ebene (30) */
+  border: 1px solid #e8b400;
+  background: rgba(232, 180, 0, 0.15);
+  pointer-events: none;
+}
+
+/* --- Einrasten: Hilfslinien-Overlay -------------------------------------
+   Erscheint nur waehrend ein Zug tatsaechlich einrastet (s. snapLinien-State
+   in GrafikEditor.tsx). */
+.gre-snap-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+}
+
+.gre-snap-linie {
+  position: fixed;
+  background: #e8b400;
+  opacity: 0.85;
+}
+
+.gre-snap-linie--v {
+  top: 0;
+  width: 1px;
+  height: 100vh;
+}
+
+.gre-snap-linie--h {
+  left: 0;
+  height: 1px;
+  width: 100vw;
+}

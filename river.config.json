@@ -1,0 +1,123 @@
+{
+  "$doc": "Fluss-Konfiguration ('Der Fluss'). F1a 'Original als Master': Die PFAD-FORM kommt 1:1 aus dem handgestimmten Kunden-Original (Knotentabellen in components/river/riverPath.ts, periodisch fortgesetzt) – die waypoints hier steuern NUR noch die y-Positionen der Feature-Trigger (Flora) über ihre DOM-Anker, NICHT mehr die Kurve. xPct/widthPx der Wegpunkte sind seit F1a ohne Wirkung auf die Form (Schema unverändert gelassen). Look-Werte (Wellenfarben, Sandufer-Stroke) sitzen als CSS-Token in app/design-tokens.css (--water-*/--bank-*).",
+  "disabledWaypointTypes": [
+    "waterfallBox",
+    "cliff",
+    "lake"
+  ],
+  "$docDisabled": "F1a: Box-Wasserfall, Felswand und See sind vorläufig stillgelegt (werden in F2/F3 auf Basis des Original-Masters neu gebaut). Typ hier entfernen = Wegpunkt-Typ wieder aktivierbar (braucht F2/F3-Geometrie). Der einzige 'waterfallBox'-Wegpunkt (Anker '#bausteine .card:nth-child(3)') wurde entfernt (Export-Bug-Fix 2026-07-17): der Typ war ohnehin deaktiviert UND der Anker existiert im DOM nicht mehr ('#bausteine' rendert '.features-cycle__item', kein '.card') — er erzeugte nur noch eine dauerhafte Konsolen-Warnung ohne jede Wirkung. Bei Reaktivierung von 'waterfallBox' in F2/F3: neuen Wegpunkt mit einem echten Anker in #bausteine anlegen.",
+  "sourceExit": {
+    "$doc": "Geometrie-Vertrag Bühne↔Content: wo der Fluss aus dem Vorhang-Tropfen entspringt.",
+    "xPct": 50,
+    "widthPx": 120
+  },
+  "breath": {
+    "$doc": "Wellen-Atmung (Kundenwert): periodS = eine volle Hin-und-Her-Animation der Wellen-Pfade (a↔b, ease-in-out alternate wie im Referenzprototyp). waveCount = Anzahl übereinanderliegender Wellen-Ebenen.",
+    "periodS": 5,
+    "waveCount": 5
+  },
+  "sparkle": {
+    "$doc": "Glitzer-Partikel auf dem Wasser (Kundenwerte fest). mode: 'dezent' = Wassertropfen-Punkte (wie Referenzprototyp-Default), 'linien' = Lichtlinien, 'magisch' = Sterne, 'aus' = keine Partikel. perTrail = Partikel pro Spur/Lane. trailDurS = Umlaufdauer einer Spur in Sekunden. flashS = Sichtbarkeitsdauer eines einzelnen Aufblitzens.",
+    "mode": "dezent",
+    "perTrail": 12,
+    "trailDurS": 120,
+    "flashS": 1.5
+  },
+  "bank": {
+    "$doc": "Sandufer: dicker Stroke direkt auf dem Zentral-/Uferpfad (kein separates Offset-Sprite), Farbe --bank-500 in design-tokens.css.",
+    "strokePx": 50
+  },
+  "$docKurs": "Bare Wegpunkte ohne features (z.B. '#mission .block-prose__text', '#bausteine', '#stats .container') existieren NUR damit measureAnchors sie misst — die Kurs-Führung (KURS_SPEC in riverPath.ts) liest ihre Rechtecke aus der anchors-Map, um den Fluss pro Sektion links/rechts neben den Textboxen zu führen. Fehlt ein Anker im DOM, läuft der Fluss dort nativ (zentriert) weiter.",
+  "waypoints": [
+    {
+      "anchor": "#mission",
+      "at": "right",
+      "xPct": 72,
+      "widthPx": 110
+    },
+    {
+      "anchor": "#mission .block-prose__text",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "$docFlora": "Flora (Baum/Efeu/Gras) am Ufer ist ENTFERNT (Kundenentscheid 2026-07-16: 'entferne die Sachen, die neben dem Fluss erscheinen ... eine Liane auf der linken Seite ... gehoert nicht zum Fluss'). Die Wegpunkte bleiben als Anker fuer die Kurs-/Editor-Messung erhalten, nur ihre features-Arrays sind raus.",
+      "anchor": "#haltung .block-statement__inner",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#oasis-prose .block-prose__text",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#bausteine",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#bausteine .features-cycle__row--top",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#bausteine .features-cycle__row--bottom",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#stats .container",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 100
+    },
+    {
+      "anchor": "#haltung",
+      "at": "left",
+      "xPct": 22,
+      "widthPx": 110,
+      "$flora": "entfernt (s. $docFlora)"
+    },
+    {
+      "anchor": "#oasis-prose",
+      "at": "right",
+      "xPct": 83,
+      "widthPx": 105,
+      "$flora": "entfernt (s. $docFlora) — das war die Liane links vom Fluss"
+    },
+    {
+      "anchor": "#projekte",
+      "at": "right",
+      "xPct": 83,
+      "widthPx": 110,
+      "$flora": "entfernt (s. $docFlora)"
+    },
+    {
+      "anchor": "#stats",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 120
+    },
+    {
+      "anchor": "#tal",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 160,
+      "type": "cliff"
+    },
+    {
+      "anchor": "#tal .cta-band",
+      "at": "top",
+      "xPct": 50,
+      "widthPx": 320,
+      "type": "lake"
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+/* grafik-objekt-menue.css – schwebendes Aktionsmenü an der ausgewählten
+   Grafik (GrafikObjektMenue.tsx). Gleiche Optik wie grafik-editor.css
+   (dunkel, grün, gelber Akzent), aber eigene Datei/Klassen-Präfix, weil das
+   Menü NICHT Teil von .gre-panel ist (position:fixed, folgt der Grafik statt
+   im Panel zu sitzen). */
+
+.gre-objektmenue {
+  position: fixed;
+  top: -9999px;
+  left: -9999px;
+  z-index: 70; /* über der Grafik-Ebene (30) UND über .gre-panel (60) */
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(20, 30, 24, 0.95);
+  color: #f2efe7;
+  border: 1px solid #3f6e3a;
+  border-radius: 10px;
+  padding: 8px;
+  font: 12px/1.4 system-ui, sans-serif;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  /* Erst sichtbar, sobald die erste Positionsmessung da ist — sonst blitzt
+     es kurz oben links (top/left -9999px lässt sich nicht animieren, s.o.). */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out;
+}
+
+.gre-objektmenue--sichtbar {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.gre-objektmenue-titel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #9fd68a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 2px 3px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  margin-bottom: 2px;
+}
+
+.gre-objektmenue button {
+  background: #3f6e3a;
+  color: #fff;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.gre-objektmenue button:hover {
+  background: #4d8546;
+}
+
+.gre-objektmenue button.gre-objektmenue-loeschen {
+  background: #8a2b2b;
+  margin-top: 3px;
+}
+
+.gre-objektmenue button.gre-objektmenue-loeschen:hover {
+  background: #a83737;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gre-objektmenue {
+    transition: none;
+  }
+}
