@@ -154,7 +154,7 @@ Generator, gedruckte Binaries **und** MCP-Server laufen alle nativ auf Windows. 
 
 Aus einer Spec entstehen in ~30 s (nach Toolchain-Setup) ein CLI mit 20+ Kommandos + stdio-MCP mit produktions-tauglichen Agent-Konventionen (`--agent`/`--json`/`--compact`/`--dry-run`/`doctor`/`agent-context`), typisierten Exit-Codes und einem Vuln-Scan — von Hand waeren das Tage. Die `openapi.yaml` bleibt Single Source of Truth.
 
-**Optimierung fuer den naechsten Lauf:** Das self-learning-Paket (`internal/store` SQLite + ~10 der 26 MCP-Tools: `learnings*`/`teach*`/`recall`/`playbook`) ist fuer unsere lokale Datei-API Overkill und blaeht das Tool-Surface auf. Mit `learn.disabled: true` (Config) entsteht ein schlankeres, fokussiertes CLI mit nur den ~9 echten API-Tools. Empfehlung: so nachziehen, bevor das CLI produktiv genutzt wird.
+**Zum self-learning-Loop (KORRIGIERT 2026-07-21):** Frueher hier als „Overkill, mit `learn.disabled` abschalten" eingestuft — **das war falsch** (Token-Kosten-Denke; Token-/LLM-Kosten sind kein Ablehnungsgrund, wir haben lokale Modelle). Am Code verifiziert: `internal/learn` im gedruckten CLI ruft **kein** LLM auf (kein `net/http`, kein `exec`) — es ist reines SQLite + Jaccard-Token-Matching + `entity_lookups` (`internal/learn/doc.go`). „LLM-fired" heisst „**vom aufrufenden Agenten** gefeuert", nicht „ruft selbst ein LLM". Damit ist der Loop **deterministisch und modell-agnostisch**: jeder Agent (Claude, Paperclip-Worker oder ein lokales Gemma/Qwen) ruft `recall`/`teach` identisch und kostenlos auf. Der Wert liegt in den **Playbooks + Notes** — gelernte Choreografien + Gotchas fuer unsere mehrschrittigen Workflows (Import→Konflikt→Speichern, Massen-Migration). **Behalten, nicht abschalten.** — Einziger Ort mit echtem LLM-Backend ist der *Generator* selbst: `internal/llm/llm.go` shellt fuer optionale Schritte (research/vision/`--polish`) hart an `claude` (Fallback `codex`) via `exec.LookPath`, ohne Env-Var/Ollama-Pfad. Auf ein lokales Modell zeigbar ueber einen `claude`-kompatiblen Shim (`claude -p <prompt> --output-format text` → Ollama), aber nur noetig fuer den LLM-veredelten `--polish`-Print — unser spec-first `generate` braucht es nicht.
 
 ### Reproduktion (Windows)
 
@@ -175,7 +175,8 @@ Das gedruckte Go-Projekt gehoert **nicht** ins Next.js-Repo (falscher Stack). So
 
 ### Naechste offene Schritte
 
-- `learn.disabled`-Reprint (schlankeres CLI) — klein.
+- self-learning **bleibt an** (s.o.) — der Wert entsteht, sobald ein Agent den MCP real nutzt und Playbooks/Notes wachsen; kein Umbau noetig, weil deterministisch + modell-agnostisch.
 - MCP in Claude Code registrieren (§6.3): `.mcpb`-Bundle liegt vor; der genaue Registrierungsweg (`claude mcp add` vs. `.mcp.json`) ist noch nicht durchgespielt.
+- Optional spaeter: `claude`-Shim auf lokales Modell (Ollama) fuer LLM-veredelten `--polish`-Print — nur bei Bedarf.
 - Paperclip-Worker-Roundtrip (§6.5): Worker ruft das gedruckte CLI — nur an der lokalen Paperclip-Instanz pruefbar.
 - Puck-Editor (`/puck`) von localStorage auf die neue Seiten-API umstellen; R2c-Agent-Panel-Plugin (docs/puck-erweiterungsebene.md §6).
