@@ -18,6 +18,9 @@
 
 import type { Config, Data } from "@puckeditor/core";
 import { ShapeAccent } from "@/components/ShapeAccent";
+import { GrafikMedium } from "@/components/grafik/GrafikMedium";
+import type { Grafik } from "@/components/grafik/grafik-types";
+import type { GrafikLayerBlockProps } from "@/lib/import/grafik-setup-to-puck";
 
 type ShapeAccentBlockProps = {
   variant: "arc" | "sunburst" | "blob-a" | "blob-b" | "blob-c";
@@ -28,6 +31,8 @@ type ShapeAccentBlockProps = {
 
 type PuckProps = {
   ShapeAccent: ShapeAccentBlockProps;
+  // Props ohne id — Puck verwaltet die content-Item-id selbst.
+  GrafikLayer: Omit<GrafikLayerBlockProps, "id">;
 };
 
 export const config: Config<PuckProps> = {
@@ -88,6 +93,70 @@ export const config: Config<PuckProps> = {
           <ShapeAccent variant={variant} color={color} position={position} size={size} />
         </div>
       ),
+    },
+    // R2b Stufe A: Ziel-Baustein des deterministischen Importers. render
+    // delegiert 1:1 an die bestehende Render-Einheit (GrafikMedium) — Paritaet.
+    GrafikLayer: {
+      label: "Grafik-Ebene (importiert)",
+      fields: {
+        name: { type: "text", label: "Name" },
+        src: { type: "text", label: "Bildquelle (src)" },
+        art: {
+          type: "select",
+          label: "Medienart",
+          options: [
+            { label: "Bild", value: "bild" },
+            { label: "Lottie", value: "lottie" },
+            { label: "Video", value: "video" },
+          ],
+        },
+        breitePx: { type: "number", label: "Breite (px)", min: 40, max: 1600 },
+        scale: { type: "number", label: "Skalierung", min: 0.1, max: 5 },
+        opacity: { type: "number", label: "Deckkraft (0-1)", min: 0, max: 1 },
+        rotation: { type: "number", label: "Drehung (Grad)" },
+        z: { type: "number", label: "Ebene (z)" },
+      },
+      defaultProps: {
+        name: "Grafik",
+        src: "/vektor/titelbild.svg",
+        art: "bild",
+        breitePx: 300,
+        z: 0,
+        scale: 1,
+        opacity: 1,
+        rotation: 0,
+      },
+      render: ({ name, src, art, breitePx, z, scale, opacity, rotation }) => {
+        const g: Grafik = { id: "puck-preview", name, src, art, breitePx, z, keyframes: [] };
+        return (
+          <div
+            className="fc-grafik-layer-slot"
+            style={{
+              position: "relative",
+              minHeight: 220,
+              background: "#faf7f0",
+              borderRadius: 12,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 20,
+            }}
+          >
+            <style>{`.fc-grafik-layer-slot img{width:100%;height:auto;display:block}`}</style>
+            <div
+              style={{
+                width: Math.max(40, breitePx * (scale ?? 1)),
+                maxWidth: "100%",
+                opacity: opacity ?? 1,
+                transform: `rotate(${rotation ?? 0}deg)`,
+              }}
+            >
+              <GrafikMedium g={g} quelle={src} handleRef={() => {}} />
+            </div>
+          </div>
+        );
+      },
     },
   },
 };
