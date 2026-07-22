@@ -720,3 +720,44 @@
 .gre-fluss-sektion .rke-liste {
   margin-top: 4px;
 }
+
+/* --- Presets ("voranimierte Assets") in der Bibliothek ----------------
+   Eigene Sektion unter den Asset-Gruppen, dezent per Trennlinie abgesetzt. */
+.gre-preset-sektion {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 8px;
+}
+
+/* Der Anwenden-Knopf trägt Thumb + Name + Frame-Zahl nebeneinander — der
+   .gre-lade-Grundstil (linksbündig, grün, ellipsis) bleibt, nur als Flexbox. */
+.gre-panel button.gre-preset-lade {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.gre-preset-thumb {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex: 0 0 auto;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gre-preset-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Frame-Zahl rechts: nicht dehnen (die .gre-meta-Grundregel setzt flex:1). */
+.gre-preset-lade .gre-preset-meta {
+  flex: 0 0 auto;
+}

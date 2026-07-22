@@ -13,6 +13,8 @@
  * Berechtigung (das erzwingt der Browser, das lässt sich nicht umgehen).
  */
 
+import type { AnimationsPreset } from "./grafik-types";
+
 const DB_NAME = "wee-grafik";
 const DB_VERSION = 1;
 const STORE = "keyval";
@@ -20,6 +22,10 @@ const STORE = "keyval";
 /** Schlüssel im Store. */
 export const K_SETUPS = "setups";
 export const K_ORDNER = "ordnerHandle";
+/** Animations-Presets ("voranimierte Assets", s. grafik-types AnimationsPreset).
+ *  Eigener Schlüssel im selben Store wie K_SETUPS — reiner Bewegungs-Datensatz
+ *  (kein Handle, keine Bytes), daher genügt idbGet/idbSet ohne Sondermuster. */
+export const K_PRESETS = "presets";
 
 function db(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
@@ -49,6 +55,19 @@ export async function idbSet(key: string, wert: unknown): Promise<void> {
     tx.oncomplete = () => res();
     tx.onerror = () => rej(tx.error);
   });
+}
+
+/* --- Animations-Presets ------------------------------------------- */
+
+/** Alle gespeicherten Presets holen (leere Liste, wenn noch keine da sind). */
+export async function presetsHolen(): Promise<AnimationsPreset[]> {
+  return (await idbGet<AnimationsPreset[]>(K_PRESETS)) ?? [];
+}
+
+/** Preset-Liste komplett schreiben (der Aufrufer hält die Liste in Ordnung —
+ *  Muster wie beim Setup-Speichern: ganze Sammlung ersetzen statt patchen). */
+export async function presetsSetzen(liste: AnimationsPreset[]): Promise<void> {
+  await idbSet(K_PRESETS, liste);
 }
 
 /* ------------------------------------------------------------------ */

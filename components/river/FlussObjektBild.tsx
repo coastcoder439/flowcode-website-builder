@@ -18,6 +18,7 @@ import { FlussSektion } from "./sektionen/FlussSektion";
 import { WasserSektion } from "./sektionen/WasserSektion";
 import { FrontSektion } from "./sektionen/FrontSektion";
 import { NebelSektion } from "./sektionen/NebelSektion";
+import type { AnimEinstellungen } from "./RiverKursContext";
 import type { FlussKnotenSteuerung } from "./useFlussKnoten";
 
 interface FlussObjektBildProps {
@@ -26,6 +27,30 @@ interface FlussObjektBildProps {
 
 export function FlussObjektBild({ steuerung: s }: FlussObjektBildProps) {
   const ctx = s.ctx;
+
+  /* Anim-Regler in den Verlauf einbinden (Welle 2c-1, Bauvorlage §3b), OHNE
+     die rein darstellenden Sektionen/Regler anzufassen: der Diff sagt, WELCHE
+     Felder sich ändern. Genau EINES = ein Regler-Zug/eine Checkbox → coalesced
+     pro Feld (ein Slider-Zug = ein Schritt). MEHRERE auf einmal = „Animation
+     zurücksetzen" (ANIM_DEFAULTS) → ein diskreter Schritt. VOR dem Anwenden
+     committen (Vor-Zug-Stand bleibt Rückgängig-Ziel). Nur auf /editor aktiv;
+     das alte rke-Panel gibt weiter ctx.setAnim direkt durch (kein Fluss-Undo
+     dort). */
+  const setAnimMitVerlauf = (next: AnimEinstellungen) => {
+    const vorher = ctx.anim;
+    let anzahl = 0;
+    let einzelKey: keyof AnimEinstellungen | null = null;
+    (Object.keys(next) as (keyof AnimEinstellungen)[]).forEach((k) => {
+      if (next[k] !== vorher[k]) {
+        anzahl += 1;
+        einzelKey = k;
+      }
+    });
+    if (anzahl === 1 && einzelKey) s.verlauf.commit("Animation geändert", `fluss-anim:${einzelKey}`);
+    else if (anzahl > 1) s.verlauf.commit("Animation zurückgesetzt");
+    ctx.setAnim(next);
+  };
+
   return (
     <div className="gre-fluss-objekt">
       <div className="gre-reiter-kopf">
@@ -51,17 +76,17 @@ export function FlussObjektBild({ steuerung: s }: FlussObjektBildProps) {
 
       <details className="gre-fluss-sektion">
         <summary>Wasser</summary>
-        <WasserSektion anim={ctx.anim} setAnim={ctx.setAnim} />
+        <WasserSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       <details className="gre-fluss-sektion">
         <summary>Front</summary>
-        <FrontSektion anim={ctx.anim} setAnim={ctx.setAnim} />
+        <FrontSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       <details className="gre-fluss-sektion">
         <summary>Nebel</summary>
-        <NebelSektion anim={ctx.anim} setAnim={ctx.setAnim} />
+        <NebelSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       {/* Fluss-Profile (Speichern/Laden) sind bewusst NICHT hier, sondern im

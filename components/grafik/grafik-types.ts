@@ -267,3 +267,100 @@ export function skaliereGrafikenFuerHoehe(grafiken: Grafik[], faktor: number): G
     keyframes: g.keyframes.map((k) => ({ ...k, scrollY: k.scrollY * faktor, y: k.y * faktor })),
   }));
 }
+
+/* --- Animations-Presets ("voranimierte Assets") ----------------------
+ * Ein Preset ist das Keyframe-Set einer Grafik, LOSGELÖST von deren konkreter
+ * Scroll-Lage, Position und Bilddatei — nur die reine Bewegung. Dadurch lässt
+ * es sich als wiederverwendbares "Animations-Asset" in der Bibliothek ablegen
+ * und auf jede ANDERE Grafik an DEREN aktueller Stelle anwenden (Bauvorlage §4,
+ * Leons AP-I-Kern: "die voranimierten sachen auch in der library").
+ *
+ * Normierung: der ERSTE Keyframe der Quell-Grafik ist die Referenz (t=0, dx=0,
+ * dy=0); alle weiteren Frames stehen relativ dazu — dx/dy als Dokument-px-
+ * Versatz, t als 0..1-Position über die Original-Scrollspanne. So ist ein
+ * Preset unabhängig davon, WO die Quell-Grafik lag oder wie hoch die Seite war.
+ */
+
+/** Ein einzelner Frame eines Presets — relativ zum ersten (Anker-)Keyframe. */
+export interface AnimationsPresetFrame {
+  /** Position auf der Spanne, 0..1 normiert (0 = Anker, 1 = letzter Keyframe). */
+  t: number;
+  /** Versatz gegenüber dem ERSTEN Keyframe, in Dokument-px. */
+  dx: number;
+  dy: number;
+  /** Absolute Werte (nicht relativ) — sie tragen den kompletten Bewegungs-
+   *  Look des Presets, damit dieser unabhängig vom Startzustand der Zielgrafik
+   *  greift. */
+  scale: number;
+  opacity: number;
+  rotation: number;
+  /** Verlaufskurve zum nächsten Frame (wie GrafikKeyframe.easing). */
+  easing?: Bezier4;
+}
+
+/** Ein gespeichertes Animations-Preset (IndexedDB, s. grafik-store K_PRESETS). */
+export interface AnimationsPreset {
+  id: string;
+  /** Anzeigename in der Bibliothek. */
+  name: string;
+  /** ISO-Zeitstempel der Erstellung. */
+  erstellt: string;
+  /** Vorschau: Data-URL oder Asset-src der Quell-Grafik (nur zur Anzeige). */
+  thumbSrc?: string;
+  /** Original-Scrollspanne des Sets in px (letzter − erster Keyframe). */
+  spanneScroll: number;
+  frames: AnimationsPresetFrame[];
+}
+
+/** Baut aus einer Grafik (Aufrufer stellt ≥2 Keyframes sicher) ein Preset: der
+ *  erste Keyframe wird zur Referenz (t=0, dx=0, dy=0), alle weiteren relativ
+ *  dazu normiert. `id`/`erstellt` werden von außen übergeben, damit die Funktion
+ *  rein/deterministisch bleibt.
+ *
+ *  srcOverride wird BEWUSST NICHT übernommen: er zeigt an einer bestimmten
+ *  Scroll-Höhe ein anderes Bild GENAU DIESER Grafik (bildspezifisch) und ergäbe
+ *  an einer fremden Zielgrafik keinen Sinn. Ebenso stecken scrollY/x/y nur
+ *  normiert (t) bzw. als Δ (dx/dy) drin — nie als Absolutwert der Quelle. */
+export function presetAusGrafik(
+  g: Grafik,
+  id: string,
+  name: string,
+  erstellt: string,
+): AnimationsPreset {
+  const kf = g.keyframes;
+  const ref = kf[0];
+  const spanne = kf[kf.length - 1].scrollY - ref.scrollY;
+  const frames: AnimationsPresetFrame[] = kf.map((k) => ({
+    t: spanne > 0 ? (k.scrollY - ref.scrollY) / spanne : 0,
+    dx: k.x - ref.x,
+    dy: k.y - ref.y,
+    scale: k.scale,
+    opacity: k.opacity,
+    rotation: k.rotation,
+    ...(k.easing ? { easing: k.easing } : {}),
+  }));
+  return { id, name, erstellt, thumbSrc: g.src, spanneScroll: spanne, frames };
+}
+
+/** Instanziiert die Keyframes eines Presets an einem Anker-Keyframe (i.d.R. der
+ *  aktuelle erste Keyframe der Zielgrafik): dessen scrollY/x/y bilden den
+ *  Nullpunkt, jeder Preset-Frame wird relativ dazu gesetzt (dx/dy als Dokument-
+ *  Versatz, t·spanne als Scroll-Versatz ab Anker-scrollY). scale/opacity/
+ *  rotation/easing kommen komplett aus dem Preset. Reihenfolge bleibt nach
+ *  scrollY sortiert, weil die Preset-Frames bereits aufsteigend nach t liegen
+ *  (presetAusGrafik erhält die Keyframe-Reihenfolge der Quelle). srcOverride
+ *  wird nicht gesetzt (s. presetAusGrafik). */
+export function keyframesAusPreset(
+  preset: AnimationsPreset,
+  anker: GrafikKeyframe,
+): GrafikKeyframe[] {
+  return preset.frames.map((f) => ({
+    scrollY: anker.scrollY + f.t * preset.spanneScroll,
+    x: anker.x + f.dx,
+    y: anker.y + f.dy,
+    scale: f.scale,
+    opacity: f.opacity,
+    rotation: f.rotation,
+    ...(f.easing ? { easing: f.easing } : {}),
+  }));
+}

@@ -38,6 +38,7 @@ import {
 import {
   ANIM_DEFAULTS,
   useRiverKurs,
+  type AnimEinstellungen,
   type RiverKursCtx,
 } from "./RiverKursContext";
 import { RIVER_DESIGN_WIDTH_PX } from "./riverPath";
@@ -48,6 +49,7 @@ import {
   type FlussVerlauf,
   type ImportierterVerlauf,
 } from "./riverSnapshot";
+import { useFlussVerlauf, type FlussVerlaufSteuerung } from "./useFlussVerlauf";
 import type { RiverNode } from "./river-types";
 
 const STORAGE_KEY = "wee-fluss-verlaeufe";
@@ -180,6 +182,10 @@ export interface FlussKnotenSteuerung {
    *  kein stiller Verlust über die localStorage-Brücke). null, solange
    *  Geometrie/Farben noch nicht bereit sind. */
   baueAktuellenVerlauf: (nameArg?: string) => FlussVerlauf | null;
+  /** Rückgängig/Wiederholen des Flusses (Welle 2c-1, Bauvorlage §3) — eigener
+   *  Stapel, baugleich zum Grafik-Verlauf. Der GrafikEditor dispatcht Strg+Z/Y
+   *  und die Kopf-Knöpfe bei Fluss-Fokus hierauf. */
+  verlauf: FlussVerlaufSteuerung;
 }
 
 /** Die komplette Fluss-Interaktion als Hook. Liefert null, solange kein
@@ -193,9 +199,17 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
   const [verlaeufe, setVerlaeufe] = useState<Record<string, FlussVerlauf>>({});
   const [name, setName] = useState("verlauf-1");
   const [status, setStatus] = useState("");
-  const dragRef = useRef<{ idx: number; startX: number; startY: number; bewegt: boolean } | null>(
-    null,
-  );
+  const dragRef = useRef<{
+    idx: number;
+    startX: number;
+    startY: number;
+    bewegt: boolean;
+    /* Vor-Zug-Stand (nodes + anim), am pointerdown gemerkt: EIN Knoten-Zug =
+       EIN Verlaufsschritt, committet erst beim Loslassen mit genau diesem
+       Stand (wie der Grafik-Canvas-Zug). */
+    vorNodes: RiverNode[] | null;
+    vorAnim: AnimEinstellungen | null;
+  } | null>(null);
   /* Drag-Puffer + rAF-Commit: max. ein Geometrie-Neubau pro Frame. */
   const pendingRef = useRef<RiverNode[] | null>(null);
   const rafRef = useRef(0);
@@ -290,12 +304,21 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
     [setzeNodes],
   );
 
+  /* Rückgängig/Wiederholen des Flusses (Welle 2c-1, Bauvorlage §3). Muss VOR
+     dem Wheel-Effekt und den Ops stehen (const nicht gehoistet — die Handler
+     unten schließen über `verlauf`). Snapshot-Umfang: nodes + anim. */
+  const verlauf = useFlussVerlauf(nodes, ctx?.anim ?? null, setzeNodes, ctx?.setAnim);
+
   /* Eingeloggter Knoten: Scrollrad = Breite (Seiten-Scroll blockiert). */
   useEffect(() => {
     if (gelockt === null || !nodes) return;
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       const faktor = e.deltaY < 0 ? WHEEL_FAKTOR : 1 / WHEEL_FAKTOR;
+      /* EIN Wheel-Zug an DEMSELBEN Knoten = EIN Verlaufsschritt (coalesced,
+         Gruppe pro Knoten-Index) — VOR der Änderung committen, damit der
+         Vor-Zug-Stand das Rückgängig-Ziel bleibt (wie der Grafik-Wheel). */
+      verlauf.commit("Breite geändert", `fluss-breite:${gelockt}`);
       setzeNodes(
         nodes.map((n, i) =>
           i === gelockt
@@ -318,7 +341,17 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
   const onPointerDown = (idx: number) => (e: ReactPointerEvent) => {
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
-    dragRef.current = { idx, startX: e.clientX, startY: e.clientY, bewegt: false };
+    /* Vor-Zug-Stand jetzt merken (nodes-Referenz genügt — Knoten werden nie
+       in-place, sondern per map/filter geändert; anim bleibt während des Zugs
+       unberührt, wird aber für den vollständigen Snapshot mitgesichert). */
+    dragRef.current = {
+      idx,
+      startX: e.clientX,
+      startY: e.clientY,
+      bewegt: false,
+      vorNodes: nodes,
+      vorAnim: ctx?.anim ?? null,
+    };
   };
 
   const onPointerMove = (e: ReactPointerEvent) => {
@@ -345,6 +378,15 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
     const drag = dragRef.current;
     dragRef.current = null;
     if (drag && !drag.bewegt) setGelockt((g) => (g === idx ? null : idx));
+    /* EIN Knoten-Zug = EIN Verlaufsschritt: erst HIER (beim Loslassen) mit dem
+       am pointerdown gemerkten Vor-Zug-Stand committen — nicht bei jedem Frame
+       (sonst Dutzende Schritte für einen Zug). Nur wenn tatsächlich bewegt. */
+    if (drag && drag.bewegt && drag.vorNodes && drag.vorAnim) {
+      verlauf.commit("Knoten verschoben", undefined, {
+        nodes: drag.vorNodes,
+        anim: drag.vorAnim,
+      });
+    }
   };
 
   /** Neuer Knoten auf Bildschirmmitte, eingefügt zwischen den Nachbarn
@@ -359,12 +401,16 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
       vor && nach ? vor.x + (nach.x - vor.x) * t : (vor ?? nach)?.x ?? RIVER_DESIGN_WIDTH_PX / 2;
     const breite =
       vor && nach ? vor.breite + (nach.breite - vor.breite) * t : (vor ?? nach)?.breite ?? 240;
+    /* Diskrete Aktion = eigener Verlaufsschritt (keine Gruppe), VOR der
+       Änderung committen. */
+    verlauf.commit("Knoten hinzugefügt");
     setGelockt(null);
     setzeNodes([...nodes, { y, x, breite }].sort((a, b) => a.y - b.y));
   };
 
   const knotenLoeschen = () => {
     if (gelockt === null || !nodes || nodes.length <= 2) return;
+    verlauf.commit("Knoten gelöscht");
     setzeNodes(nodes.filter((_, i) => i !== gelockt));
     setGelockt(null);
   };
@@ -372,6 +418,7 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
   const geradeZuruecksetzen = () => {
     if (!nodes) return;
     const x = RIVER_DESIGN_WIDTH_PX / 2;
+    verlauf.commit("Gerade zurückgesetzt");
     setGelockt(null);
     setzeNodes(nodes.map((n) => ({ ...n, x, breite: 240 })));
     setStatus("Auf geraden Fluss zurückgesetzt");
@@ -433,6 +480,13 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
   const laden = (n: string) => {
     const v = ladeVerlaeufe()[n];
     if (!v || !ctx) return;
+    /* Ein Profil aus der (in-Editor) Liste zu laden ist rückgängig machbar
+       (Bauvorlage §3b): EIN Commit "Profil geladen" VOR dem Anwenden sichert
+       den Vor-Lade-Stand — so lässt sich ein versehentliches Laden zurücknehmen.
+       Bewusst ANDERS als der Datei-Import (importiereVerlauf → resetHistory):
+       der bringt einen fremden Stand von aussen, über den hinweg zurückzuspringen
+       verwirrte (analog Setup-Wechsel im Grafik-Editor). */
+    verlauf.commit("Profil geladen");
     setName(n);
     setGelockt(null);
     /* Höhen-Normalisierung: v.meta.zoneHDesign ist die Zonenhöhe, gegen die
@@ -489,6 +543,12 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
     const faktor = hoehenFaktor(zone, autoriertZoneH);
     setzeNodes(skaliereKnotenY(v.nodes.map((p) => ({ ...p })), faktor));
     ctx.setAnim({ ...ANIM_DEFAULTS, ...(v.anim ?? {}) });
+    /* Datei-Import bringt einen FREMDEN Stand von aussen — den Verlauf leeren
+       (analog resetHistory bei Setup-Wechsel im Grafik-Editor): ein Rückgängig
+       über den Import hinweg würde in den unabhängigen Vor-Import-Stand
+       zurückspringen, was verwirrte statt zu helfen. Bewusst anders als
+       laden() aus der Liste (dort EIN undo-barer Commit). */
+    verlauf.resetHistory();
     return faktor;
   };
 
@@ -584,5 +644,6 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
     dateiImportiert,
     alsSvgExportieren,
     baueAktuellenVerlauf,
+    verlauf,
   };
 }

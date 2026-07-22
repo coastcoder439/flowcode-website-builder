@@ -42,13 +42,18 @@ import {
   ordnerDateien,
   ordnerHolen,
   ordnerWaehlen,
+  presetsHolen,
+  presetsSetzen,
   type OrdnerHandle,
 } from "./grafik-store";
 import {
+  keyframesAusPreset,
   medienArt,
+  presetAusGrafik,
   skaliereGrafikenFuerHoehe,
   zustandBei,
   VORHANG_GRAFIK_PREFIX,
+  type AnimationsPreset,
   type Asset,
   type Grafik,
   type GrafikKeyframe,
@@ -311,6 +316,10 @@ export function GrafikEditor() {
    *  davon, ob schon etwas auf der Seite platziert ist. */
   const [pool, setPool] = useState<Asset[]>([]);
   const [poolFilter, setPoolFilter] = useState("");
+  /** Animations-Presets ("voranimierte Assets", IndexedDB K_PRESETS) — in der
+   *  Bibliothek unter „Presets" gelistet, im Reiter Animation gespeichert.
+   *  Reine Zusatz-Bibliothek: unabhängig von platzierten Grafiken/Setups. */
+  const [presets, setPresets] = useState<AnimationsPreset[]>([]);
   const ordnerRef = useRef<HTMLInputElement>(null);
   /** Verbundener PC-Ordner. Der Handle liegt in IndexedDB und überlebt den
    *  Neustart — die Bibliothek wird daraus GELESEN statt gespeichert.
@@ -419,6 +428,25 @@ export function GrafikEditor() {
       setPool(letztes.pool.map((a) => ({ ...a })));
       setName(letztes.name);
     }
+  }, []);
+
+  /* Animations-Presets aus IndexedDB laden (überleben den Reload, s.
+     grafik-store K_PRESETS). Eigener Effekt, weil asynchron und unabhängig von
+     den localStorage-Setups oben. Fehlschlag = einfach leere Liste (kein
+     harter Fehler — die Bibliothek zeigt dann den Leer-Hinweis). */
+  useEffect(() => {
+    let tot = false;
+    void (async () => {
+      try {
+        const geladen = await presetsHolen();
+        if (!tot) setPresets(geladen);
+      } catch {
+        /* still: Presets sind optionaler Komfort, kein Editor-Kernzustand. */
+      }
+    })();
+    return () => {
+      tot = true;
+    };
   }, []);
 
   /* Server-Bibliothek (public/-Ordner des Projekts, s. app/api/assets/
@@ -1061,6 +1089,82 @@ export function GrafikEditor() {
     ]);
     ctx?.setAuswahl(id);
     setStatus(`„${a.name}" gesetzt — platzieren & „Hier locken"`);
+  };
+
+  /* --- Animations-Presets ("voranimierte Assets") ----------------------
+   * Speichern (Reiter Animation) → normiertes Keyframe-Set in die Bibliothek.
+   * Anwenden (Bibliothek) → an der aktuellen Position der gewählten Grafik
+   * instanziieren. Reine Zusatz-Bibliothek, unabhängig von Grafik-Setups. */
+
+  /** Die Bewegung der AKTIVEN Grafik als Preset sichern (braucht ≥2 Keyframes —
+   *  eine Bewegung entsteht erst zwischen zwei Punkten). Namens-Prompt im
+   *  Hausmuster; leere Eingabe/Abbruch = nichts tun. */
+  const presetSpeichern = async () => {
+    if (!aktiv || aktiv.keyframes.length < 2) return;
+    const eingabe = window.prompt(
+      "Name für das Animations-Preset:",
+      `${aktiv.name}-Animation`,
+    );
+    if (eingabe === null) return; // Abgebrochen
+    const n = eingabe.trim();
+    if (!n) return;
+    const id = `p${Date.now().toString(36)}${Math.floor(performance.now() * 1000) % 997}`;
+    const neu = presetAusGrafik(aktiv, id, n, new Date().toISOString());
+    const liste = [...presets, neu];
+    try {
+      /* Erst persistieren, dann State setzen — so bleibt die Anzeige
+         konsistent zum tatsächlich Gespeicherten (kein "gespeichert"-Status
+         ohne echtes Schreiben, Muster wie loesche* unten). */
+      await presetsSetzen(liste);
+      setPresets(liste);
+      setStatus(`Preset „${n}" gespeichert (${neu.frames.length} Frames) — in der Bibliothek unter „Presets"`);
+    } catch (error) {
+      setStatus(
+        `Preset konnte nicht gespeichert werden (${error instanceof Error ? error.message : "unbekannter Fehler"})`,
+      );
+    }
+  };
+
+  /** Ein Preset auf die AKTIVE Grafik anwenden: dessen Keyframes ersetzen die
+   *  bestehenden, verankert am aktuellen ersten Keyframe der Grafik (Position/
+   *  Scroll-Lage bleiben, die Bewegung kommt aus dem Preset). Vorher EIN
+   *  Commit → ein Strg+Z stellt den alten Zustand wieder her (im confirm-Text
+   *  erwähnt). Ohne Auswahl nur ein Hinweis (kein stiller No-Op). */
+  const presetAnwenden = (preset: AnimationsPreset) => {
+    if (!aktiv) {
+      setStatus("Erst eine Grafik auswählen, dann das Preset anklicken.");
+      return;
+    }
+    const bestaetigt = window.confirm(
+      `Preset „${preset.name}" auf „${aktiv.name}" anwenden?\n\n` +
+        "Die bestehenden Keyframes dieser Grafik werden ersetzt. " +
+        "Ein Strg+Z macht das rückgängig.",
+    );
+    if (!bestaetigt) return;
+    const anker = aktiv.keyframes[0];
+    const neueKf = keyframesAusPreset(preset, anker);
+    ctx?.commit(`Preset „${preset.name}" angewandt`);
+    setzeGrafiken(grafiken.map((g) => (g.id === aktiv.id ? { ...g, keyframes: neueKf } : g)));
+    setStatus(
+      `Preset „${preset.name}" angewandt (${neueKf.length} Keyframes) — Strg+Z macht es rückgängig`,
+    );
+  };
+
+  /** Ein Preset aus der Bibliothek löschen (fragt nach). */
+  const presetLoeschen = async (id: string) => {
+    const p = presets.find((x) => x.id === id);
+    if (!p) return;
+    if (!window.confirm(`Preset „${p.name}" wirklich löschen?`)) return;
+    const liste = presets.filter((x) => x.id !== id);
+    try {
+      await presetsSetzen(liste);
+      setPresets(liste);
+      setStatus(`Preset „${p.name}" gelöscht`);
+    } catch (error) {
+      setStatus(
+        `Preset konnte nicht gelöscht werden (${error instanceof Error ? error.message : "unbekannter Fehler"})`,
+      );
+    }
   };
 
   /* --- Vektorisieren (Raster → SVG) ------------------------------------
@@ -1835,13 +1939,30 @@ export function GrafikEditor() {
   /* --- Verlauf (Undo/Redo) ---------------------------------------------
      Eigene Funktionen statt Inline-Logik im Tastatur-Effekt/Knopf-Handler:
      beide Aufrufer (Kopf-Knöpfe ↶↷ UND Strg+Z/Strg+Y) sollen exakt dieselbe
-     Statuszeilen-Meldung bekommen (nicht nachbauen). */
+     Statuszeilen-Meldung bekommen (nicht nachbauen).
+
+     DISPATCH NACH FOKUS (Welle 2c-1, Bauvorlage §3): hat auf /editor das
+     Fluss-Objekt den Bearbeitungs-Fokus, wirken Rückgängig/Wiederholen auf den
+     eigenen FLUSS-Verlauf, sonst wie bisher auf den Grafik-Verlauf. EINE
+     Dispatch-Stelle für Kopf-Knopf UND Strg+Z/Y — der globale Tastatur-Handler
+     ruft genau diese Funktionen (kein zweiter Shortcut-Handler). Ohne
+     FlussObjekt-Provider (alte Route) ist flussObjekt null → immer Grafik. */
   const rueckgaengigMachen = () => {
+    if (flussObjekt?.fokus && flussObjekt.steuerung) {
+      const label = flussObjekt.steuerung.verlauf.undo();
+      if (label) setStatus(`Rückgängig (Fluss): ${label}`);
+      return;
+    }
     const label = ctx?.undo();
     if (label) setStatus(`Rückgängig: ${label}`);
   };
 
   const wiederholenMachen = () => {
+    if (flussObjekt?.fokus && flussObjekt.steuerung) {
+      const label = flussObjekt.steuerung.verlauf.redo();
+      if (label) setStatus(`Wiederhergestellt (Fluss): ${label}`);
+      return;
+    }
     const label = ctx?.redo();
     if (label) setStatus(`Wiederhergestellt: ${label}`);
   };
@@ -1916,6 +2037,13 @@ export function GrafikEditor() {
   }, [ctx?.auswahl, flussHatFokus, flussSetFokus]);
 
   if (!ctx) return null;
+
+  /* Kopf-Knöpfe ↶↷ (Welle 2c-1, Bauvorlage §3c): bei Fluss-Fokus richtet sich
+     die Verfügbarkeit nach dem FLUSS-Verlauf (jetzt scharf statt disabled wie in
+     2b-2), sonst nach dem Grafik-Verlauf. */
+  const flussVerlauf = flussObjekt?.steuerung?.verlauf;
+  const kannRueckgaengig = flussHatFokus ? !!flussVerlauf?.canUndo : ctx.canUndo;
+  const kannWiederholen = flussHatFokus ? !!flussVerlauf?.canRedo : ctx.canRedo;
 
   const aktivKfIndex = aktiv ? naechsterKfIndex(aktiv, scrollY) : -1;
   /** Nur Rasterbilder (kein SVG) lassen sich sinnvoll vektorisieren — steuert
@@ -2012,31 +2140,27 @@ export function GrafikEditor() {
     <div className="gre-panel">
       <div className="gre-kopf">
         <strong>Grafik-Editor</strong>
-        {/* Undo/Redo wirken auf den GRAFIK-Verlauf. Bei Fluss-Fokus sind sie
-            bewusst gesperrt (mit Title-Hinweis) — ein eigener, gleichgebauter
-            Fluss-Verlauf kommt erst in Welle 2c (Bauvorlage §3). Ohne Sperre
-            würde Strg+Z am Fluss stillschweigend die zuletzt gewählte Grafik
-            zurücknehmen — verwirrend. */}
+        {/* Undo/Redo dispatchen nach Fokus (Welle 2c-1, Bauvorlage §3): bei
+            Fluss-Fokus auf den eigenen Fluss-Verlauf (jetzt scharf statt der
+            2b-2-Sperre), sonst auf den Grafik-Verlauf. Der Title zeigt den
+            Kontext. onClick unverändert — die Fokus-Weiche steckt in
+            rueckgaengigMachen/wiederholenMachen (EINE Dispatch-Stelle). */}
         <div className="gre-verlauf">
           <button
             className="gre-verlauf-btn"
             onClick={rueckgaengigMachen}
-            disabled={!ctx.canUndo || !!flussHatFokus}
-            title={
-              flussHatFokus
-                ? "Rückgängig für den Fluss folgt in einem späteren Schritt (Welle 2c)"
-                : "Rückgängig (Strg+Z)"
-            }
+            disabled={!kannRueckgaengig}
+            title={flussHatFokus ? "Rückgängig – Fluss (Strg+Z)" : "Rückgängig (Strg+Z)"}
           >
             ↶
           </button>
           <button
             className="gre-verlauf-btn"
             onClick={wiederholenMachen}
-            disabled={!ctx.canRedo || !!flussHatFokus}
+            disabled={!kannWiederholen}
             title={
               flussHatFokus
-                ? "Wiederholen für den Fluss folgt in einem späteren Schritt (Welle 2c)"
+                ? "Wiederholen – Fluss (Strg+Umschalt+Z / Strg+Y)"
                 : "Wiederholen (Strg+Umschalt+Z / Strg+Y)"
             }
           >
@@ -2237,6 +2361,54 @@ export function GrafikEditor() {
             Aus Canva: Element <b>kopieren</b> → <b>Strg+V</b>. Oder Datei auf die Seite{" "}
             <b>ziehen</b> (landet dort, wo du loslässt).
           </div>
+
+          {/* Presets — „voranimierte Assets" (Bauvorlage §4). Eigene Sektion
+              UNTER den Asset-Gruppen: gespeicherte Bewegungs-Abläufe, die sich
+              auf die ausgewählte Grafik anwenden lassen. a11y: eigene
+              Überschrift (aria-labelledby), fokussierbare Knöpfe mit Labels. */}
+          <section className="gre-preset-sektion" aria-labelledby="gre-preset-titel">
+            <div className="gre-reiter-kopf">
+              <span id="gre-preset-titel">Presets</span>
+              <HilfeIcon
+                label="Presets"
+                text={`Gespeicherte Animations-Abläufe (voranimierte Assets). Wähle eine Grafik aus und klick ein Preset — dessen Bewegung wird an der aktuellen Position der Grafik übernommen und ersetzt deren Keyframes (Strg+Z macht das rückgängig). Neue Presets speicherst du im Reiter „Animation".`}
+              />
+            </div>
+            {presets.length === 0 ? (
+              <div className="gre-leer">Noch keine Presets — speichere eins im Reiter Animation.</div>
+            ) : (
+              <div className="gre-liste">
+                {presets.map((p) => (
+                  <div key={p.id} className="gre-row">
+                    <button
+                      className="gre-lade gre-preset-lade"
+                      onClick={() => presetAnwenden(p)}
+                      title={
+                        aktiv
+                          ? `„${p.name}" auf „${aktiv.name}" anwenden — ersetzt deren Keyframes (Strg+Z macht es rückgängig)`
+                          : "Erst eine Grafik auswählen, dann anwenden"
+                      }
+                    >
+                      {p.thumbSrc ? (
+                        <img src={p.thumbSrc} alt="" className="gre-preset-thumb" />
+                      ) : (
+                        <span className="gre-pool-icon">◆</span>
+                      )}
+                      <span className="gre-preset-name">{p.name}</span>
+                      <span className="gre-meta gre-preset-meta">{p.frames.length} Frames</span>
+                    </button>
+                    <button
+                      onClick={() => void presetLoeschen(p.id)}
+                      title="Preset löschen (fragt nach)"
+                      aria-label={`Preset „${p.name}" löschen`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
         </>
       )}
 
@@ -2684,6 +2856,33 @@ export function GrafikEditor() {
                     </button>
                   </div>
                 ))}
+              </div>
+
+              {/* Als Preset speichern (Bauvorlage §4): die Bewegung dieser
+                  Grafik als wiederverwendbares „voranimiertes Asset" in die
+                  Bibliothek legen. Braucht ≥2 Keyframes — sonst gibt es keine
+                  Bewegung zu speichern (dann disabled mit Erklär-Title). */}
+              <div className="gre-block">
+                <div className="gre-regler-kopf">
+                  <span>
+                    Als Preset speichern{" "}
+                    <HilfeIcon
+                      label="Als Preset speichern"
+                      text={`Speichert den Bewegungs-Ablauf dieser Grafik (Positionen, Größe, Deckkraft, Drehung relativ zum ersten Keyframe; Scroll-Spanne normiert) als wiederverwendbares Animations-Preset. Es erscheint in der Bibliothek unter „Presets" und lässt sich dort auf jede andere ausgewählte Grafik anwenden — animieren einmal, wiederverwenden überall.`}
+                    />
+                  </span>
+                </div>
+                <button
+                  onClick={() => void presetSpeichern()}
+                  disabled={aktiv.keyframes.length < 2}
+                  title={
+                    aktiv.keyframes.length < 2
+                      ? "Braucht mindestens 2 Keyframes — eine Bewegung entsteht erst zwischen zwei Punkten."
+                      : "Bewegung als wiederverwendbares Preset in der Bibliothek speichern"
+                  }
+                >
+                  💾 Als Preset speichern
+                </button>
               </div>
             </>
           )}
