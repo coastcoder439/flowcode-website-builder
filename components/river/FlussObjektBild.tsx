@@ -18,6 +18,7 @@ import { FlussSektion } from "./sektionen/FlussSektion";
 import { WasserSektion } from "./sektionen/WasserSektion";
 import { FrontSektion } from "./sektionen/FrontSektion";
 import { NebelSektion } from "./sektionen/NebelSektion";
+import { HilfeIcon } from "@/components/shared/HilfeIcon";
 import type { AnimEinstellungen } from "./RiverKursContext";
 import type { FlussKnotenSteuerung } from "./useFlussKnoten";
 
@@ -63,7 +64,13 @@ export function FlussObjektBild({ steuerung: s }: FlussObjektBildProps) {
       </div>
 
       <details className="gre-fluss-sektion" open>
-        <summary>Fluss (Knoten)</summary>
+        <summary>
+          <span>Fluss (Knoten)</span>
+          <HilfeIcon
+            label="Fluss (Knoten)"
+            text={`Die Knoten-Punkte auf der Seite SIND der Fluss. Ziehen = Knoten verschieben. Klick ohne Ziehen = einloggen (gelb), dann ändert das Mausrad die Breite/Perspektive statt zu scrollen, Esc loggt wieder aus. „+ Knoten" fügt einen hinzu, „− Knoten" löscht den eingeloggten (mind. 2 bleiben), „Gerade zurücksetzen" macht den Fluss wieder schnurgerade.`}
+          />
+        </summary>
         <FlussSektion
           gelockt={s.gelockt}
           vollAufgedeckt={ctx.vollAufgedeckt}
@@ -75,24 +82,51 @@ export function FlussObjektBild({ steuerung: s }: FlussObjektBildProps) {
       </details>
 
       <details className="gre-fluss-sektion">
-        <summary>Wasser</summary>
+        <summary>
+          <span>Wasser</span>
+          <HilfeIcon
+            label="Wasser"
+            text={`Aussehen der Wasserfläche: „Glitzer an" schaltet die Lichtreflexe ein, die Regler steuern Wellen-Atmung, Glitzer-Tempo/-Menge, das Aufblitzen und die Breite des Sandufers. Jeder Regler wirkt sofort live auf den Fluss; „Animation zurücksetzen" stellt alle Wasser/Front/Nebel-Werte auf Standard.`}
+          />
+        </summary>
         <WasserSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       <details className="gre-fluss-sektion">
-        <summary>Front</summary>
+        <summary>
+          <span>Front</span>
+          <HilfeIcon
+            label="Front"
+            text="Die Partikelwolke an der vorderen Fließkante (Gischt, Schaum, Nachlauf). Die Regler ziehen Anzahl, Vorpreschen, Tempo, Größe und Zufalls-Springen der Partikel. Die Breite ist fest an den Fluss gekoppelt und darum kein Regler."
+          />
+        </summary>
         <FrontSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       <details className="gre-fluss-sektion">
-        <summary>Nebel</summary>
+        <summary>
+          <span>Nebel</span>
+          <HilfeIcon
+            label="Nebel"
+            text="Die weiche Wolkenkante ÜBER der Front — sie deckt die Schnittkante zu und gibt Volumen. Die Regler steuern Anzahl, Größe, Deckkraft, Weichheit (Unschärfe) und Waber-Tempo der Wolken."
+          />
+        </summary>
         <NebelSektion anim={ctx.anim} setAnim={setAnimMitVerlauf} />
       </details>
 
       {/* Fluss-Profile (Speichern/Laden) sind bewusst NICHT hier, sondern im
-          Reiter „Speichern" — s. Datei-Kommentar oben. */}
-      <div className="gre-hilfe">
-        Fluss speichern/laden findest du im Reiter <b>Speichern</b>.
+          Reiter „Speichern" — s. Datei-Kommentar oben. Das „?" sitzt dennoch
+          hier im Objekt-Reiter, damit alle fünf Fluss-Aspekte (Fluss · Wasser ·
+          Front · Nebel · Profile) an ihrem Objekt eine Kurz-Erklärung haben und
+          der Verweis auf den richtigen Reiter direkt daneben steht (AP-E). */}
+      <div className="gre-hilfe gre-hilfe-mit-icon">
+        <span>
+          Fluss speichern/laden findest du im Reiter <b>Speichern</b>.
+        </span>
+        <HilfeIcon
+          label="Fluss-Profile"
+          text={`Fertige Fluss-Stände (Knoten-Form + Wasser/Front/Nebel-Regler) sichern und wieder laden — als benannte „Profile". Das erledigst du im Reiter „Speichern" unter „Fluss-Profile": Namen eintippen und „Speichern", oder ein Profil in der Liste anklicken und „Laden".`}
+        />
       </div>
 
       {s.status && <div className="gre-status">{s.status}</div>}

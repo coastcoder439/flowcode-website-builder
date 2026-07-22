@@ -45,6 +45,15 @@
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
+/* Verweis-Zeile mit "?" daneben (Fluss-Profile im Objekt-Reiter, AP-E):
+   Text und Icon in einer Zeile, Icon oben-bündig, damit es bei mehrzeiligem
+   Text nicht mittig „schwebt". */
+.gre-hilfe-mit-icon {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
 /* --- Reiter-Kopf: Tab-Titel + HilfeIcon im Inhalt (s. GrafikEditor.tsx) -- */
 
 .gre-reiter-kopf {

@@ -1,39 +1,35 @@
 "use client";
 
 /*
- * GrafikHilfe – Fragezeichen-Hilfen + Einstiegs-Tutorial für den
- * Grafik-Editor (Leons Kritik: „Das UI ist komplett benutzerunfreundlich.
- * Ich will Tutorialfenster mit vernünftiger Erklärung, Fragezeichen,
- * Knöpfe.").
+ * GrafikHilfe – Einstiegs-Tutorial für den Editor (Leons Kritik: „Das UI ist
+ * komplett benutzerunfreundlich. Ich will Tutorialfenster mit vernünftiger
+ * Erklärung, Fragezeichen, Knöpfe." + AP-E: „vollständiges Tutorial für den
+ * Flusseditor").
  *
- * Eigene Datei statt Anhängsel an GrafikEditor.tsx (das ist schon ~1930
+ * Eigene Datei statt Anhängsel an GrafikEditor.tsx (das ist schon ~3000
  * Zeilen) — GrafikEditor.tsx hängt nur <HilfeIcon> und <GrafikTutorial> ein,
  * der komplette Text UND die Logik dahinter leben hier.
  *
- * ZWEI BAUSTEINE:
- *   HilfeIcon      – kleines „?"-Icon, das per Klick ODER Hover eine kurze
- *                    Erklärung zeigt. Position wird wie beim schwebenden
- *                    Objektmenü (s. GrafikObjektMenue.tsx) per
- *                    getBoundingClientRect + position:fixed berechnet —
- *                    NICHT per CSS position:absolute, weil .gre-panel
- *                    scrollt (overflow:auto) und ein absolut positioniertes
- *                    Popover dort abgeschnitten würde, sobald es über den
- *                    Panel-Rand hinausragt.
+ * HilfeIcon ist seit Welle 2d (AP-E) nach components/shared/HilfeIcon.tsx
+ * umgezogen, weil die Fluss-Sektionen dieselben „?"-Hilfen brauchen und sonst
+ * aus dem grafik-Feature importieren müssten. HilfeIcon wird hier 1:1
+ * re-exportiert, damit bestehende Importe aus dieser Datei unverändert bleiben.
+ *
  *   GrafikTutorial – Einstiegs-Fenster: erscheint automatisch beim ERSTEN
  *                    Öffnen (Merker in localStorage), danach nur noch über
- *                    den „? Hilfe"-Knopf im Panel-Kopf.
+ *                    den „? Hilfe"-Knopf im Panel-Kopf. Zeigt zuerst die sechs
+ *                    Grafik-Schritte, danach die Fluss-Schritte (AP-E).
  */
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import "./grafik-hilfe.css";
 
+// HilfeIcon lebt jetzt in einem neutralen Ordner (s. Datei-Kommentar), wird
+// hier aber re-exportiert — so brechen `import { HilfeIcon } from
+// "./GrafikHilfe"` in GrafikEditor.tsx & Co. nicht.
+export { HilfeIcon } from "@/components/shared/HilfeIcon";
+
 const TUTORIAL_KEY = "wee-grafik-tutorial-gesehen";
-/** Rand-Puffer zum Fensterrand beim Klemmen (gleicher Wert wie
- *  GrafikObjektMenue.tsx, damit sich beide Overlays gleich verhalten). */
-const RAND_PX = 8;
-/** Feste Popover-Breite für die horizontale Klemm-Rechnung — muss zur
- *  max-width in grafik-hilfe.css passen. */
-const POPOVER_BREITE = 230;
 
 /** true, wenn das Tutorial noch nie geschlossen wurde. Eigene Funktion statt
  *  Inline-Check in GrafikEditor.tsx, damit dort nur noch der Aufruf steht. */
@@ -58,117 +54,6 @@ export function tutorialAlsGesehenMerken(): void {
   }
 }
 
-/** Popover-Position aus der Icon-Position berechnet und an den Viewport-Rand
- *  geklemmt — eigene Funktion statt Inline-Rechnung im Effekt, damit
- *  HilfeIcon selbst kurz bleibt. */
-function klemmePosition(rect: DOMRect): { top: number; left: number } {
-  let left = rect.left;
-  if (left + POPOVER_BREITE > window.innerWidth - RAND_PX) {
-    left = window.innerWidth - RAND_PX - POPOVER_BREITE;
-  }
-  if (left < RAND_PX) left = RAND_PX;
-  let top = rect.bottom + 6;
-  if (top > window.innerHeight - RAND_PX) top = rect.top - RAND_PX;
-  return { top, left };
-}
-
-interface HilfeIconProps {
-  /** Kurzer Name der Einstellung/des Reiters, nur für aria-label (Screenreader). */
-  label: string;
-  /** Die eigentliche Erklärung: WAS es bewirkt, nicht wie es heißt. */
-  text: string;
-}
-
-/** Kleines „?"-Icon mit Erklärung on demand. Öffnet bei Hover/Fokus UND
- *  bleibt nach einem Klick offen („angepinnt"), bis erneut geklickt, Esc
- *  gedrückt oder daneben geklickt wird — funktioniert damit mit Maus,
- *  Tastatur UND Touch. */
-export function HilfeIcon({ label, text }: HilfeIconProps) {
-  const popoverId = useId();
-  const [schwebtDrueber, setSchwebtDrueber] = useState(false);
-  const [angepinnt, setAngepinnt] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
-  const offen = schwebtDrueber || angepinnt;
-
-  /* Position nur beim ÖFFNEN messen (kein rAF-Loop wie beim Objektmenü nötig
-     — das Popover ist kurzlebig, ein Scroll schließt es ohnehin, s.u.). */
-  useEffect(() => {
-    if (!offen || !btnRef.current) return;
-    setPos(klemmePosition(btnRef.current.getBoundingClientRect()));
-  }, [offen]);
-
-  /* Scrollen (auch INNERHALB von .gre-panel) oder Fenstergröße ändern
-     schließt das Popover, statt es live nachzuführen — einfacher und für
-     eine kurze Erklärung völlig ausreichend. true = Capture-Phase, damit
-     auch ein Scroll innerhalb von .gre-panel ankommt (Scroll-Events
-     bubblen nicht). */
-  useEffect(() => {
-    if (!offen) return;
-    const schliessen = () => {
-      setAngepinnt(false);
-      setSchwebtDrueber(false);
-    };
-    window.addEventListener("scroll", schliessen, true);
-    window.addEventListener("resize", schliessen);
-    return () => {
-      window.removeEventListener("scroll", schliessen, true);
-      window.removeEventListener("resize", schliessen);
-    };
-  }, [offen]);
-
-  /* Angepinnt (nach Klick): Klick daneben oder Esc hebt die Pinnung auf. */
-  useEffect(() => {
-    if (!angepinnt) return;
-    const onDoc = (e: PointerEvent) => {
-      if (e.target instanceof Node && btnRef.current?.contains(e.target)) return;
-      setAngepinnt(false);
-    };
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setAngepinnt(false);
-    };
-    document.addEventListener("pointerdown", onDoc);
-    document.addEventListener("keydown", onEsc);
-    return () => {
-      document.removeEventListener("pointerdown", onDoc);
-      document.removeEventListener("keydown", onEsc);
-    };
-  }, [angepinnt]);
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        className="gre-hilfe-icon"
-        aria-label={`Hilfe: ${label}`}
-        aria-expanded={offen}
-        aria-describedby={offen ? popoverId : undefined}
-        onMouseEnter={() => setSchwebtDrueber(true)}
-        onMouseLeave={() => setSchwebtDrueber(false)}
-        onFocus={() => setSchwebtDrueber(true)}
-        onBlur={() => setSchwebtDrueber(false)}
-        onClick={(e) => {
-          e.stopPropagation();
-          setAngepinnt((a) => !a);
-        }}
-      >
-        ?
-      </button>
-      {offen && pos && (
-        <div
-          id={popoverId}
-          className="gre-hilfe-popover"
-          role="tooltip"
-          style={{ top: pos.top, left: pos.left }}
-        >
-          {text}
-        </div>
-      )}
-    </>
-  );
-}
-
 interface GrafikTutorialProps {
   offen: boolean;
   onSchliessen: () => void;
@@ -186,6 +71,20 @@ const SCHRITTE: readonly string[] = [
   `Fertig? Im Reiter „Setups" einen Namen vergeben und „Speichern". „Als Standard setzen" zeigt den Stand danach auch auf der echten Website.`,
 ];
 
+/** Die Fluss-Schritte (AP-E) — kommen im Tutorial NACH den sechs Grafik-
+ *  Schritten, gleiche Daten-statt-JSX-Form. Der Fluss ist ein eigenes Objekt
+ *  im selben Editor; darum steht er im Tutorial als eigener Block, nicht als
+ *  Fortsetzung des Grafik-Ablaufs. Inhalte an das reale Verhalten angelehnt:
+ *  einen eingeloggten Knoten löscht man per „− Knoten"-Knopf ODER per Entf/
+ *  Backspace (s. FlussObjektContext.tsx — bei Fluss-Fokus + eingeloggtem
+ *  Knoten). */
+const FLUSS_SCHRITTE: readonly string[] = [
+  `Fluss in den Blick nehmen: im Reiter „Ebenen" ganz oben den Eintrag „🌊 Fluss" anklicken — er bekommt den Bearbeitungs-Fokus, die Knoten-Punkte auf der Seite werden anfassbar.`,
+  `Knoten formen: einen Punkt ziehen verschiebt ihn. Ein Klick OHNE zu ziehen „loggt ihn ein" (gelb) — dann ändert das Scrollrad seine Breite/Perspektive statt zu scrollen, Esc loggt wieder aus. „+ Knoten" fügt einen hinzu; den eingeloggten löschst du per „− Knoten" oder mit der Entf-Taste (mindestens 2 bleiben).`,
+  `Aussehen einstellen: im Reiter „Bild" (bei Fluss-Fokus) die Sektionen Wasser, Front und Nebel aufklappen und die Regler ziehen. Fertige Fluss-Stände speicherst und lädst du im Reiter „Speichern" unter „Fluss-Profile".`,
+  `Rückgängig gilt getrennt je Objekt: liegt der Fokus auf dem Fluss, nimmt Strg+Z Knoten-/Regler-Züge zurück, sonst Grafik-Züge. Häufige Bewegungen kannst du im Reiter „Animation" als Preset speichern und auf andere Grafiken anwenden.`,
+];
+
 interface Kuerzel {
   tasten: string;
   wirkung: string;
@@ -197,6 +96,13 @@ const KUERZEL: readonly Kuerzel[] = [
   { tasten: "Entf", wirkung: "ausgewählte Grafik löschen" },
   { tasten: "Esc", wirkung: "Auswahl aufheben / Einloggen beenden" },
   { tasten: "Strg+V", wirkung: "Bild aus der Zwischenablage einfügen (z.B. aus Canva kopiert)" },
+  // Fluss-Kürzel (AP-E) — hinten angehängt, Bestandszeilen unverändert.
+  {
+    tasten: "Mausrad (eingeloggt)",
+    wirkung: "Grafik = Größe · Fluss-Knoten = Breite/Perspektive",
+  },
+  { tasten: "Entf (Fluss)", wirkung: "eingeloggten Fluss-Knoten löschen (mind. 2 bleiben)" },
+  { tasten: "Esc (Fluss)", wirkung: "eingeloggten Knoten ausloggen" },
 ];
 
 /** Einstiegs-Tutorial: erscheint automatisch beim ersten Öffnen (s.
@@ -209,9 +115,17 @@ export function GrafikTutorial({ offen, onSchliessen }: GrafikTutorialProps) {
 
   /* Fokus auf den Haupt-Knopf beim Öffnen — Grundvoraussetzung für
      Tastaturbedienung eines Dialogs (kompletter Fokus-Trap wäre für dieses
-     interne Tool über das Ziel hinaus). */
+     interne Tool über das Ziel hinaus). Beim Schließen kehrt der Fokus auf das
+     auslösende Element zurück (i.d.R. der „? Hilfe"-Knopf im Kopf) — sonst
+     landet er auf <body> und Tastatur-Nutzer verlieren ihre Position (a11y).
+     Der Merker sitzt im Cleanup DIESES Effekts, damit alle Schließ-Wege (Esc,
+     ✕, „Los geht's", Klick auf den Hintergrund) gleichermaßen abgedeckt sind —
+     sie alle setzen `offen` auf false. */
   useEffect(() => {
-    if (offen) schliessenRef.current?.focus();
+    if (!offen) return;
+    const vorherFokussiert = document.activeElement as HTMLElement | null;
+    schliessenRef.current?.focus();
+    return () => vorherFokussiert?.focus?.();
   }, [offen]);
 
   useEffect(() => {
@@ -235,7 +149,7 @@ export function GrafikTutorial({ offen, onSchliessen }: GrafikTutorialProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="gre-tutorial-kopf">
-          <strong id={titelId}>Willkommen im Grafik-Builder</strong>
+          <strong id={titelId}>Willkommen im Editor</strong>
           <button className="gre-tutorial-x" onClick={onSchliessen} aria-label="Tutorial schließen">
             ✕
           </button>
@@ -248,8 +162,20 @@ export function GrafikTutorial({ offen, onSchliessen }: GrafikTutorialProps) {
           nichts kaputt machen.
         </div>
 
+        <div className="gre-tutorial-kuerzel-titel">Grafiken animieren</div>
         <ol className="gre-tutorial-schritte">
           {SCHRITTE.map((schritt, i) => (
+            <li key={i}>{schritt}</li>
+          ))}
+        </ol>
+
+        {/* Fluss-Block (AP-E) — eigener Abschnitt NACH den Grafik-Schritten:
+            der Fluss ist ein zweiter Objekttyp im selben Editor, kein weiterer
+            Grafik-Schritt. Eigene <ol>, damit die Nummerierung wieder bei 1
+            beginnt statt bei 7. Gleiche Klassen = gleiche Optik, kein neues CSS. */}
+        <div className="gre-tutorial-kuerzel-titel">Den Fluss animieren</div>
+        <ol className="gre-tutorial-schritte">
+          {FLUSS_SCHRITTE.map((schritt, i) => (
             <li key={i}>{schritt}</li>
           ))}
         </ol>

@@ -137,6 +137,11 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   opacity: 0.9;
+  /* flex, damit eine „?"-Hilfe (AP-E) direkt neben dem Titel stehen kann statt
+     darunter; bei reinen Text-Titeln wirkungslos. */
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Sichtbarer Tastatur-Fokus auf allen Panel-Bedienelementen (a11y): ohne das
@@ -684,6 +689,22 @@
 
 .gre-fluss-eintrag-name {
   font-weight: 600;
+}
+
+/* Zeile aus Fluss-Eintrag + „?"-Hilfe (AP-E): der Eintrag ist width:100%, das
+   Icon soll rechts daneben stehen statt darunter — der Eintrag nimmt den Rest,
+   das Icon bleibt kompakt. margin wandert vom Button auf die Zeile. */
+.gre-fluss-eintrag-zeile {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.gre-fluss-eintrag-zeile > button.gre-fluss-eintrag {
+  flex: 1 1 auto;
+  width: auto;
+  margin-bottom: 0;
 }
 
 /* „Bild"-Reiter bei Fluss-Fokus: Sektionen als aufklappbare <details>. */

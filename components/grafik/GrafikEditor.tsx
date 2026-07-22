@@ -2447,21 +2447,29 @@ export function GrafikEditor() {
                 Grafik-Auswahl (gegenseitiger Ausschluss). Ohne Provider (alte
                 Route) fehlt der Eintrag ganz. */}
             {flussObjekt && (
-              <button
-                type="button"
-                className={`gre-asset gre-fluss-eintrag${flussObjekt.fokus ? " gre-asset--aktiv" : ""}`}
-                aria-pressed={flussObjekt.fokus}
-                onClick={() => {
-                  flussObjekt.setFokus(true);
-                  ctx.setAuswahl(null);
-                  ctx.setAuswahlMehr([]);
-                  ctx.setGelockt(false);
-                }}
-                title="Fluss auswählen — Knoten auf der Seite bearbeiten; Wasser, Front, Nebel und Profile im Reiter Bild"
-              >
-                <span className="gre-fluss-eintrag-name">🌊 Fluss</span>
-                <span className="gre-meta">{flussObjekt.steuerung?.nodes?.length ?? 0} Knoten</span>
-              </button>
+              <div className="gre-fluss-eintrag-zeile">
+                <button
+                  type="button"
+                  className={`gre-asset gre-fluss-eintrag${flussObjekt.fokus ? " gre-asset--aktiv" : ""}`}
+                  aria-pressed={flussObjekt.fokus}
+                  onClick={() => {
+                    flussObjekt.setFokus(true);
+                    ctx.setAuswahl(null);
+                    ctx.setAuswahlMehr([]);
+                    ctx.setGelockt(false);
+                  }}
+                  title="Fluss auswählen — Knoten auf der Seite bearbeiten; Wasser, Front, Nebel und Profile im Reiter Bild"
+                >
+                  <span className="gre-fluss-eintrag-name">🌊 Fluss</span>
+                  <span className="gre-meta">
+                    {flussObjekt.steuerung?.nodes?.length ?? 0} Knoten
+                  </span>
+                </button>
+                <HilfeIcon
+                  label="Fluss (Ebene)"
+                  text={`Der Fluss ist ein eigenes Objekt, das ganz oben in den Ebenen liegt. Ein Klick wählt ihn aus (Wasser-Akzent + gelber Rand = fokussiert) und hebt zugleich jede Grafik-Auswahl auf — erst dann sind die Knoten-Punkte auf der Seite anfassbar und der Reiter „Bild" zeigt seine Eigenschaften. Die Zahl dahinter nennt die Menge der Punkte, die den Verlauf bilden.`}
+                />
+              </div>
             )}
             {[...grafiken]
               .sort((a, b) => b.z - a.z)
@@ -2974,7 +2982,13 @@ export function GrafikEditor() {
               kommen aus river-kurs-editor.css (auf /editor global geladen). */}
           {flussObjekt?.steuerung && (
             <div className="gre-speichern-block">
-              <div className="gre-block-titel">Fluss-Profile (lokal)</div>
+              <div className="gre-block-titel">
+                Fluss-Profile (lokal)
+                <HilfeIcon
+                  label="Fluss-Profile"
+                  text={`Ein Profil = ein gespeicherter Fluss-Stand (Kurve, Animation UND eingefrorene Geometrie/Farben). Namen eintippen + „Speichern" legt ihn im Browser ab; ein Klick auf einen Listeneintrag lädt ihn sofort live, „✕" löscht ihn. „Als JSON exportieren" gibt eine selbsttragende Datei (per „Importieren" überall wieder ladbar), „Als SVG exportieren" nur den Fluss-Körper ohne Laufzeit-Partikel.`}
+                />
+              </div>
               <ProfileSektion
                 name={flussObjekt.steuerung.name}
                 setName={flussObjekt.steuerung.setName}
