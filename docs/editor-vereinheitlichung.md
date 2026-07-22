@@ -174,6 +174,48 @@ erweitert) → **eine Datei = Seite + Animation**. (4) Export „Ganze Seite (HT
 Puck-Seiten Markup (DOM-Abgriff der Render-Bühne) + Animations-Overlay zusammen. Optische Abnahme
 und Feinschliff der Fusion ausdrücklich bei Leon.
 
+## 10. Welle 5 — KORREKTUR „Ein System" (nach Leons Abnahme-Feedback 2026-07-22)
+
+Leons Befund (berechtigt, bestätigt durch Prüfung): Seiten-Bereich und Animator sind **zwei Welten**
+(Animator zeigt die hartkodierte WEE-Landing, Seiten-Bereich nur `seiten/*.json`); Bens Website wurde nie
+importiert (und ist als Next-Projekt vom 4b-HTML-Import gar nicht erfasst); ~34 Knöpfe ohne Hover-Titel;
+kein Produkt-Onboarding. Leons Zielbild (wörtlich): „ich muss ja die **sachen aus der geladenen website
+auch dann anklicken können im animator**, und in der **seite aus puck bauen / statische version sehen**
+… **alles ein system**." Vier Stufen:
+
+**5a — Ben-Import-Pipeline (Stufe A/B für gebaute eigene Seiten):** Bens Repo liegt als
+`test-sites/wee-website-v3` (gitignored, `output:"export"`, Next 15.5.20 wie wir). Pipeline:
+(1) Bens Projekt bauen — `npm install` + `npm run build` NUR in dessen Ordner (eigenes `.next`/`out`,
+kollidiert nicht mit unserem Dev-Server; unser Builder-Root wird NIE gebaut). (2) Import-Erweiterung
+„Eigene gebaute Seite": beim Ordner-Import werden same-origin **Stylesheets ÜBERNOMMEN** statt geflaggt —
+CSS-Dateien nach `public/import/<slug>/css/` kopiert, im Seiten-Dokument als `styles: string[]` (additiv
+an `SeitenDatei`) gespeichert; Bühne/Puck-Render/Vorschau laden sie **per CSS-`@scope` auf den
+Bühnen-Container begrenzt** (Chromium — deckt sich mit der bestehenden Ordner-Feature-Grenze; Fallback
+ungescoped mit sichtbarer Warnung). `<script>` bleibt draußen (geflaggt). (3) `out/index.html` (+ optional
+Unterseiten `out/*/index.html` als eigene Seiten) → `seiten/wee-website-v3.json` — Slug-Vorgabe beachten:
+**„v3", nie „v2"**. Mehrseitig: Startseite Pflicht, Unterseiten wählbar.
+
+**5b — „Aktive Website" (der Ein-System-Zustand):** Eine Seite ist die **aktive Website**
+(localStorage-Key, im Seiten-Bereich markier-/erkennbar; nach Import automatisch aktiv). Der **Animator
+lädt per Default die aktive Seite als Bühne** (statt WEE-Landing); die WEE-Landing wird zur wählbaren
+„Demo-Landing" im Hintergrund-Reiter degradiert. **Statische Vorschau:** je Seite ein „Vorschau"-Knopf →
+Vollbild-`<Render>` ohne Editor-Chrome (mit Styles aus 5a), Zurück-Knopf. Damit: bauen in Puck ·
+statisch ansehen · animieren im Animator — dieselbe Seite, drei Sichten.
+
+**5c — Anklickbarkeit der geladenen Website im Animator:** Ist-Stand-Gruppe (Ebenen), Alt+Klick und
+„In den Builder holen" müssen auf der aktiven-Seiten-Bühne nachweislich funktionieren (die 4c-Kette
+`data-og-id="puck:<id>"` liefert die Tags; og-typ je Baustein-Typ prüfen/ergänzen: BildBlock→bild,
+TextBlock→text, SektionBlock→sektion, HtmlBlock→deko). Import-Bild-Elemente sind per Klick als Grafik
+übernehmbar und damit sofort animierbar + ankerbar.
+
+**5d — Onboarding + Erklärungen + Aufräumen:** (1) **Einmaliges Produkt-Tutorial** (eigener Latch-Key,
+erscheint beim ersten `/editor`-Besuch VOR dem Animator-Tutorial): „Website importieren → in Puck
+bauen/ansehen → aktive Website → im Animator anklicken & animieren → exportieren" — geführt, mit
+Verweis auf die „?"-Hilfen (Tutorial ≠ Hover-Erklärung, Leons Unterscheidung). (2) **Hover-`title` auf
+alle nackten Knöpfe** (Prüfstand: SeitenBereich 9/0, SeitenImport 5/0, ExportPanel 6/0, Inspector 14/5).
+(3) Testreste entfernen (`seiten/rt-4c.json`, `abbilder/welle3b-verifikation.json` — Leons Ok vom
+2026-07-22 liegt vor).
+
 **Invarianten für alle Wellen** (Inventar §4.4): z-Stack kollisionsfrei · „Knoten SIND der Fluss" ·
 Höhen-Normalisierung nur im Prop-Pfad · Grafik-Ebene pointer-events:none · uebernommen-Kopplung ·
 `grafik.config.json` bleibt der EINZIGE Live-Schreibpfad („Als Standard setzen", mit confirm) ·

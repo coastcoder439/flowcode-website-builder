@@ -26,3 +26,4 @@ public/wee-embed.css
 
 # Dev-Server-Logs (Durchlaufposten, nie committen)
 .next-dev-*.log
+test-sites/
