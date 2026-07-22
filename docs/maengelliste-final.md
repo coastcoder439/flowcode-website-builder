@@ -1,25 +1,48 @@
-# Finale Mängelliste (Leons Abnahme, bestätigt 2026-07-23)
+# Finale Mängelliste v2 (Leons Abnahme, bestätigt + ergänzt 2026-07-23)
 
-> Quelle: Leons Abnahme-Runden 1+2 (wörtlich eingearbeitet) + meine bestätigten Funde („der Rest, den du
-> gefunden hast, muss auch gefixt werden"). Diese Liste ist die **bestätigte Grundlage**; als Nächstes folgt
-> die systematische Suche nach weiteren Mängeln (kompletter Userflow), DANACH der große Plan (ECC-Skill).
-> Positiv-Anker (funktioniert laut Leon): das **Umschalten auf die Live-/aktive Seite** als Mechanik.
+> Quelle: Leons Abnahme-Runden 1–3 (wörtlich eingearbeitet) + meine bestätigten Funde. Diese Liste ist die
+> **bestätigte Grundlage**; als Nächstes folgt die systematische Suche nach weiteren Mängeln (kompletter
+> Userflow), DANACH der große Plan (ECC-Skill). Positiv-Anker (funktioniert laut Leon): das **Umschalten
+> auf die Live-/aktive Seite** als Mechanik.
+>
+> **DER USERFLOW (verbindlich, Leons Definition — vier Stationen):**
+> **1. Import → 2. Puck → 3. Animations-Preview (Animator) → 4. Live-Preview + Export.**
 
 ---
 
 ## I — USERFLOW / AUFBAU DER APP (höchste Priorität — „hatte ich dir schon fünfmal gesagt")
 
-**M1 · Der ganze Webbuilder ist nicht dem Workflow nachgerichtet.** Der Flow ist **Import → Puck → Animator
-→ Export** — die App bildet ihn nicht ab: Die Animator-Seite steht an erster Stelle / ist Default, obwohl
-man auf der Import-Seite beginnt. „Die User Experience ist immer noch kompletter Mumpitz." Das Tutorial
-beschreibt den Flow richtig — die Seite selbst ist so überhaupt nicht aufgebaut. **Umbau: Startansicht =
-Import/Seiten; Navigation und Reihenfolge folgen dem Flow; Animator ist Station 3, nicht Station 1.**
+**M1 · Der ganze Webbuilder ist nicht dem Workflow nachgerichtet.** Die App muss den vier Stationen
+folgen: **Import → Puck → Animations-Preview → Live-Preview + Export.** Heute steht die Animator-Seite
+an erster Stelle / ist Default, obwohl man auf der Import-Seite beginnt. „Die User Experience ist immer
+noch kompletter Mumpitz." Das Tutorial beschreibt den Flow richtig — die Seite selbst ist so überhaupt
+nicht aufgebaut. **Umbau: Startansicht = Import; Navigation und Reihenfolge = die vier Stationen;
+Animator ist Station 3, nicht Station 1.**
 
 **M2 · Tutorial-Trigger falsch platziert.** Es ist „Schwachsinn", dass das Produkt-Tutorial auf der
 Animator-Seite aufploppt, obwohl der Nutzer auf der Import-Seite beginnt. Trigger gehört an den
-Flow-Anfang. (Feinschliff des Tutorials selbst: erst wenn alles fertig ist — s. VI/S1.)
+Flow-Anfang (Station 1). (Feinschliff des Tutorials selbst: erst wenn alles fertig ist — s. VI/S1.)
 
-## II — IMPORT (Ursachen-Cluster; Leons #1, #2, #6, #7, #8, #9 „liegen am Import")
+**M22 · Animator nicht ein-/ausblendbar.** Das Animator-Overlay/-Panel liegt dauerhaft über der Seite —
+es muss sich ein- und ausblenden lassen.
+
+**M23 · Finale Live-Preview-Station fehlt komplett.** Es braucht eine eigene finale Preview-Seite
+(Station 4: die Seite live, ohne Editor-Gedöns), auf der oben ein **Export-Fenster ein-/ausklappbar**
+ist. Existiert noch gar nicht.
+
+**M24 · Kein einheitliches UI/UX im gesamten Tool.** Verbindliche Grundlage: das **WEE-Designsystem** —
+`user-projects/wee-website-refactoring/Information/World Eden Era Design System - Standalone.html`
+(zusätzliche Referenz im Klon: `test-sites/wee-website-v3/design-system/World-Eden-Era-Design-System.html`
++ `design-tokens.reference.css`). Alle Editor-Oberflächen (Panels, Menüs, Dialoge, Import/Puck/Preview/
+Export) werden daran ausgerichtet.
+
+**M25 · Export integriert nicht in die eigene Seite.** „Was soll ich denn mit 'nem Export, den ich dann
+wieder in meine eigene Seite einfüge, die ich im Builder bau? Das ist ja kompletter Quatsch." → Die
+Kernfunktion beim Export (Station 4) ist: **die Animation/das Ergebnis wird direkt in die im Webbuilder
+gebaute Seite richtig hinein-integriert** (fertige Seite MIT Animation als Ganzes). Datei-Exporte
+(Overlay/Runtime/Element) bleiben nur als Zusatzweg für FREMDE, nicht importierte Seiten.
+
+## II — IMPORT (Leons #1, #2, #6, #7, #8, #9 — alles Import-Ursachen)
 
 **M3 · Es wird nicht die richtige bzw. nicht die komplette Seite angezeigt** — Folge des fehlerhaften/
 unvollständigen Imports (die Umschalt-Mechanik selbst funktioniert).
@@ -28,7 +51,7 @@ unvollständigen Imports (die Umschalt-Mechanik selbst funktioniert).
 (Roh-HTML statt gerendertem Endzustand).
 
 **M5 · Layout zerrissen / „sehr random verteilt"** — Zerlegung zu grob (3 Sektionen + 6 HTML-Blöcke).
-Fix: Zerlegungs-Urteile durch das lokale Modell (gemma4) — läuft an späterer Stelle im Import-Umbau (S4).
+Fix: Zerlegungs-Urteile durch das lokale Modell (gemma4) — an späterer Stelle im Import-Umbau (S4).
 
 **M6 · Unterseiten fehlen komplett** — nur index.html importiert; in Puck liegt exakt eine Seite.
 
@@ -80,16 +103,21 @@ nicht (im Puck-Editor korrekt). (Wird durch M8-Live-Bühne voraussichtlich obsol
 **M21 · Sichten-Trio (Puck bauen / statische Vorschau / Animator) nie optisch abgenommen** — Abnahme
 nach dem Flow-Umbau (M1).
 
-## V — VERBINDLICHE REGELN (ab sofort, von Leon angeordnet)
+## V — VERBINDLICHE REGELN (von Leon angeordnet)
 
 **R1 · Undo-Pflicht:** „Jede Funktion, die gebaut wird, muss mit Strg+Z wieder rückgängig gemacht werden
-können" — gilt für ALLE Editier-Aktionen inkl. Hintergrund-/Backdrop-Wechseln. Feste Bauregel, kein
-Nice-to-have.
+können" — gilt für ALLE Editier-Aktionen inkl. Hintergrund-/Backdrop-Wechseln. Feste Bauregel.
 
 **R2 · Verifikations-Protokoll** ([verifikations-protokoll.md](verifikations-protokoll.md)) — nie beim
 ersten Fehlschlag abbrechen, UNGEPRÜFT deklarieren, kein „alles geprüft" nach Fehlschlägen.
 
-**R3 · UI-Reihenfolge = Userflow** — jede Oberflächen-Entscheidung folgt Import → Puck → Animator → Export.
+**R3 · UI-Reihenfolge = Userflow** — jede Oberflächen-Entscheidung folgt den vier Stationen
+Import → Puck → Animations-Preview → Live-Preview + Export.
+
+**R4 · Menüs erschlagen nicht.** Menüs sind logisch und schlank, strikt eingeteilt in die vier
+Userflow-Kategorien — kein Knopf-Dickicht, keine Station zeigt fremde Menüs.
+
+**R5 · Ein Designsystem.** Alles UI folgt dem WEE-Designsystem (M24) — keine Insellösungen je Panel.
 
 ## VI — BESTÄTIGT „SPÄTER" (Reihenfolge von Leon festgelegt)
 
