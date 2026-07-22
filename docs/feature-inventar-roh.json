@@ -1,0 +1,1868 @@
+{
+  "grafik": {
+    "bereich": "Grafik-Editor (/grafik-editor) des flowcode-website-builder — Overlay-Editor zum Platzieren & Scroll-Animieren von Grafiken über der echten Landing. Panel sitzt fix links (z-index 60), 8 Reiter (Bibliothek, Ebenen, Bild, Keyframes, Setups, Seite, Hintergrund, Export) + schwebendes Objektmenü an der Auswahl. Datenmodell: eine Grafik = mehrere Scroll-Keyframes (scrollY zusammen mit Dokument-Position/Skalierung/Deckkraft/Drehung/Easing/optionalem Bildtausch). Bedienung bewusst identisch zum Fluss-Editor; Header-Link \"← Fluss\" verweist auf /fluss-editor (Kandidat für die geplante Vereinheitlichung). Leitprinzip \"Übernehmen statt Umschreiben\": Builder legt sich über die Seite und speichert nur ein Abbild; curtain.config.json / die echte Seite werden nie verändert (außer explizit \"Als Standard setzen\").",
+    "dateien": [
+      {
+        "pfad": "app/grafik-editor/page.tsx",
+        "zeilen": 57,
+        "rolle": "Seiten-Einstieg: rendert HomePageContent (komplette echte Landing) + GrafikProvider + GrafikEditor-Overlay, gewrappt in BackdropProvider (Hintergrund-Ersatz). vorhangLatchLoesen() entfernt EINMALIG sessionStorage 'wee-title-curtain-seen', damit die Vorhang-Scrollanimation bei jedem Laden läuft."
+      },
+      {
+        "pfad": "components/grafik/GrafikEditor.tsx",
+        "zeilen": 2735,
+        "rolle": "HAUPTDATEI: das komplette Bearbeitungs-Overlay. Enthält alle 8 Reiter-JSX, Fenster-Pointer-Handler (Auswahl/Zug/Gruppe/Rubberband/Snap), Tastatur-Shortcuts, Datei-/Ordner-/Pool-Logik, Vektorisieren, Freistellen, Keyframe-Funktionen, Setup-Speichern/Laden, Export-Reiter-Einbindung. Konstanten: KLICK_TOLERANZ_PX=4, WHEEL_FAKTOR=1.08, MIN/MAX_SCALE=0.05/12, KF_SNAP_PX=40, MAX_DATEI_BYTES=1.2MB, SNAP_RASTER_PX=20, SNAP_SCHWELLE_PX=6, PFEIL_SCHRITT=1/10px, MAX_ASSETS=300, ORDNER_AUFKLAPP_SCHWELLE=6."
+      },
+      {
+        "pfad": "components/grafik/GrafikContext.tsx",
+        "zeilen": 233,
+        "rolle": "React-Context+Provider: hält grafiken/auswahl/auswahlMehr/gelockt/uebernommen. Startzustand = grafik.config.json (KONFIG_GRAFIKEN, KONFIG_UEBERNOMMEN, KONFIG_GRAFIKEN_DOC_H). Undo/Redo-Verlauf (VERLAUF_LIMIT=50, Coalesce-Fenster 600ms) mit commit/undo/redo/canUndo/canRedo/resetHistory. Snapshots sichern grafiken+uebernommen gemeinsam."
+      },
+      {
+        "pfad": "components/grafik/grafik-types.ts",
+        "zeilen": 270,
+        "rolle": "Datenmodell: Grafik, GrafikKeyframe(scrollY,x,y,scale,opacity,rotation,easing?,srcOverride?), Asset, GrafikSetup, MedienArt, AbspielModus. Funktionen: medienArt(), zustandBei() (Interpolation mit Easing+Klemmung), letzterErreichterKeyframe(), effektiveQuelle() (srcOverride), scrubFortschritt(), skaliereGrafikenFuerHoehe() (Höhen-Normalisierung), VORHANG_GRAFIK_PREFIX='vorhang:'."
+      },
+      {
+        "pfad": "components/grafik/grafik-store.ts",
+        "zeilen": 128,
+        "rolle": "Persistenz: IndexedDB 'wee-grafik'/Store 'keyval' (idbGet/idbSet), Schlüssel K_SETUPS/K_ORDNER. File System Access API: ordnerApiDa/ordnerWaehlen/ordnerHolen(still vs. mit Nutzergeste)/ordnerDateien/inOrdnerSchreiben. Handle überlebt Neustart (strukturiert klonbar), braucht danach nur 1 Klick-Freigabe."
+      },
+      {
+        "pfad": "components/grafik/GrafikInspector.tsx",
+        "zeilen": 353,
+        "rolle": "Reiter 'Bild': ein Edit-Fenster für die ausgewählte Grafik — Kopf(Thumb/Name/Art), Position&Größe (Grundbreite-Slider + Live-Zustand), Spiegeln&Zuschneiden (nur bild), In-SVG-umwandeln (+Vektor-Regler-Details), Freistellen, Datei-Aktionen. Reine Callback-Props an GrafikEditor, baut nichts nach."
+      },
+      {
+        "pfad": "components/grafik/GrafikObjektMenue.tsx",
+        "zeilen": 141,
+        "rolle": "Schwebendes Aktionsmenü DIREKT an der ausgewählten Grafik (z-index 70). Position imperativ pro rAF via getBoundingClientRect (anderer DOM-Teilbaum), klappt am Rand um, hält letzte Position wenn Anker (z.B. beim Ausblenden) verschwindet. 9 Knöpfe + Titel."
+      },
+      {
+        "pfad": "components/grafik/GrafikSeiteTab.tsx",
+        "zeilen": 209,
+        "rolle": "Reiter 'Seite': listet die Vorhang-Bäume aus curtain.config.json (Ebenen ebene-1/2/3 × links/rechts). Klick = inBuilderHolen (Baum an aktueller Bildschirmposition per data-vorhang-id ins Abbild übernehmen, EIN Keyframe) / zurueckAnVorhang. curtain.config.json wird NUR gelesen."
+      },
+      {
+        "pfad": "components/grafik/GrafikExportPanel.tsx",
+        "zeilen": 252,
+        "rolle": "Reiter 'Export' (Phase 3): baut aus grafiken + optional gespeichertem Fluss-Profil (localStorage 'wee-fluss-verlaeufe') das Embed. 3 Downloads: JSON (wee-anim.json), HTML-Overlay (wee-overlay.html), Runtime (wee-embed.js). Checkbox 'Bilder einbetten', Fluss-Profil-Select, '? Anleitung'."
+      },
+      {
+        "pfad": "components/grafik/GrafikExportAnleitung.tsx",
+        "zeilen": 83,
+        "rolle": "Modal 'So baust du es auf deiner Seite ein' (3 Schritte) im Export-Reiter. Esc/Hintergrund-Klick/Knopf schließt, Fokus auf Schließen-Knopf. Nutzt gre-tutorial-* CSS-Klassen."
+      },
+      {
+        "pfad": "components/grafik/GrafikHilfe.tsx",
+        "zeilen": 280,
+        "rolle": "Zwei Bausteine: HilfeIcon (kleines '?' mit Popover on Hover/Klick/Fokus, klemmt am Rand, z-index 90) und GrafikTutorial (Einstiegs-Modal, 6 Schritte + Tastenkürzel-Tabelle, erscheint automatisch beim 1. Besuch via localStorage 'wee-grafik-tutorial-gesehen'). tutorialNochNichtGesehen/tutorialAlsGesehenMerken."
+      },
+      {
+        "pfad": "components/grafik/GrafikCrop.tsx",
+        "zeilen": 234,
+        "rolle": "Zuschneide-Overlay (z-index 300, aus Reiter Bild). Rechteck über Bild aufziehen → canvas rendert Ausschnitt als PNG-Data-URL + proportional angepasste Grundbreite. Original bleibt in Bibliothek. Blockt Entf/Strg+Z/Y (Capture-Phase) solange offen."
+      },
+      {
+        "pfad": "components/grafik/GrafikKeyframeTimeline.tsx",
+        "zeilen": 155,
+        "rolle": "Waagerechte Keyframe-Zeitleiste im Reiter Keyframes: Marker entlang Scroll-Spanne (min…max scrollY, MIN_SPANNE_PX=200). Marker ziehen = scrollY verschieben (Live, EIN Commit beim Loslassen), Klick = hinspringen. Eigene Pointer-Capture-Handler (KLICK_TOLERANZ_PX=3)."
+      },
+      {
+        "pfad": "components/grafik/EasingKurve.tsx",
+        "zeilen": 158,
+        "rolle": "Ziehbarer kubischer-Bezier-Kurven-Editor (SVG, 120px) im Reiter Keyframes: 2 Griffe P1/P2 (P0/P3 fix in Ecken), X auf 0..1 geklemmt, Y -1..2 (Überschwinger erlaubt). 4 Presets (linear/ease-in/ease-out/ease-in-out). onChange bei jeder Bewegung, Commit macht der Aufrufer."
+      },
+      {
+        "pfad": "components/grafik/easing.ts",
+        "zeilen": 87,
+        "rolle": "Kubische Bezier-Mathe (CSS-cubic-bezier-kompatibel): cubicBezierEasing(t→y) via Newton-Raphson + Bisektion-Fallback. EASING_DEFAULT=[0.42,0,0.58,1] (ease-in-out), greift wenn Keyframe kein easing hat."
+      },
+      {
+        "pfad": "components/grafik/GrafikLayer.tsx",
+        "zeilen": 201,
+        "rolle": "Darstellungs-Ebene (z-index 30, pointer-events:none): rendert platzierte Grafiken, treibt sie pro rAF-Frame am Scroll (zustandBei→transform/opacity direkt per style, kein State pro Frame). Spiegeln via scaleX/Y nach rotate. srcOverride/scrub-Playhead. Reduced-motion=statisch am 1. Keyframe. Im Editor: data-grafik-id + editierbar-Klasse (pointer-events:auto)."
+      },
+      {
+        "pfad": "components/grafik/GrafikMedium.tsx",
+        "zeilen": 132,
+        "rolle": "Rendert EIN Asset je Medienart: <img> (SVG/PNG/…, Skripte laufen NICHT), Lottie (lottie-web dynamisch, renderer svg, scrub=goToAndStop), <video> (muted+playsInline, scrub=currentTime). MediumHandle.setFortschritt für Scroll-Scrubbing."
+      },
+      {
+        "pfad": "components/grafik/grafik-mehrfachauswahl.ts",
+        "zeilen": 81,
+        "rolle": "Mehrfachauswahl-Helfer: volleAuswahl(), shiftKlickToggle(), istEditorChrome() (blockt Rubberband-Start über Panel/Menü/Overlays), rechteckAus(), schneidenSich(). Reine Funktionen ohne Seiteneffekte."
+      },
+      {
+        "pfad": "components/grafik/grafik-snapping.ts",
+        "zeilen": 151,
+        "rolle": "Einrasten beim Ziehen (Viewport-px): snapBoxAusRect, tentativeBox, andereSnapBoxen (DOM-lesend), berechneSnap gegen Viewport-Mitte + 20px-Raster + Kanten/Mitten anderer Grafiken (Schwelle 6px, pro Achse unabhängig), liefert dx/dy + Hilfslinien."
+      },
+      {
+        "pfad": "components/backdrop/BackdropAuswahl.tsx",
+        "zeilen": 243,
+        "rolle": "Reiter 'Hintergrund' (GETEILT mit Fluss-Editor): setzt eine FREMDE Seite als Hintergrund statt der Landing — 🖼 Screenshot (Bild), 📄 HTML (Single-File), 📁 Ordner öffnen (kompletter Website-Ordner via File System Access API, nur Chrome/Edge). '← Zurück zur echten Seite'. Nutzt BackdropContext, ordner-serve, backdrop-store."
+      }
+    ],
+    "reiterOderPanels": [
+      {
+        "name": "Panel-Kopf (immer sichtbar, über allen Reitern)",
+        "zweck": "Titel, Verlauf, Hilfe, Editor-Wechsel, globale Anzeigen und der Einrasten-Schalter.",
+        "elemente": [
+          {
+            "element": "Titel 'Grafik-Editor'",
+            "funktion": "reine Beschriftung",
+            "implementiertIn": "GrafikEditor.tsx ~1987"
+          },
+          {
+            "element": "↶ Rückgängig-Knopf",
+            "funktion": "undo(); disabled wenn !canUndo; Titel 'Rückgängig (Strg+Z)'",
+            "implementiertIn": "GrafikEditor.tsx ~1989 → rueckgaengigMachen ~1824 → GrafikContext.undo ~170"
+          },
+          {
+            "element": "↷ Wiederholen-Knopf",
+            "funktion": "redo(); disabled wenn !canRedo; Titel 'Strg+Umschalt+Z / Strg+Y'",
+            "implementiertIn": "GrafikEditor.tsx ~1997 → wiederholenMachen ~1829"
+          },
+          {
+            "element": "'? Hilfe'-Knopf",
+            "funktion": "öffnet GrafikTutorial erneut (setTutorialOffen(true))",
+            "implementiertIn": "GrafikEditor.tsx ~2006"
+          },
+          {
+            "element": "'← Fluss'-Link",
+            "funktion": "href='/fluss-editor' — Wechsel zum Fluss-Editor",
+            "implementiertIn": "GrafikEditor.tsx ~2013"
+          },
+          {
+            "element": "scrollY-Anzeige",
+            "funktion": "zeigt live Math.round(scrollY) (rAF-gedrosselt)",
+            "implementiertIn": "GrafikEditor.tsx ~2017 / Effekt ~468"
+          },
+          {
+            "element": "Checkbox '🧲 Einrasten beim Ziehen'",
+            "funktion": "schaltet Snapping für JEDEN Canvas-Zug (Default AN), tab-unabhängig",
+            "implementiertIn": "GrafikEditor.tsx ~2023 (einrastenAktiv-State ~366)"
+          },
+          {
+            "element": "Tab-Leiste (8 Reiter)",
+            "funktion": "REITER.map: Bibliothek/Ebenen/Bild/Keyframes/Setups/Seite/Hintergrund/Export, setReiter",
+            "implementiertIn": "GrafikEditor.tsx REITER ~96 / ~2033"
+          },
+          {
+            "element": "versteckte <input> dateiRef",
+            "funktion": "Einzeldatei-Dialog (accept svg/png/apng/jpg/webp/gif/avif/json/lottie/mp4/webm), auch fürs Austauschen/Ersetzen",
+            "implementiertIn": "GrafikEditor.tsx ~2047 / dateiGewaehlt ~892"
+          },
+          {
+            "element": "versteckte <input> ordnerRef (webkitdirectory)",
+            "funktion": "Ordner-Upload-Fallback für Browser ohne File System Access API",
+            "implementiertIn": "GrafikEditor.tsx ~2048 / ordnerGewaehlt ~1015"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Bibliothek'",
+        "zweck": "Alle Assets (aus Projektordner, verbundenem PC-Ordner, Canva-Paste, Drag&Drop) — Klick setzt/ersetzt auf der Seite.",
+        "elemente": [
+          {
+            "element": "HilfeIcon 'Bibliothek'",
+            "funktion": "Erklär-Popover",
+            "implementiertIn": "GrafikEditor.tsx ~2063"
+          },
+          {
+            "element": "Hinweis-Banner kfBildZiel",
+            "funktion": "wenn Keyframe-Bildtausch bewaffnet: '🖼 Bild für diesen Keyframe wählen' + Abbrechen",
+            "implementiertIn": "GrafikEditor.tsx ~2072"
+          },
+          {
+            "element": "Knopf '🔓 Ordner freischalten'",
+            "funktion": "gemerkten Ordner nach Neustart per Klick freigeben (requestPermission braucht Geste)",
+            "implementiertIn": "GrafikEditor.tsx ~2078 / ordnerFreischalten ~982"
+          },
+          {
+            "element": "Anzeige '📁 verbunden: {name}' + ⟳",
+            "funktion": "zeigt verbundenen Ordner, ⟳ liest ihn neu ein",
+            "implementiertIn": "GrafikEditor.tsx ~2083 / ordnerLesen ~949"
+          },
+          {
+            "element": "Knopf '📁 Ordner'",
+            "funktion": "PC-Ordner verbinden (Handle in IndexedDB gemerkt) bzw. Upload-Fallback",
+            "implementiertIn": "GrafikEditor.tsx ~2092 / ordnerOeffnen ~967"
+          },
+          {
+            "element": "Knopf '+ Datei'",
+            "funktion": "Einzeldatei öffnen (nullt ersetzenRef + kfBildZiel)",
+            "implementiertIn": "GrafikEditor.tsx ~2095"
+          },
+          {
+            "element": "Knopf 'Canva ↗'",
+            "funktion": "öffnet canva.com in neuem Tab (Canva selbst nicht einbettbar)",
+            "implementiertIn": "GrafikEditor.tsx ~2105"
+          },
+          {
+            "element": "Such-Input (poolFilter)",
+            "funktion": "filtert Pool nach Name (nur wenn pool>0), Placeholder '{n} Assets durchsuchen…'",
+            "implementiertIn": "GrafikEditor.tsx ~2113 / poolGefiltert ~1905"
+          },
+          {
+            "element": "Ungruppiertes Thumbnail-Raster (poolOhneOrdner)",
+            "funktion": "Ordner-Dialog-Assets ohne ordner-Feld, 3-spaltig",
+            "implementiertIn": "GrafikEditor.tsx ~2126"
+          },
+          {
+            "element": "Ordner-Gruppen <details> (poolGruppen)",
+            "funktion": "Server-Assets nach ordner gruppiert, ab >6 Dateien eingeklappt, summary '{ordner} ({n})'",
+            "implementiertIn": "GrafikEditor.tsx ~2129"
+          },
+          {
+            "element": "Pool-Eintrag: Haupt-Button",
+            "funktion": "Klick = wenn kfBildZiel→srcOverride an KF setzen; sonst wenn Auswahl→ersetzeDurchAsset; sonst platziere() (mittig, 1 Keyframe)",
+            "implementiertIn": "GrafikEditor.tsx poolEintrag ~1929 / platziere ~1023 / ersetzeDurchAsset ~1369"
+          },
+          {
+            "element": "Pool-Eintrag: ⬡ Vektorisieren (HOVER-ONLY)",
+            "funktion": "nur bei bild+kein-SVG, opacity 0 bis Hover: In SVG umwandeln",
+            "implementiertIn": "GrafikEditor.tsx ~1963 / CSS gre-pool-vektor grafik-editor.css:456"
+          },
+          {
+            "element": "Pool-Eintrag: ✕ Entfernen (HOVER-ONLY)",
+            "funktion": "aus Bibliothek entfernen (setPool filter), opacity 0 bis Hover",
+            "implementiertIn": "GrafikEditor.tsx ~1973 / CSS gre-pool-weg grafik-editor.css:239"
+          },
+          {
+            "element": "Leer-Hinweis",
+            "funktion": "Text wenn Pool leer",
+            "implementiertIn": "GrafikEditor.tsx ~2120"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Ebenen'",
+        "zweck": "Alles was auf der Seite platziert ist (nach z sortiert), pro Ebene Icon-Knopfleiste.",
+        "elemente": [
+          {
+            "element": "HilfeIcon 'Ebenen' + Hilfetext",
+            "funktion": "Bedienungshinweis (Klick=auswählen, ⇄ tauscht, 📄 ersetzt Datei)",
+            "implementiertIn": "GrafikEditor.tsx ~2154"
+          },
+          {
+            "element": "Tausch-Hinweis-Banner",
+            "funktion": "wenn tauschQuelle gesetzt: '⇄ {name} — jetzt zweite Ebene anklicken' + Abbrechen",
+            "implementiertIn": "GrafikEditor.tsx ~2165"
+          },
+          {
+            "element": "gre-thumb (Bild-Button)",
+            "funktion": "wählt Grafik aus (ctx.setAuswahl)",
+            "implementiertIn": "GrafikEditor.tsx ~2188"
+          },
+          {
+            "element": "gre-name (Namensfeld)",
+            "funktion": "Umbenennen (umbenennen, gruppierter Commit rename:id)",
+            "implementiertIn": "GrafikEditor.tsx ~2195 / umbenennen ~1339"
+          },
+          {
+            "element": "gre-meta",
+            "funktion": "Art-Icon + '{n} KF · z{z}'",
+            "implementiertIn": "GrafikEditor.tsx ~2203"
+          },
+          {
+            "element": "👁/🚫 Sichtbarkeit",
+            "funktion": "umschalteVersteckt (versteckt-Flag)",
+            "implementiertIn": "GrafikEditor.tsx ~2207 / umschalteVersteckt ~1420"
+          },
+          {
+            "element": "🔒/🔓 Sperre",
+            "funktion": "umschalteGesperrt (gesperrt: auswählbar aber nicht verschiebbar)",
+            "implementiertIn": "GrafikEditor.tsx ~2213 / umschalteGesperrt ~1427"
+          },
+          {
+            "element": "▲ Nach vorn / ▼ Nach hinten",
+            "funktion": "verschiebeZ(±1) tauscht z mit Nachbar",
+            "implementiertIn": "GrafikEditor.tsx ~2219 / verschiebeZ ~1404"
+          },
+          {
+            "element": "⧉ Duplizieren",
+            "funktion": "duplizieren (gleiche Datei, Keyframes +40px versetzt)",
+            "implementiertIn": "GrafikEditor.tsx ~2225 / duplizieren ~1383"
+          },
+          {
+            "element": "⇄ Tauschen",
+            "funktion": "tauschQuelle setzen/abbrechen bzw. tauscheMit (Dateien tauschen, Positionen bleiben)",
+            "implementiertIn": "GrafikEditor.tsx ~2228 / tauscheMit ~1351"
+          },
+          {
+            "element": "📄 Datei ersetzen",
+            "funktion": "ersetzenRef=id + Datei-Dialog (nur Datei, Keyframes bleiben)",
+            "implementiertIn": "GrafikEditor.tsx ~2247"
+          },
+          {
+            "element": "✕ Löschen",
+            "funktion": "loeschen(id) (räumt ggf. Vorhang-Übernahme mit auf)",
+            "implementiertIn": "GrafikEditor.tsx ~2257 / loeschen ~1271"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Bild' (GrafikInspector)",
+        "zweck": "Ein Bearbeitungs-Fenster für die AUSGEWÄHLTE Grafik: Größe, Bildbearbeitung, Vektor, Freistellen, Datei-Aktionen.",
+        "elemente": [
+          {
+            "element": "Kopf (Thumb + Name + Art-Label)",
+            "funktion": "zeigt Bild/◆/▶, Name, 'Bild'/'Lottie-Animation'/'Video'",
+            "implementiertIn": "GrafikInspector.tsx ~116"
+          },
+          {
+            "element": "Grundbreite-Slider (20–1200, step 10)",
+            "funktion": "onBreiteAendern (Commit-Gruppe breite:id) — identisch zum Slider im Reiter Keyframes",
+            "implementiertIn": "GrafikInspector.tsx ~145 / GrafikEditor.tsx ~2301"
+          },
+          {
+            "element": "Live-Zustandsanzeige",
+            "funktion": "zeigt zustandBei(scrollY): x,y,scale,Deckkraft%,Drehung° (nur Anzeige)",
+            "implementiertIn": "GrafikInspector.tsx ~154"
+          },
+          {
+            "element": "⇋ Horizontal / ⇕ Vertikal (nur bild)",
+            "funktion": "umschalteSpiegelX/Y (reine Anzeige-Transform, aktiv-Markierung)",
+            "implementiertIn": "GrafikInspector.tsx ~177 / GrafikEditor.tsx umschalteSpiegelX ~1436"
+          },
+          {
+            "element": "✂ Zuschneiden-Knopf (nur bild)",
+            "funktion": "öffnet GrafikCrop-Overlay",
+            "implementiertIn": "GrafikInspector.tsx ~195 → GrafikCrop"
+          },
+          {
+            "element": "⬡ In SVG umwandeln (nur bild+kein-SVG)",
+            "funktion": "onVektorisieren (Server-Route), disabled während Lauf",
+            "implementiertIn": "GrafikInspector.tsx ~221 / vektorisieren ~1060"
+          },
+          {
+            "element": "<details> ⚙ Vektor-Einstellungen",
+            "funktion": "3 Slider: Farben(2–16), Mindestfläche(4–400), Glättung(0–1)",
+            "implementiertIn": "GrafikInspector.tsx ~229"
+          },
+          {
+            "element": "🪄 Freistellen (nur bild+kein-SVG)",
+            "funktion": "onFreistellen (KI-Hintergrundentfernung lokal, @imgly, ~80MB Modell 1. Mal)",
+            "implementiertIn": "GrafikInspector.tsx ~304 / freistellen ~1172"
+          },
+          {
+            "element": "Datei-Aktionen (8 Knöpfe)",
+            "funktion": "⇄ Tauschen, 📄 Datei ersetzen, ⧉ Duplizieren, ▲ vorn, ▼ hinten, 👁/🚫 Ein/Ausblenden, 🔒/🔓 Sperren, ✕ Löschen",
+            "implementiertIn": "GrafikInspector.tsx ~319 (Props aus GrafikEditor.tsx ~2289)"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Keyframes'",
+        "zweck": "Scroll-Animation der ausgewählten Grafik: Position/Größe an Scroll-Höhen locken, Deckkraft/Drehung/Verlauf/Bildtausch pro Keyframe, Abspielmodus für Medien.",
+        "elemente": [
+          {
+            "element": "'◉ Hier locken (scrollY {n})'",
+            "funktion": "keyframeSetzen: aktuelle Scroll-Höhe + Zustand als Keyframe (überschreibt in KF_SNAP_PX=40 Reichweite)",
+            "implementiertIn": "GrafikEditor.tsx ~2352 / keyframeSetzen ~1467"
+          },
+          {
+            "element": "Abspielen-Tabs (nur Lottie/Video)",
+            "funktion": "modus Schleife(loop)/Scroll(scrub)/Standbild(still); scrub<2KF-Warnung",
+            "implementiertIn": "GrafikEditor.tsx ~2362"
+          },
+          {
+            "element": "Grundbreite-Slider (20–1200)",
+            "funktion": "breitePx der ganzen Grafik (Commit-Gruppe breite:id)",
+            "implementiertIn": "GrafikEditor.tsx ~2411"
+          },
+          {
+            "element": "Deckkraft-Slider (0–1, step 0.05)",
+            "funktion": "patchKf opacity am aktiven Keyframe (Gruppe opacity:id:idx)",
+            "implementiertIn": "GrafikEditor.tsx ~2436"
+          },
+          {
+            "element": "Drehung-Slider (-180…180)",
+            "funktion": "patchKf rotation am aktiven Keyframe (Gruppe rotation:id:idx)",
+            "implementiertIn": "GrafikEditor.tsx ~2455"
+          },
+          {
+            "element": "Verlaufskurve (EasingKurve)",
+            "funktion": "kubische Bezier zum NÄCHSTEN Keyframe, Griffe ziehen (Gruppe easing:id:idx)",
+            "implementiertIn": "GrafikEditor.tsx ~2478 → EasingKurve.tsx"
+          },
+          {
+            "element": "'🖼 Bild tauschen' + '↺ Zurücksetzen'",
+            "funktion": "srcOverride nur an diesem Keyframe: bewaffnet kfBildZiel und springt zur Bibliothek; Zurücksetzen nullt srcOverride",
+            "implementiertIn": "GrafikEditor.tsx ~2498"
+          },
+          {
+            "element": "Zeitleiste (GrafikKeyframeTimeline)",
+            "funktion": "Marker ziehen=scrollY verschieben, klick=hinspringen",
+            "implementiertIn": "GrafikEditor.tsx ~2539 → GrafikKeyframeTimeline.tsx"
+          },
+          {
+            "element": "Keyframe-Liste",
+            "funktion": "pro KF: 'KF n · y{scrollY} · {scale}× [·🖼]' (springeZu), ⧉ kfDuplizieren (an aktuelle Scrollpos kopieren), ✕ keyframeLoeschen (letzter bleibt)",
+            "implementiertIn": "GrafikEditor.tsx ~2549 / kfDuplizieren ~1500 / keyframeLoeschen ~1482"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Setups'",
+        "zweck": "Benannte Abbilder speichern/laden (Grafiken+Bibliothek), Standard der echten Landing setzen, JSON-Export.",
+        "elemente": [
+          {
+            "element": "Name-Input + 'Speichern'",
+            "funktion": "speichern() → /api/abbild (abbilder/{name}.json), Fallback localStorage",
+            "implementiertIn": "GrafikEditor.tsx ~2588 / speichern ~1610"
+          },
+          {
+            "element": "Server-Setup-Liste (Platte)",
+            "funktion": "laden(name,'platte'), '{name} ({n})', ✕ loescheVonPlatte (fragt nach)",
+            "implementiertIn": "GrafikEditor.tsx ~2595 / laden ~1694"
+          },
+          {
+            "element": "Browser-Setup-Liste",
+            "funktion": "laden(name,'browser') aus localStorage, ✕ setupLoeschen (fragt nach)",
+            "implementiertIn": "GrafikEditor.tsx ~2610"
+          },
+          {
+            "element": "'Als Standard setzen'",
+            "funktion": "alsStandardSetzen() schreibt grafik.config.json (verändert LIVE-Landing, fragt nach)",
+            "implementiertIn": "GrafikEditor.tsx ~2627 / alsStandardSetzen ~1770"
+          },
+          {
+            "element": "'Export JSON (Browser-Setups)'",
+            "funktion": "exportieren() lädt grafik-setups.json herunter",
+            "implementiertIn": "GrafikEditor.tsx ~2639 / exportieren ~1808"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Seite' (GrafikSeiteTab)",
+        "zweck": "Von der Seite selbst gezeichnete Grafiken (Vorhang-Bäume) ins Abbild übernehmen ohne die Seite zu ändern.",
+        "elemente": [
+          {
+            "element": "Ebenen-<details> (ebene-1/2/3)",
+            "funktion": "pro Ebene links+rechts, summary '{ebene} ({n})'",
+            "implementiertIn": "GrafikSeiteTab.tsx ~160 / EBENEN ~47"
+          },
+          {
+            "element": "Vorhang-Platz-Button",
+            "funktion": "inBuilderHolen: findet Baum über data-vorhang-id, übernimmt an aktueller Bildschirmposition (1 Keyframe, ID 'vorhang:ebene:seite:index', Eintrag in uebernommen)",
+            "implementiertIn": "GrafikSeiteTab.tsx ~180 / inBuilderHolen ~89"
+          },
+          {
+            "element": "Vorhang-Platz-Button (übernommen, ✓)",
+            "funktion": "zurueckAnVorhang: Grafik + uebernommen-Eintrag weg, Vorhang zeichnet Baum wieder",
+            "implementiertIn": "GrafikSeiteTab.tsx ~183 / zurueckAnVorhang ~143"
+          },
+          {
+            "element": "Status-Zeile",
+            "funktion": "Rückmeldung Übernahme/Rückgabe",
+            "implementiertIn": "GrafikSeiteTab.tsx ~205"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Hintergrund' (BackdropAuswahl, geteilt mit Fluss-Editor)",
+        "zweck": "Fremde Seite als Hintergrund statt der echten Landing zum Bearbeiten darüber.",
+        "elemente": [
+          {
+            "element": "HilfeIcon + Aktuell-Anzeige",
+            "funktion": "zeigt aktiven Backdrop (Screenshot/HTML/Ordner) oder 'echte Seite aktiv'",
+            "implementiertIn": "BackdropAuswahl.tsx ~166"
+          },
+          {
+            "element": "'🔓 Ordner erneut freigeben'",
+            "funktion": "bei gemerktem Ordner-Backdrop ohne Zugriff: Freigabe-Dialog",
+            "implementiertIn": "BackdropAuswahl.tsx ~187 / ordnerFreigeben ~148"
+          },
+          {
+            "element": "'🖼 Screenshot laden'",
+            "funktion": "Bilddatei als Data-URL-Backdrop",
+            "implementiertIn": "BackdropAuswahl.tsx ~200 / bildGewaehlt ~78"
+          },
+          {
+            "element": "'📄 HTML laden'",
+            "funktion": "Single-File-HTML als Backdrop",
+            "implementiertIn": "BackdropAuswahl.tsx ~207 / htmlGewaehlt ~95"
+          },
+          {
+            "element": "'📁 Ordner öffnen'",
+            "funktion": "kompletter Website-Ordner via File System Access API (nur Chrome/Edge, Service-Worker-Bereitstellung)",
+            "implementiertIn": "BackdropAuswahl.tsx ~216 / ordnerGewaehlt ~131"
+          },
+          {
+            "element": "'← Zurück zur echten Seite'",
+            "funktion": "setBackdrop(null)",
+            "implementiertIn": "BackdropAuswahl.tsx ~226 / zurueck ~159"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Export' (GrafikExportPanel)",
+        "zweck": "Letzter Schritt: Editor-Zustand + optional Fluss-Profil zu Embed-Paket bauen.",
+        "elemente": [
+          {
+            "element": "'? Anleitung'",
+            "funktion": "öffnet GrafikExportAnleitung-Modal (3 Einbau-Schritte)",
+            "implementiertIn": "GrafikExportPanel.tsx ~178"
+          },
+          {
+            "element": "Fluss-Profil <select>",
+            "funktion": "wählt gespeichertes Fluss-Profil (localStorage wee-fluss-verlaeufe) oder 'kein Fluss'",
+            "implementiertIn": "GrafikExportPanel.tsx ~189"
+          },
+          {
+            "element": "Checkbox 'Bilder einbetten (selbsttragend)'",
+            "funktion": "Projekt-Bilder als Data-URLs einbetten (kein separates Hosting)",
+            "implementiertIn": "GrafikExportPanel.tsx ~205"
+          },
+          {
+            "element": "'JSON exportieren'",
+            "funktion": "baueEmbedConfig → wee-anim.json herunterladen",
+            "implementiertIn": "GrafikExportPanel.tsx ~219 / jsonExportieren ~108"
+          },
+          {
+            "element": "'HTML-Overlay exportieren'",
+            "funktion": "baueOverlayHtml → wee-overlay.html (Config eingebaut, vor </body>)",
+            "implementiertIn": "GrafikExportPanel.tsx ~228 / htmlExportieren ~128"
+          },
+          {
+            "element": "'Runtime-Script herunterladen'",
+            "funktion": "fetch /wee-embed.js → herunterladen",
+            "implementiertIn": "GrafikExportPanel.tsx ~237 / runtimeHerunterladen ~148"
+          }
+        ]
+      },
+      {
+        "name": "Schwebendes Objektmenü (GrafikObjektMenue, an der Auswahl)",
+        "zweck": "Schnellzugriff direkt an der ausgewählten Grafik (auch außerhalb der Reiter).",
+        "elemente": [
+          {
+            "element": "Titel (Grafik-Name)",
+            "funktion": "reine Beschriftung",
+            "implementiertIn": "GrafikObjektMenue.tsx ~124"
+          },
+          {
+            "element": "◉ Hier locken",
+            "funktion": "onHierLocken=keyframeSetzen",
+            "implementiertIn": "GrafikObjektMenue.tsx ~127 / GrafikEditor.tsx ~2703"
+          },
+          {
+            "element": "⧉ Duplizieren / ⇄ Tauschen / 📄 Datei ersetzen",
+            "funktion": "gleiche Funktionen wie Reiter Ebenen/Bild",
+            "implementiertIn": "GrafikObjektMenue.tsx ~128"
+          },
+          {
+            "element": "▲ Nach vorn / ▼ Nach hinten / 👁 Aus-Einblenden / 🔒 Sperren",
+            "funktion": "verschiebeZ/umschalteVersteckt/umschalteGesperrt",
+            "implementiertIn": "GrafikObjektMenue.tsx ~131"
+          },
+          {
+            "element": "✕ Löschen",
+            "funktion": "onLoeschen",
+            "implementiertIn": "GrafikObjektMenue.tsx ~135"
+          }
+        ]
+      },
+      {
+        "name": "Overlays & Indikatoren (global)",
+        "zweck": "Zustands-Rückmeldung und modale Werkzeuge über dem Panel.",
+        "elemente": [
+          {
+            "element": "gre-lock '🔒 eingeloggt — Scrollrad skaliert'",
+            "funktion": "sichtbar wenn gelockt+aktiv",
+            "implementiertIn": "GrafikEditor.tsx ~2661"
+          },
+          {
+            "element": "gre-drop 'Loslassen = hier ablegen'",
+            "funktion": "während Datei über der Seite schwebt (dropAktiv)",
+            "implementiertIn": "GrafikEditor.tsx ~2662"
+          },
+          {
+            "element": "gre-status",
+            "funktion": "letzte Status-/Fehlermeldung",
+            "implementiertIn": "GrafikEditor.tsx ~2663"
+          },
+          {
+            "element": "Vektor-/Freistell-Overlay (blockierend, Spinner)",
+            "funktion": "während Vektorisieren/Freistellen läuft; blockt Klicks+Tastatur; Freistellen-Fortschritt",
+            "implementiertIn": "GrafikEditor.tsx ~2665"
+          },
+          {
+            "element": "Rubber-Band (Auswahl-Rechteck)",
+            "funktion": "reine Anzeige während Zug auf leerem Canvas",
+            "implementiertIn": "GrafikEditor.tsx ~2709"
+          },
+          {
+            "element": "Snap-Hilfslinien",
+            "funktion": "senkrechte/waagerechte Linien beim Einrasten",
+            "implementiertIn": "GrafikEditor.tsx ~2721"
+          },
+          {
+            "element": "GrafikTutorial-Modal",
+            "funktion": "6 Schritte + Tastenkürzel-Tabelle",
+            "implementiertIn": "GrafikEditor.tsx ~2731 / GrafikHilfe.tsx ~206"
+          },
+          {
+            "element": "HilfeIcon-Popover",
+            "funktion": "'?'-Erklärung on Hover/Klick/Fokus, angepinnt bis Klick daneben/Esc",
+            "implementiertIn": "GrafikHilfe.tsx ~86"
+          },
+          {
+            "element": "GrafikCrop-Overlay",
+            "funktion": "Zuschneiden: Rechteck aufziehen, Zurücksetzen/Abbrechen/✓ Anwenden",
+            "implementiertIn": "GrafikCrop.tsx ~168"
+          }
+        ]
+      }
+    ],
+    "tastenkuerzel": [
+      {
+        "kuerzel": "Strg+Z / Cmd+Z",
+        "wirkung": "Rückgängig (undo) — feuert NICHT in Textfeldern; während Freistellen/Crop geblockt"
+      },
+      {
+        "kuerzel": "Strg+Umschalt+Z",
+        "wirkung": "Wiederholen (redo)"
+      },
+      {
+        "kuerzel": "Strg+Y",
+        "wirkung": "Wiederholen (redo, Alternative)"
+      },
+      {
+        "kuerzel": "Entf / Backspace",
+        "wirkung": "ausgewählte Grafik(en) löschen (Einzel oder Mehrfachauswahl als EIN Verlaufsschritt); nur wenn Auswahl gesetzt; nicht in Textfeldern"
+      },
+      {
+        "kuerzel": "Esc",
+        "wirkung": "Auswahl + Mehrfachauswahl aufheben und Einloggen beenden (gelockt=false); schließt auch Tutorial / Crop / Hilfe-Popover"
+      },
+      {
+        "kuerzel": "Pfeiltasten ↑↓←→",
+        "wirkung": "Auswahl um 1px verschieben (Nudge), gruppiert als 1 Commit; nur wenn Auswahl gesetzt"
+      },
+      {
+        "kuerzel": "Umschalt+Pfeiltaste",
+        "wirkung": "Auswahl um 10px verschieben (großer Schritt)"
+      },
+      {
+        "kuerzel": "Strg+V",
+        "wirkung": "Bild aus Zwischenablage einfügen (z.B. aus Canva kopiert) an Bildmitte; nicht in Textfeldern"
+      },
+      {
+        "kuerzel": "Mausrad (bei eingeloggter Grafik)",
+        "wirkung": "skaliert die Grafik statt zu scrollen (×1.08 pro Raste, geklemmt 0.05–12); Seiten-Scroll blockiert"
+      },
+      {
+        "kuerzel": "Umschalt+Klick auf Grafik",
+        "wirkung": "Mehrfachauswahl umschalten (Mitglied hinzu/entfernen), kein Zug in dieser Geste"
+      },
+      {
+        "kuerzel": "Umschalt beim Rubber-Band-Start",
+        "wirkung": "Auswahl-Rechteck ADDITIV zur bestehenden Auswahl statt ersetzend"
+      }
+    ],
+    "interaktionen": [
+      "Klick auf Grafik = auswählen (setAuswahl, räumt Mehrfachauswahl ab); Objektmenü + Inspector erscheinen.",
+      "Ziehen einer Grafik = verschieben in DOKUMENT-Koordinaten; bearbeitet IMMER den Keyframe, der der aktuellen Scrollposition am nächsten liegt (naechsterKfIndex).",
+      "Klick OHNE Ziehen (Bewegung < 4px KLICK_TOLERANZ_PX) = 'einloggen'/'ausloggen' (toggle gelockt, Grafik gelb); im Lock skaliert das Scrollrad.",
+      "Umschalt+Klick = Mehrfachauswahl-Mitglied togglen (shiftKlickToggle).",
+      "Ziehen eines bereits mehrfach-ausgewählten Mitglieds = GANZE Gruppe verschieben um denselben Versatz (gruppenDragRef); gesperrte Mitglieder bleiben stehen; primäre Auswahl flackert nicht.",
+      "Ziehen auf leerem Canvas (außerhalb Editor-Chrome, istEditorChrome) = Auswahl-Rechteck/Rubber-Band; trifft nicht-versteckte Grafiken per Bounding-Box-Schnitt; Umschalt = additiv.",
+      "Einrasten beim Ziehen (Default AN): snappt an Viewport-Mitte, 20px-Raster und Kanten/Mitten anderer Grafiken (Schwelle 6px, X/Y unabhängig), zeigt Hilfslinien; Einzel- UND Gruppen-Zug.",
+      "Drag&Drop einer Datei auf die Seite = platziert am Drop-Punkt (Viewport→Dokument); Drop-Hinweis 'Loslassen = hier ablegen'.",
+      "Strg+V = Bild aus Zwischenablage an Bildmitte platzieren.",
+      "Gesperrte Ebene: anklickbar (zum Entsperren) aber nicht verschiebbar.",
+      "EIN Zug = EIN Verlaufsschritt: Commit erst bei pointerup mit dem bei pointerdown gemerkten Vor-Zug-Stand (grafiken+uebernommen).",
+      "Keyframe-Zeitleiste: Marker ziehen verschiebt scrollY (Live-Vorschau, 1 Commit beim Loslassen, danach Neusortierung nach scrollY); Klick springt zur Scrollposition.",
+      "Easing-Kurve: Kontrollpunkt-Griffe P1/P2 ziehen (X 0..1, Y -1..2 für Überschwinger); Presets per Klick.",
+      "Zuschneiden: Rechteck über dem Bild aufziehen (Crosshair), jeder neue Zug ersetzt die Auswahl komplett; Mindestgröße 12px.",
+      "Objektmenü klebt per rAF an der Grafik (auch beim Scrollen/Ziehen), klappt am Fensterrand um, hält letzte Position wenn Anker (Ausblenden) verschwindet.",
+      "Mausrad im Lock ruft e.preventDefault (blockiert Seiten-Scroll) und skaliert stattdessen den nächstgelegenen Keyframe."
+    ],
+    "zustaende": [
+      {
+        "speicherort": "GrafikContext (React-State im GrafikProvider)",
+        "inhalt": "grafiken[], auswahl, auswahlMehr[], gelockt, uebernommen[] — plus Undo/Redo-Stapel in Refs (Limit 50, Coalesce 600ms). Startwert aus grafik.config.json."
+      },
+      {
+        "speicherort": "grafik.config.json (Projekt-Root, import)",
+        "inhalt": "Fest hinterlegtes Live-Setup der Landing: grafiken, uebernommen, meta.docH (KONFIG_GRAFIKEN/KONFIG_UEBERNOMMEN/KONFIG_GRAFIKEN_DOC_H). Wird per 'Als Standard setzen' überschrieben."
+      },
+      {
+        "speicherort": "curtain.config.json (Projekt-Root, import)",
+        "inhalt": "Vorhang-Bäume (layers ebene-1/2/3 × links/rechts) — im Reiter Seite NUR gelesen."
+      },
+      {
+        "speicherort": "localStorage 'wee-grafik-setups' (STORAGE_KEY)",
+        "inhalt": "Browser-Setups (Rückfallebene): pro Name grafiken+pool+uebernommen+meta{viewportW,viewportH,docH}. Beim Start wird das letzte Setup für die Bibliothek (pool) wiederhergestellt."
+      },
+      {
+        "speicherort": "localStorage 'wee-grafik-tutorial-gesehen' (TUTORIAL_KEY)",
+        "inhalt": "'1' wenn Einstiegs-Tutorial schon geschlossen wurde."
+      },
+      {
+        "speicherort": "localStorage 'wee-fluss-verlaeufe' (FLUSS_STORAGE_KEY)",
+        "inhalt": "Vom Fluss-Editor gespeicherte Fluss-Profile — im Export-Reiter nur gelesen (Auswahl fürs Embed)."
+      },
+      {
+        "speicherort": "sessionStorage 'wee-title-curtain-seen'",
+        "inhalt": "Vorhang-Latch — beim Laden der Editor-Seite EINMALIG entfernt, damit die Scrollanimation läuft."
+      },
+      {
+        "speicherort": "IndexedDB 'wee-grafik' / Store 'keyval'",
+        "inhalt": "K_ORDNER = FileSystemDirectoryHandle des verbundenen Bibliotheks-Ordners (überlebt Neustart); K_SETUPS als Konstante definiert."
+      },
+      {
+        "speicherort": "abbilder/*.json (Platte, via /api/abbild)",
+        "inhalt": "Server-Setups: meta+grafiken+pool+uebernommen. Primärer Speicherpfad (localStorage nur Fallback)."
+      },
+      {
+        "speicherort": "public/ + public/vektor/ (via /api/assets)",
+        "inhalt": "Projekt-Bibliothek (Auto-Laden 'liste') und Ablage vektorisierter SVGs ('schreibe')."
+      },
+      {
+        "speicherort": "Verbundener PC-Ordner (File System Access API)",
+        "inhalt": "Bibliotheks-Quelle (gelesen) UND Schreibziel für per Canva/Paste/Vektorisieren erzeugte Dateien."
+      },
+      {
+        "speicherort": "Lokaler Komponenten-State (GrafikEditor)",
+        "inhalt": "reiter, setups, serverAbbilder, name, status, tutorialOffen, scrollY, dropAktiv, tauschQuelle, pool, poolFilter, ordner, ordnerWartet, vektorMaxFarben/MinFlaeche/Glaettung, vektorisiertLaeuft, freistellenLaeuft/Fortschritt, kfBildZiel, einrastenAktiv, snapLinien, rubberBand."
+      },
+      {
+        "speicherort": "Refs (GrafikEditor)",
+        "inhalt": "dragRef, gruppenDragRef, rubberBandRef, zeitleisteVorZugRef (Vor-Zug-Stände), ersetzenRef (Datei-Austausch-Ziel), dateiRef/ordnerRef (Datei-Inputs)."
+      },
+      {
+        "speicherort": "BackdropContext + IndexedDB (backdrop-store/ordner-serve)",
+        "inhalt": "Hintergrund-Reiter: aktiver Backdrop (bild/html/ordner) + gemerkter Ordner-Handle mit Service-Worker-Bereitstellung."
+      }
+    ],
+    "apiAbhaengigkeiten": [
+      "/api/assets/ (POST) — {aktion:'liste'} lädt Bibliothek aus public/; {aktion:'schreibe',name,dataUrl} schreibt vektorisiertes SVG nach public/vektor/. Trailing-Slash Pflicht (next.config trailingSlash).",
+      "/api/vektorisieren/ (POST) — Raster→SVG (sharp + Kernalgorithmus), Optionen maxFarben/minFlaechePx/glaettung; verlangt Data-URL (Server-Assets werden vorher gefetcht+konvertiert).",
+      "/api/abbild/ (POST) — {aktion:'liste'|'lade'|'speichere'|'loesche'|'standard'} verwaltet abbilder/*.json und schreibt bei 'standard' grafik.config.json (Live-Landing).",
+      "/wee-embed.js (fetch) — Runtime-Script, im Export-Reiter heruntergeladen und als <script src> in wee-overlay.html referenziert.",
+      "@imgly/background-removal (dynamic import) — Freistellen komplett clientseitig; zieht 1. Mal ONNX-Modell (~80MB) von IMG.LY-CDN; AGPL.",
+      "lottie-web (dynamic import) — Lottie-Rendering (renderer 'svg'), Scrub via goToAndStop.",
+      "@/components/embed/embed-export — baueEmbedConfig() + baueOverlayHtml() für den Export.",
+      "@/components/river/riverSnapshot — Typ FlussVerlauf (Fluss-Profil für Export).",
+      "@/components/backdrop/* — Backdrop/BackdropProvider/BackdropContext/BackdropAuswahl (Hintergrund-Reiter, geteilt mit Fluss-Editor).",
+      "Canva (extern) — window.open('canva.com'); NICHT einbettbar (X-Frame-Options SAMEORIGIN), daher Copy→Strg+V bzw. Export→Drag&Drop.",
+      "File System Access API (showDirectoryPicker) — Ordner verbinden (Bibliothek + Hintergrund-Ordner), nur Chromium/WebKit.",
+      "@/components/HomePageContent — die echte Landing, über die sich der Editor legt."
+    ],
+    "cssDateien": [
+      "components/grafik/grafik-editor.css (603 Z.) — Panel (z60), Tabs, Pool-Raster (hover-only ⬡/✕), Regler, Vektor-Overlay (z200), Rubber-Band+Snap-Linien (z55, pointer-events:none), Tausch-/Lock-/Drop-/Status-Optik.",
+      "components/grafik/grafik-inspector.css — Reiter-Bild-Fenster (Kopf, Abschnitte, Spiegeln-Buttons, Vektor-/Freistell-Knopf, Datei-Aktionen-Grid, Löschen rot).",
+      "components/grafik/grafik-objekt-menue.css — schwebendes Objektmenü (z70), opacity/pointer-events bis positioniert (--sichtbar), Löschen-Hover rot.",
+      "components/grafik/grafik-hilfe.css — HilfeIcon '?' (cursor help), Popover (z90), Tutorial-Modal (z300), Kürzel-Tabelle, gre-hilfe-knopf.",
+      "components/grafik/grafik-easing.css — Bezier-Kurven-Feld, Griffe (cursor grab), Presets.",
+      "components/grafik/grafik-crop.css — Crop-Overlay (z300), Wrapper cursor crosshair, Rahmen pointer-events:none, Anwenden/disabled.",
+      "components/grafik/grafik-keyframe-timeline.css — Spur + Marker (cursor grab/grabbing), aktiv-Hervorhebung, Spannen-Beschriftung.",
+      "components/grafik/grafik-layer.css — Darstellungs-Ebene (z30, pointer-events:none); grafik-item--editierbar (pointer-events:auto, grab), --aktiv (gelb gestrichelter Rahmen); will-change transform/opacity, reduced-motion.",
+      "components/backdrop/backdrop.css — Hintergrund-Reiter (hg-*), geteilt mit Fluss-Editor (Basis-Buttons erben Panel-CSS)."
+    ],
+    "besonderheiten": [
+      "VORHANG-ÜBERNAHME ('uebernommen'): Baum bekommt ID 'vorhang:ebene:seite:index' (VORHANG_GRAFIK_PREFIX); der Platz landet in ctx.uebernommen, TitleCurtain überspringt ihn per data-vorhang-id. Löschen einer solchen Grafik (auch generisch im Reiter Ebenen) räumt den uebernommen-Eintrag mit auf — sonst bliebe der Platz für immer leer. Übernahme committet grafiken+uebernommen als EIN Schritt.",
+      "srcOverride (Bild an Keyframe): frame-spezifischer Bildtausch, HARTE Umschaltung an der Keyframe-Grenze (letzterErreichterKeyframe/effektiveQuelle), kein Crossfade. kfBildZiel bewaffnet das (springt zur Bibliothek); gegenseitig ausschließend mit ersetzenRef (beide beim Bewaffnen genullt).",
+      "Verlauf: EIN Zug = EIN Commit (bei pointerup, mit Vor-Zug-Stand); Slider/Tippen werden über Gruppen-Schlüssel (opacity:/rotation:/breite:/easing:/rename:/nudge) im 600ms-Fenster zusammengefasst. Setup-Wechsel resettet den Verlauf (resetHistory).",
+      "Höhen-Normalisierung: Keyframe-scrollY UND y sind dokument-absolut, autoriert gegen meta.docH. Beim Laden skaliert anwenden() mit faktor=aktuelleDocH/autoriertDocH (x bleibt). GrafikLayer normalisiert NUR den Prop-Pfad (Landing/Embed), im Editor (ctx) NICHT — sonst doppelte Skalierung. faktor=1 = No-Op.",
+      "Server-Assets haben eine URL-src (z.B. '/curtain/...'), keine Data-URL — Vektorisieren fetcht+konvertiert erst. ordnerLesen ERNEUERT nur Data-URL-Assets und behält '/'-Server-Assets (sonst würden die 16 Bäume beim Auto-Reconnect des Ordners weggewischt).",
+      "Zwei HOVER-ONLY-Pool-Knöpfe: ⬡ Vektorisieren (gre-pool-vektor, nur bild+kein-SVG) und ✕ Entfernen (gre-pool-weg) sind opacity:0 bis .gre-pool-item-wrap:hover — praktisch unauffindbar ohne Hover (war Leons Kritik; darum liegt In-SVG-umwandeln zusätzlich prominent im Reiter Bild).",
+      "z-index-Stack (bei Umbau erhalten): Grafik-Ebene 30 · Rubberband/Snap 55 · Panel 60 · Objektmenü 70 · Hilfe-Popover 90 · Vektor/Freistell-Overlay 200 · Crop-Overlay & Tutorial 300.",
+      "Grafik-Ebene ist pointer-events:none (Landing bleibt klickbar); nur im Editor bekommen Items 'grafik-item--editierbar' (pointer-events:auto). Treffer laufen über EINEN Fenster-Pointer-Listener + data-grafik-id, nicht über die Items selbst.",
+      "istEditorChrome blockt Rubber-Band-Start über .gre-panel/.gre-objektmenue/.gre-vektor-overlay/.gre-crop-overlay/.gre-tutorial-hintergrund/.gre-hilfe-popover.",
+      "Tastatur-Schutz: während Freistellen läuft UND während Crop offen ist werden Entf/Backspace/Strg+Z/Y in der Capture-Phase geblockt (sonst löscht/undo't man unter dem Overlay auf veraltetem Stand). Globale Shortcuts feuern nie in INPUT/TEXTAREA/contentEditable (istEingabeFokussiert).",
+      "Speichern-Reihenfolge: erst /api/abbild (Platte), bei Fehler localStorage-Fallback klar als 'Notlösung' markiert. 'Als Standard setzen' ist der EINZIGE Knopf, der die Live-Landing ändert (grafik.config.json) — fragt nach. Löschen von Platte/Browser fragt ebenfalls nach (window.confirm).",
+      "Letzter Keyframe kann nicht gelöscht werden (Grafik wäre ortlos). 'Hier locken'/kfDuplizieren überschreiben einen Keyframe in KF_SNAP_PX=40 Reichweite statt zu verdoppeln.",
+      "Datei-Erkennung BILD_ENDUNGEN: svg/png/apng/jpg/jpeg/webp/gif/avif/json/lottie/mp4/webm; .json/.lottie→Lottie, mp4/webm→Video (medienArt). MAX_DATEI_BYTES=1.2MB pro Datei, MAX_ASSETS=300, Ordner-Gruppen ab >6 eingeklappt.",
+      "Zeitbasierte Medien (Lottie/Video): Modus loop/scrub/still. scrub hängt den Abspielkopf an den Scroll zwischen erstem und letztem Keyframe (hochscrollen = rückwärts), braucht ≥2 Keyframes. Video muss muted+playsInline sein (Autoplay-Block).",
+      "Spiegeln (scaleX/Y) wird NACH rotate() angewandt, damit sich das Bild im eigenen unrotierten Rahmen spiegelt (mirror(rotate)≠rotate(mirror)). Reine Anzeige-Transform, ändert die Datei nicht.",
+      "Zuschneiden erzeugt ein NEUES PNG (canvas.toDataURL) und ersetzt nur die src der PLATZIERTEN Grafik (Original bleibt in Bibliothek); Grundbreite proportional angepasst. Vektorisieren/Freistellen legen Ergebnis ZUSÄTZLICH in die Bibliothek bzw. ersetzen nur die platzierte src.",
+      "Reduced-Motion: GrafikLayer rendert statisch am ersten Keyframe (kein rAF), Spinner-Animation aus. Editor bleibt voll bedienbar.",
+      "Reiter 'Hintergrund' ist mit dem Fluss-Editor GETEILT (BackdropAuswahl); Ordner-Backdrop nur Chrome/Edge, nach Reload ggf. erneute Freigabe nötig. Nach Backdrop-Wechsel müssen Positionen neu gesetzt werden (galten für andere Seite).",
+      "Export ist bewusst der LETZTE Reiter (Phase 3): führt Grafiken + einen im FLUSS-Editor gespeicherten Verlauf zusammen (getrennte Editoren, gemeinsamer localStorage-Key) — relevanter Kopplungspunkt für die geplante Vereinheitlichung der beiden Editoren."
+    ]
+  },
+  "fluss": {
+    "bereich": "FLUSS-EDITOR (/fluss-editor) — CMS-artiges Bearbeitungs-Overlay, das die KOMPLETTE echte Landing (HomePageContent) rendert und darüber ein rechtsbündiges Panel + rote Knoten-Handles legt. Die Knoten SIND der Fluss (RiverNode: y/x/breite = Mittellinie + Perspektive); die Engine (RiverFlow) baut die Kurve aus ihnen, ein Handle liegt per Konstruktion exakt auf dem Wasser. Panel steuert: Knoten-Editing (Fluss-Reiter), Wasser/Front/Nebel-Animation (Live-Regler, gespiegelt aus river.config.json), Profile speichern/laden/importieren/exportieren (localStorage + JSON + SVG), Hintergrund (fremde Seite als Backdrop). Kopplung: leert beim Öffnen den TitleCurtain-Latch (sessionStorage), wrappt in BackdropProvider + RiverKursProvider.",
+    "dateien": [
+      {
+        "pfad": "app/fluss-editor/page.tsx",
+        "zeilen": 58,
+        "rolle": "Editor-Seite. FlussEditorPage → BackdropProvider → FlussEditorInner → RiverKursProvider → HomePageContent(backdrop) + RiverKursEditor. vorhangLatchLoesen() entfernt EINMAL pro Laufzeit (Modul-Flag latchGeloest) sessionStorage 'wee-title-curtain-seen' im Render-Body, damit die Vorhang-/Tropfen-Animation im Editor immer läuft."
+      },
+      {
+        "pfad": "components/river/RiverKursEditor.tsx",
+        "zeilen": 813,
+        "rolle": "HAUPTDATEI: das komplette Editor-Overlay — Knoten-Handle-Layer (.rke-layer), Panel mit 6 Reitern, alle Knöpfe/Regler/Felder, Drag-/Klick-/Wheel-Logik, speichern/laden/löschen/importieren/JSON-Export/SVG-Export, Zonen-Vermessung, Höhen-Normalisierung. Konstanten: STORAGE_KEY='wee-fluss-verlaeufe', MIN_X=40, MAX_X=1160, MIN_BREITE=6, MAX_BREITE=900, WHEEL_FAKTOR=1.08, KLICK_TOLERANZ_PX=4."
+      },
+      {
+        "pfad": "components/river/RiverKursContext.tsx",
+        "zeilen": 144,
+        "rolle": "React-Context-Brücke Editor↔Engine. State: nodes, live, vollAufgedeckt, anim (AnimEinstellungen), liveGeometrie, liveFarben. ANIM_DEFAULTS = Kundenwerte aus river.config.json (breath/sparkle/bank) + hartkodierte foam/mist-Defaults. useRiverKurs()=null auf der Landing → Engine baut Standard-Knoten."
+      },
+      {
+        "pfad": "components/river/RiverFlow.tsx",
+        "zeilen": 380,
+        "rolle": "Fluss-Engine + Publisher. Konsumiert kursCtx.nodes/anim/vollAufgedeckt; baut Geometrie (buildRiverGeometry), meldet live/liveGeometrie/liveFarben ZURÜCK in den Context (Grundlage des Snapshot-Exports); Reveal-Mechanik (useScroll/useSpring + direktes rect.setAttribute). effConfig überschreibt breath/sparkle/bank aus anim. Übergibt foam/mist an RiverFeatures."
+      },
+      {
+        "pfad": "components/river/riverPath.ts",
+        "zeilen": 379,
+        "rolle": "Reine Geometrie AUS KNOTEN (kein DOM). defaultRiverNodes(gerader Fluss), buildRiverGeometry, parsePath/lerpPath (Wellen-Atmung), xAtY-Bisektion. Exporte RIVER_DESIGN_WIDTH_PX=1200, HORIZONT_Y_PCT=0.6. MASTER_CONTOUR/MASTER_WAVES = Look-Referenz aus dem Original; WAVE_INSETS anteilige Wellen-Einrückungen. Liest disabledWaypointTypes."
+      },
+      {
+        "pfad": "components/river/riverSnapshot.ts",
+        "zeilen": 155,
+        "rolle": "Daten-Vertrag FlussVerlauf/FlussGeometrieSnapshot/ImportierterVerlauf + istImportierterVerlauf (Import-Guard, braucht nur nodes[]) + buildSnapshotSvgMarkup (SVG-Export-String) + FARBEN_TOKEN_KEYS/leseFarbe. Definiert das selbsttragende Export-Format."
+      },
+      {
+        "pfad": "components/river/river-types.ts",
+        "zeilen": 270,
+        "rolle": "Alle Typen: RiverNode, RiverGeometry, RiverConfig, Waypoint, FeatureTrigger, Waterfall, BirthPhases, Props aller Fluss-Komponenten (inkl. foam-Objekt für RiverFeatures)."
+      },
+      {
+        "pfad": "components/river/RiverWaves.tsx",
+        "zeilen": 263,
+        "rolle": "Rendert Wellen-Atmung (rAF-Lerp waves[i].a↔b) + Sparkle-Partikel (SMIL animateMotion). Konsumiert breath.periodS + sparkle.mode/perTrail/trailDurS/flashS aus dem anim-Context. WAVE_COLOR_TOKENS --water-700..300. Nur mode 'dezent' umgesetzt."
+      },
+      {
+        "pfad": "components/river/RiverFeatures.tsx",
+        "zeilen": 1062,
+        "rolle": "Rendert Schaumfront (3 Partikel-Schichten Gischt/Schaum/Nachlauf) + Nebelkante — konsumiert foam.count/leadPx/speed/sizeK/jitterPx + mistCount/SizePx/Opacity/Speed/BlurPx (= Front-/Nebel-Reiter). Enthält AUCH Flora/Wasserfälle/Felswand/See — per disabledWaypointTypes stillgelegt. Schaum-Portal als Geschwister der Reveal-Gruppe."
+      },
+      {
+        "pfad": "components/river/RiverSnapshotSvg.tsx",
+        "zeilen": 72,
+        "rolle": "Portabler STATISCHER Fluss-Renderer aus eingefrorenem Snapshot (Körper + Wellen-Startframe), ohne DOM/Config. Nicht direkt im Editor-UI verdrahtet; buildSnapshotSvgMarkup ist der tatsächlich vom SVG-Export genutzte Zwilling."
+      },
+      {
+        "pfad": "components/river/RiverFromSnapshot.tsx",
+        "zeilen": 295,
+        "rolle": "VOLLSTÄNDIGER einbettbarer Fluss (Körper+Wellen+Schaum+Glitzer+Nebel) aus einem Snapshot, für den Embed-Build (components/embed). NICHT über einen Editor-Knopf erreichbar — es gibt KEINEN 'Runtime/HTML-Overlay'-Export im Fluss-Editor."
+      },
+      {
+        "pfad": "components/river/RiverBirth.tsx",
+        "zeilen": 325,
+        "rolle": "Fallender Logo-Tropfen am Ende des Vorhangs (crossfade→fall→splash), exakte Logo-Silhouette, Weiß→Blau. Gekoppelt an TitleCurtain/Bühne, NICHT an das Editor-Panel. Sichtbar im Editor, weil der Latch geleert wird."
+      },
+      {
+        "pfad": "components/river/RiverLakeBlob.tsx",
+        "zeilen": 185,
+        "rolle": "Quell-See-Klecks (Kunden-Snippet). VERWAIST: nirgends importiert, geometry.lakeD immer undefined — geparkter Baustein, aktuell ohne Wirkung im Editor."
+      },
+      {
+        "pfad": "components/river/logo-drop-path.ts",
+        "zeilen": 19,
+        "rolle": "Generierte Tropfen-Silhouette (LOGO_DROP_PATH, LOGO_DROP_IMG_SIZE=512) für RiverBirth."
+      },
+      {
+        "pfad": "components/river/river-kurs-editor.css",
+        "zeilen": 223,
+        "rolle": "Styling NUR des Editor-Overlays: .rke-layer/.rke-knoten(/--lock)/-label, .rke-panel (fixed top-right, 280px), .rke-tabs/.rke-tab(--aktiv), .rke-regler/-wert, .rke-row/-liste/-status/-hilfe/-kopf/-zaehler/-wechsel."
+      },
+      {
+        "pfad": "components/river/river.css",
+        "zeilen": 236,
+        "rolle": ".river-zone (Messziel des Editors!) + .river-svg (z1, 1200px zentriert) + Flora/Wasserfall/Schaum/Nebel-Styling + reduced-motion."
+      },
+      {
+        "pfad": "components/river/river-birth.css",
+        "zeilen": 66,
+        "rolle": "Tropfen-Styling (.rb-root/-svg/-drop/-drop-glanz/-glint-ring/-glint-funke)."
+      },
+      {
+        "pfad": "river.config.json",
+        "zeilen": 124,
+        "rolle": "Config: breath(periodS5,waveCount5), sparkle(dezent/perTrail12/trailDurS120/flashS1.5), bank(strokePx50), waypoints (nur noch Anker-Messung, keine features mehr), disabledWaypointTypes[waterfallBox,cliff,lake]. ANIM_DEFAULTS spiegeln diese Werte."
+      },
+      {
+        "pfad": "components/backdrop/BackdropAuswahl.tsx",
+        "zeilen": 243,
+        "rolle": "Inhalt des 'Hintergrund'-Reiters (identisch mit Grafik-Editor). Screenshot/HTML/Ordner als Backdrop, 'Zurück zur echten Seite', File System Access API + Service-Worker (ordner-serve)."
+      },
+      {
+        "pfad": "components/backdrop/BackdropContext.tsx",
+        "zeilen": 65,
+        "rolle": "Backdrop-State + Persistenz (IndexedDB via backdrop-store). Eigener Provider je Editor-Seite, kein Tab-Sync."
+      },
+      {
+        "pfad": "components/HomePageContent.tsx",
+        "zeilen": 508,
+        "rolle": "Rendert die echte Landing (Vorhang + 7 Sektionen) bzw. bei backdrop-Prop die fremde Seite — beides innerhalb <RiverFlow>. Bezugs-DOM, das der Editor bearbeitet."
+      }
+    ],
+    "reiterOderPanels": [
+      {
+        "name": "Panel-Rahmen (.rke-panel, fixed oben rechts)",
+        "zweck": "Dauerhafter Container über allen Reitern: Titel, Editor-Wechsel, Knotenzähler, Reiter-Leiste, Statuszeile.",
+        "elemente": [
+          {
+            "element": "Titel 'Fluss-Editor' (strong)",
+            "funktion": "Statische Kopfzeile",
+            "implementiertIn": "RiverKursEditor.tsx ~642 (.rke-kopf)"
+          },
+          {
+            "element": "Link 'Grafiken →' (.rke-wechsel, href=/grafik-editor)",
+            "funktion": "Wechsel zum Grafik-Editor ohne URL-Suche",
+            "implementiertIn": "RiverKursEditor.tsx ~643"
+          },
+          {
+            "element": "Knoten-Zähler '{n} Knoten' (.rke-zaehler)",
+            "funktion": "Zeigt aktuelle Knotenanzahl (nodes.length)",
+            "implementiertIn": "RiverKursEditor.tsx ~647"
+          },
+          {
+            "element": "Reiter-Leiste (.rke-tabs, 6 Buttons: Fluss/Wasser/Front/Nebel/Profile/Hintergrund)",
+            "funktion": "setReiter(id); aktiver Tab = .rke-tab--aktiv. Interne IDs: fluss/wasser/blasen/nebel/verlaeufe/hintergrund",
+            "implementiertIn": "RiverKursEditor.tsx REITER ~95-102 + ~651-661"
+          },
+          {
+            "element": "Statuszeile (.rke-status)",
+            "funktion": "Zeigt letzte Aktion/Fehlermeldung (status-State)",
+            "implementiertIn": "RiverKursEditor.tsx ~808"
+          }
+        ]
+      },
+      {
+        "name": "Knoten-Handle-Ebene (.rke-layer / .rke-knoten)",
+        "zweck": "Rote Kreis-Handles über dem Fluss; jeder Handle IST ein Knoten. Ebene selbst fängt nichts ab (pointer-events:none), nur Handles sind anfassbar.",
+        "elemente": [
+          {
+            "element": "Knoten-Handle .rke-knoten (weißer Kreis, roter Rand)",
+            "funktion": "Positioniert bei left=zone.leftDoc+colLeft+x*scale, top=topDoc+y*scale. Ziehen/Klick/Wheel-Ziel",
+            "implementiertIn": "RiverKursEditor.tsx ~614-637 + river-kurs-editor.css .rke-knoten"
+          },
+          {
+            "element": "Eingeloggter Handle .rke-knoten--lock (gelb, scale 1.25)",
+            "funktion": "Optischer Zustand des gelockten Knotens (gelockt===i)",
+            "implementiertIn": "RiverKursEditor.tsx ~625 + CSS ~37"
+          },
+          {
+            "element": "Handle-Label '{i+1} · {breite}px' (.rke-knoten-label)",
+            "funktion": "Zeigt Index + gerundete Breite je Knoten",
+            "implementiertIn": "RiverKursEditor.tsx ~631-633"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Fluss' (Knoten-Editing)",
+        "zweck": "Knoten hinzufügen/löschen, gerade zurücksetzen, komplett aufdecken. Kernbedienung der Fluss-Form.",
+        "elemente": [
+          {
+            "element": "Hilfetext 'Ziehen=Position · Klick=einloggen (gelb) → Scrollrad=Breite/Perspektive · ESC=ausloggen'",
+            "funktion": "Bedienungshinweis",
+            "implementiertIn": "RiverKursEditor.tsx ~665-668"
+          },
+          {
+            "element": "Button '+ Knoten'",
+            "funktion": "knotenHinzufuegen(): neuer Knoten auf Bildschirmmitte, x/breite zwischen Nachbarn interpoliert, danach nach y sortiert; entsperrt",
+            "implementiertIn": "RiverKursEditor.tsx ~406-417 / Button ~670"
+          },
+          {
+            "element": "Button '− Knoten' (disabled wenn kein Knoten gelockt)",
+            "funktion": "knotenLoeschen(): löscht gelockten Knoten; Minimum 2 Knoten erzwungen",
+            "implementiertIn": "RiverKursEditor.tsx ~419-423 / Button ~671-673"
+          },
+          {
+            "element": "Button 'Gerade zurücksetzen'",
+            "funktion": "geradeZuruecksetzen(): alle Knoten x=Mitte(600), breite=240; entsperrt; Status",
+            "implementiertIn": "RiverKursEditor.tsx ~425-431 / Button ~676"
+          },
+          {
+            "element": "Checkbox 'Fluss komplett aufdecken'",
+            "funktion": "ctx.setVollAufgedeckt(): Reveal auf volle Höhe (Editier-Hilfe für weit unten liegende Knoten). Default false",
+            "implementiertIn": "RiverKursEditor.tsx ~678-685 → RiverFlow.tsx ~270-287"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Wasser' (Wellen/Glitzer/Ufer)",
+        "zweck": "Live-Regler für Wellen-Atmung, Glitzer und Sandufer; wirkt auf RiverWaves + Sandufer-Stroke.",
+        "elemente": [
+          {
+            "element": "Checkbox 'Glitzer an'",
+            "funktion": "Setzt anim.sparkleMode 'dezent'/'aus'",
+            "implementiertIn": "RiverKursEditor.tsx ~692-701 → RiverWaves.tsx showSparkles"
+          },
+          {
+            "element": "Regler 'Wellen-Atmung' (breathPeriodS 0.5–20s, step0.5)",
+            "funktion": "Dauer einer Hin-und-Her-Wellenbewegung",
+            "implementiertIn": "REGLER_WASSER ~66 → RiverWaves.tsx breath.periodS"
+          },
+          {
+            "element": "Regler 'Glitzer-Tempo' (sparkleTrailDurS 10–300s, step5)",
+            "funktion": "Umlaufdauer einer Glitzer-Spur",
+            "implementiertIn": "REGLER_WASSER ~67 → RiverWaves.tsx trailDurS"
+          },
+          {
+            "element": "Regler 'Glitzer pro Spur' (sparklePerTrail 0–40, step1)",
+            "funktion": "Partikel pro Spur (3 Spuren)",
+            "implementiertIn": "REGLER_WASSER ~68 → RiverWaves.tsx perTrail"
+          },
+          {
+            "element": "Regler 'Aufblitzen' (sparkleFlashS 0.2–10s, step0.1)",
+            "funktion": "Sichtbarkeitsdauer eines Aufblitzens im 10s-Zyklus",
+            "implementiertIn": "REGLER_WASSER ~69 → RiverWaves.tsx flashS/pulseKeyTimes"
+          },
+          {
+            "element": "Regler 'Sandufer-Breite' (bankStrokePx 0–160px, step2)",
+            "funktion": "Uferbreite; skaliert perspektivisch mit Flussbreite",
+            "implementiertIn": "REGLER_WASSER ~70 → RiverFlow.tsx bankStrokePx → riverPath sandD"
+          },
+          {
+            "element": "Button 'Animation zurücksetzen' (geteilt Wasser/Front/Nebel)",
+            "funktion": "ctx.setAnim(ANIM_DEFAULTS)",
+            "implementiertIn": "RiverKursEditor.tsx ~800-806"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Front' (id=blasen, Fließfront-Partikel)",
+        "zweck": "Regler der Schaum-Partikelwolke (Gischt/Schaum/Nachlauf). Breite fehlt bewusst — fest an Flussbreite gekoppelt.",
+        "elemente": [
+          {
+            "element": "Hilfetext (3 Schichten Gischt/Schaum/Nachlauf, Breite fix)",
+            "funktion": "Erklärung",
+            "implementiertIn": "RiverKursEditor.tsx ~710-714"
+          },
+          {
+            "element": "Regler 'Partikel' (foamCount 10–320, step5)",
+            "funktion": "Partikelanzahl der Fließfront",
+            "implementiertIn": "REGLER_BLASEN ~76 → RiverFeatures buildFrontPartikel"
+          },
+          {
+            "element": "Regler 'Vorpreschen' (foamLeadPx 0–140px, step2)",
+            "funktion": "Vorpresch-Weg in Kanalmitte",
+            "implementiertIn": "REGLER_BLASEN ~77 → RiverFeatures foamCfg.leadPx"
+          },
+          {
+            "element": "Regler 'Tempo' (foamSpeed 0.2–4×, step0.1)",
+            "funktion": "Tempo-Faktor aller Partikel-Zyklen",
+            "implementiertIn": "REGLER_BLASEN ~78 → RiverFeatures foamCfg.speed"
+          },
+          {
+            "element": "Regler 'Größe' (foamSizeK 0.3–3×, step0.1)",
+            "funktion": "Größen-Faktor der Partikel",
+            "implementiertIn": "REGLER_BLASEN ~79 → RiverFeatures foamCfg.sizeK"
+          },
+          {
+            "element": "Regler 'Springen' (foamJitterPx 0–40px, step1)",
+            "funktion": "Sprung-Weg (alle Richtungen)",
+            "implementiertIn": "REGLER_BLASEN ~80 → RiverFeatures foamCfg.jitterPx"
+          },
+          {
+            "element": "Button 'Animation zurücksetzen' (geteilt)",
+            "funktion": "ctx.setAnim(ANIM_DEFAULTS)",
+            "implementiertIn": "RiverKursEditor.tsx ~800-806"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Nebel' (Wolkenkante über der Front)",
+        "zweck": "Regler der weichen Nebelkante (CSS-blur-GPU-Schicht), getrennt von den Partikeln.",
+        "elemente": [
+          {
+            "element": "Hilfetext (weiche Wolkenkante, CSS-blur statt SVG-Filter)",
+            "funktion": "Erklärung",
+            "implementiertIn": "RiverKursEditor.tsx ~723-726"
+          },
+          {
+            "element": "Regler 'Wolken' (mistCount 0–30, step1)",
+            "funktion": "Anzahl Nebelwolken",
+            "implementiertIn": "REGLER_NEBEL ~86 → RiverFeatures buildNebel"
+          },
+          {
+            "element": "Regler 'Wolkengröße' (mistSizePx 4–90px, step2)",
+            "funktion": "Wolkengröße",
+            "implementiertIn": "REGLER_NEBEL ~87 → nebelCfg.sizePx"
+          },
+          {
+            "element": "Regler 'Deckkraft' (mistOpacity 0–1, step0.05)",
+            "funktion": "Deckkraft der Nebelkante",
+            "implementiertIn": "REGLER_NEBEL ~88 → nebelCfg.opacity"
+          },
+          {
+            "element": "Regler 'Weichheit' (mistBlurPx 0–24px, step1)",
+            "funktion": "CSS-blur() der Nebel-Gruppe",
+            "implementiertIn": "REGLER_NEBEL ~89 → RiverFeatures rf-mist filter"
+          },
+          {
+            "element": "Regler 'Waber-Tempo' (mistSpeed 0.2–4×, step0.1)",
+            "funktion": "Waber-Geschwindigkeit",
+            "implementiertIn": "REGLER_NEBEL ~90 → nebelCfg.speed"
+          },
+          {
+            "element": "Button 'Animation zurücksetzen' (geteilt)",
+            "funktion": "ctx.setAnim(ANIM_DEFAULTS)",
+            "implementiertIn": "RiverKursEditor.tsx ~800-806"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Profile' (id=verlaeufe, speichern/laden/import/export)",
+        "zweck": "Ein Profil = ein gespeicherter Fluss-Stand (Kurve + Animation + eingefrorene Geometrie/Farben). Speichern in localStorage, Import/Export als Datei.",
+        "elemente": [
+          {
+            "element": "Textfeld 'Profil-Name (= Dateiname)' (name-State)",
+            "funktion": "Name für Speichern/Export; Dateiname = Profilname",
+            "implementiertIn": "RiverKursEditor.tsx ~742-746"
+          },
+          {
+            "element": "Button 'Speichern'",
+            "funktion": "speichern(): friert nodes+anim+Geometrie(centerD/bankD/sandD/kontur/waves)+aufgelöste Farben+meta(zoneHDesign etc.) als FlussVerlauf in localStorage 'wee-fluss-verlaeufe'. Bricht ehrlich ab, wenn liveGeometrie/liveFarben noch nicht bereit",
+            "implementiertIn": "RiverKursEditor.tsx ~433-475 / Button ~747"
+          },
+          {
+            "element": "Profil-Liste (.rke-liste, alphabetisch sortiert)",
+            "funktion": "Je Profil eine Zeile mit Lade-Button + Lösch-Button",
+            "implementiertIn": "RiverKursEditor.tsx ~749-768"
+          },
+          {
+            "element": "Lade-Button '{name} ({n} Knoten)' (.rke-lade)",
+            "funktion": "laden(): setzt name, entsperrt, wendet Höhen-Normalisierung an (skaliereKnotenY), lädt anim ({ANIM_DEFAULTS,...v.anim})",
+            "implementiertIn": "RiverKursEditor.tsx ~477-492 / ~755-761"
+          },
+          {
+            "element": "Lösch-Button '✕'",
+            "funktion": "verlaufLoeschen(): entfernt Profil aus localStorage",
+            "implementiertIn": "RiverKursEditor.tsx ~494-500 / ~762-764"
+          },
+          {
+            "element": "Verstecktes Datei-Input (importRef, accept application/json)",
+            "funktion": "Quelle für Re-Import",
+            "implementiertIn": "RiverKursEditor.tsx ~769-775"
+          },
+          {
+            "element": "Button 'Importieren'",
+            "funktion": "öffnet importRef → dateiImportiert(): akzeptiert Einzel-Snapshot ODER Verlaufs-Map (erster gültiger Eintrag), lädt nodes+anim live, klare Fehlermeldung bei kaputter Datei",
+            "implementiertIn": "RiverKursEditor.tsx ~550-581 / ~777-782"
+          },
+          {
+            "element": "Button 'Als JSON exportieren'",
+            "funktion": "exportieren(): lädt benanntes Profil aus localStorage, Blob-Download {name}.json (selbsttragende Einzeldatei). Profil muss vorher gespeichert sein",
+            "implementiertIn": "RiverKursEditor.tsx ~502-523 / ~783-785"
+          },
+          {
+            "element": "Button 'Als SVG exportieren'",
+            "funktion": "alsSvgExportieren(): buildSnapshotSvgMarkup aus liveGeometrie+liveFarben → {name}.svg. NUR Fluss-KÖRPER (Form+Farben), OHNE Laufzeit-Partikel (Schaum/Glitzer/Nebel)",
+            "implementiertIn": "RiverKursEditor.tsx ~588-608 / ~788-793"
+          }
+        ]
+      },
+      {
+        "name": "Reiter 'Hintergrund' (BackdropAuswahl, geteilt mit Grafik-Editor)",
+        "zweck": "Legt eine FREMDE Website (Screenshot/HTML/Ordner) statt der echten Landing unter den Editor — zum Fluss-Ziehen über einer fremden Seite.",
+        "elemente": [
+          {
+            "element": "Kopf 'Hintergrund' + Hilfe-Icon (BackdropHilfeIcon)",
+            "funktion": "Titel + ausführlicher Hilfetext",
+            "implementiertIn": "BackdropAuswahl.tsx ~166-169"
+          },
+          {
+            "element": "Aktuell-Anzeige / 'Kein Hintergrund gewählt' / 'Lade gemerkten Hintergrund…'",
+            "funktion": "Zeigt aktiven Backdrop (Screenshot/HTML/Ordner) oder Ladezustand",
+            "implementiertIn": "BackdropAuswahl.tsx ~176-185"
+          },
+          {
+            "element": "Button '🔓 Ordner erneut freigeben' (bedingt)",
+            "funktion": "Stellt verlorenen File-System-Zugriff auf gemerkten Ordner wieder her (Nutzergeste)",
+            "implementiertIn": "BackdropAuswahl.tsx ~187-197 / ordnerFreigeben ~148-157"
+          },
+          {
+            "element": "Button '🖼 Screenshot laden'",
+            "funktion": "Bild-Datei als Backdrop (alsDataUrl)",
+            "implementiertIn": "BackdropAuswahl.tsx ~200-206 / bildGewaehlt ~78-93"
+          },
+          {
+            "element": "Button '📄 HTML laden'",
+            "funktion": "Single-File-HTML als Backdrop (alsText)",
+            "implementiertIn": "BackdropAuswahl.tsx ~207-213 / htmlGewaehlt ~95-110"
+          },
+          {
+            "element": "Button '📁 Ordner öffnen'",
+            "funktion": "Kompletter Website-Ordner via File System Access API (Chrome/Edge) + Service-Worker",
+            "implementiertIn": "BackdropAuswahl.tsx ~215-224 / ordnerGewaehlt ~131-144"
+          },
+          {
+            "element": "Button '← Zurück zur echten Seite' (disabled ohne Backdrop)",
+            "funktion": "setBackdrop(null) → echte Landing",
+            "implementiertIn": "BackdropAuswahl.tsx ~225-234 / zurueck ~159-162"
+          },
+          {
+            "element": "Versteckte Datei-Inputs (Bild accept image/*, HTML accept .html,.htm,text/html) + Status",
+            "funktion": "Dateiquellen + Statuszeile",
+            "implementiertIn": "BackdropAuswahl.tsx ~236-239"
+          }
+        ]
+      }
+    ],
+    "tastenkuerzel": [
+      {
+        "kuerzel": "ESC",
+        "wirkung": "Eingeloggten (gelben) Knoten ausloggen — setGelockt(null). Listener nur aktiv, solange ein Knoten gelockt ist (RiverKursEditor.tsx ~361-363)."
+      },
+      {
+        "kuerzel": "Mausrad / Scrollrad (bei eingelocktem Knoten)",
+        "wirkung": "Ändert die Flussbreite des gelockten Knotens (Perspektive), Faktor ×1.08 pro Raste, geклаmpt 6–900px; der normale Seiten-Scroll wird dabei blockiert (e.preventDefault). Nur aktiv bei gelockt!==null (RiverKursEditor.tsx ~348-370)."
+      }
+    ],
+    "interaktionen": [
+      "Knoten ziehen (Drag): onPointerDown setzt setPointerCapture + dragRef; onPointerMove rechnet Maus→Design-Koordinaten ((clientX+scrollX-leftDoc-colLeft)/scale, (clientY+scrollY-topDoc)/scale), x geклаmpt MIN_X=40..MAX_X=1160, y frei; verschiebt Knoten exakt unter den Cursor (Knoten = Mittellinie, kein Offset). Commit via commitPerFrame (rAF-gedrosselt, max. 1 Geometrie-Neubau pro Frame).",
+      "Knoten anklicken (Klick = Bewegung < KLICK_TOLERANZ_PX=4px bis pointerup): onPointerUp toggelt den Lock (gelb) — setGelockt(g===idx?null:idx). Bewegung ≥4px zählt als Drag, kein Lock.",
+      "Scrollrad auf gelocktem Knoten ändert Breite/Perspektive (siehe Tastenkürzel).",
+      "+ Knoten fügt auf Bildschirmmitte ein (y aus scrollY+innerHeight/2), x/breite zwischen Nachbar-Knoten interpoliert, dann nach y sortiert.",
+      "− Knoten löscht den gelockten Knoten (Minimum 2 Knoten).",
+      "Zonen-Vermessung (messeZone .river-zone): scroll-invariante Dokument-Metrik (topDoc/leftDoc/w/h/scale/colLeft); Handles + Geometrie leben im Design-Raum (1200px zentrierte Spalte, scale = min(w,1200)/1200).",
+      "Reveal beim Scrollen: der Fluss deckt sich per useScroll/useSpring auf (rect.setAttribute 'height'); im Editor optional via 'Fluss komplett aufdecken' auf volle Höhe fixiert.",
+      "Datei-Drop-frei: Import läuft über verstecktes <input type=file> (Klick auf 'Importieren'), Export über Blob + <a download>-Klick (JSON und SVG)."
+    ],
+    "zustaende": [
+      {
+        "speicherort": "RiverKursContext (React State, RiverKursContext.tsx)",
+        "inhalt": "nodes (bearbeitete Knoten = der Fluss), live (letzte Engine-Knoten = Ausgangslage), vollAufgedeckt (bool), anim (AnimEinstellungen: breath/sparkle/bank/foam/mist), liveGeometrie (RiverGeometry des letzten Rebuilds), liveFarben (aufgelöste Hex-Token). Ohne Provider (Landing) = null."
+      },
+      {
+        "speicherort": "localStorage Key 'wee-fluss-verlaeufe' (STORAGE_KEY)",
+        "inhalt": "Record<Profilname, FlussVerlauf> — je Profil: schema/version/name/gespeichert/meta(viewportW/H, zoneHDesign, designWidth)/nodes/anim/geometrie(centerD,bankD,sandD,kontur,waves)/farben. Quelle für Laden/Löschen/JSON-Export."
+      },
+      {
+        "speicherort": "sessionStorage Key 'wee-title-curtain-seen'",
+        "inhalt": "Latch des TitleCurtain-Vorhangs. Wird von der Editor-Seite beim Öffnen EINMAL pro Laufzeit entfernt, damit die Vorhang-/Tropfen-Animation im Editor immer neu läuft."
+      },
+      {
+        "speicherort": "IndexedDB (via components/backdrop/backdrop-store, BackdropContext)",
+        "inhalt": "Gemerkter Backdrop (art bild/html/ordner + quelle/name). Lädt beim Öffnen des Editors; eigener Provider je Seite (kein Tab-Sync)."
+      },
+      {
+        "speicherort": "Editor-lokaler State + Refs (RiverKursEditor.tsx)",
+        "inhalt": "zone (ZoneMetrik), gelockt (Index|null), verlaeufe (geladene Profil-Map), name (Profil-/Dateiname), status (Statuszeile), reiter (aktiver Tab). Refs: dragRef, pendingRef+rafRef (rAF-Commit), importRef (Datei-Input), latchGeloest (Modul-Flag)."
+      },
+      {
+        "speicherort": "river.config.json → ANIM_DEFAULTS (RiverKursContext.tsx)",
+        "inhalt": "Startwerte der Regler = Kundenwerte (breath.periodS, sparkle.mode/perTrail/trailDurS/flashS, bank.strokePx) + hartkodierte foam-/mist-Defaults (foamCount90 etc.). Auf der Landing gelten diese Config-Werte direkt."
+      }
+    ],
+    "apiAbhaengigkeiten": [
+      "localStorage — Profile speichern/laden/löschen ('wee-fluss-verlaeufe')",
+      "sessionStorage — TitleCurtain-Latch entfernen ('wee-title-curtain-seen')",
+      "IndexedDB (components/backdrop/backdrop-store) — Backdrop-Persistenz",
+      "File System Access API (showDirectoryPicker/queryPermission/requestPermission) — 'Ordner öffnen' im Hintergrund-Reiter (nur Chrome/Edge)",
+      "Service Worker (components/backdrop/ordner-serve) — Bereitstellen des Ordner-Backdrops",
+      "Blob + URL.createObjectURL + <a download> — JSON- und SVG-Export",
+      "FileReader/File.text()/DataURL — Profil-Import + Backdrop-Bild/HTML lesen",
+      "motion/react (useScroll, useSpring, useMotionValue, useMotionValueEvent) — Reveal-Mechanik der Fluss-Engine",
+      "ResizeObserver + MutationObserver + window setInterval/Timeout-Polling — Zonen-Vermessung/Remount-Robustheit",
+      "IntersectionObserver — Pausieren der Wellen-/Schaum-Animation außerhalb des Viewports",
+      "getComputedStyle — Auflösen der CSS-Farb-Token (--water-*/--bank-*/--green-900) für den selbsttragenden Snapshot",
+      "requestAnimationFrame — Drag-Commit (Editor) + Wellen-/Schaum-/Nebel-Loops",
+      "document.fonts.ready — erste Anker-/Zonen-Messung (RiverFlow)",
+      "window.matchMedia('(prefers-reduced-motion: reduce)') — Motion-Reduktion",
+      "Statischer Import river.config.json — Config/ANIM_DEFAULTS/disabledWaypointTypes",
+      "KEINE Netzwerk-/Backend-API — der Fluss-Editor ist rein clientseitig (kein Server-Persist, kein Fetch)"
+    ],
+    "cssDateien": [
+      "components/river/river-kurs-editor.css — Editor-Overlay: Panel, Reiter, Knoten-Handles, Regler, Buttons (nur auf /fluss-editor geladen)",
+      "components/river/river.css — .river-zone (Messziel) + .river-svg + Flora/Wasserfall/Schaum/Nebel-Styling",
+      "components/river/river-birth.css — Tropfen-Geburt (RiverBirth)",
+      "components/backdrop/backdrop.css — hg-* Klassen des Hintergrund-Reiters (via BackdropAuswahl importiert)",
+      "app/design-tokens.css — Farb-Token --water-900..300 / --bank-500/400 / --green-900 (FARBEN_TOKEN_KEYS; von getComputedStyle aufgelöst und in Snapshots eingefroren)"
+    ],
+    "besonderheiten": [
+      "VERLUST-WARNUNG 'Runtime/HTML-Overlay-Export': existiert im Fluss-Editor NICHT. Vorhanden sind nur 'Als JSON exportieren' und 'Als SVG exportieren'. RiverFromSnapshot.tsx (voll einbettbarer Fluss) und RiverSnapshotSvg.tsx sind portable Renderer für den separaten Embed-Build (components/embed/build-embed.mjs), NICHT über einen Editor-Knopf erreichbar.",
+      "'Die Knoten SIND der Fluss': RiverNode(y,x,breite) = Mittellinie + Perspektive; buildRiverGeometry baut die Kurve aus ihnen. Handle liegt per Konstruktion exakt auf dem Wasser — kein Nachmessen der gerenderten Kurve. Beim Vereinheitlichen darf dieses Architektur-Invariant nicht brechen.",
+      "Höhen-Normalisierung (hoehenFaktor/skaliereKnotenY): beim Laden/Import werden NUR die y-Werte mit aktuelleZoneH/meta.zoneHDesign skaliert (x/breite unangetastet). faktor=1 = bit-genauer No-Op. Status zeigt '(Höhe angepasst ×N)'. Ohne das driften Knoten bei anderem Viewport/Backdrop vom Fluss weg.",
+      "Snapshot-Selbsttragung (Export-Bug-Fix): speichern() friert die AUFGELÖSTEN Pfade (centerD/bankD/sandD/kontur/waves) + aufgelöste Hex-Farben ein → 1:1-Reproduktion ohne river.config.json/riverPath.ts. Der alte Export enthielt nur Rohknoten (RiverNode[]) und wirkte beim Empfänger anders.",
+      "speichern() UND alsSvgExportieren() brechen ehrlich ab, wenn liveGeometrie/liveFarben noch nicht bereit sind ('kurz warten/scrollen und erneut versuchen') — RiverFlow meldet sie erst nach dem ersten Rebuild in den Context.",
+      "SVG-Export = NUR Fluss-KÖRPER (Sandufer+Wasser+Wellen-Startframe). Schaumfront/Glitzer/Nebel sind Laufzeit-Partikel (JS/rAF) und konstruktionsbedingt NICHT in einem statischen SVG.",
+      "Import ist tolerant: istImportierterVerlauf verlangt nur ein nicht-leeres nodes[]; akzeptiert Einzel-Snapshot ODER die alte Sammel-Map ('Export alle' → erster gültiger Eintrag). meta/geometrie/farben optional (alte Dateien bleiben ladbar).",
+      "disabledWaypointTypes ['waterfallBox','cliff','lake'] in river.config.json: RiverFeatures enthält kompletten Code für Flora/Box-Wasserfall/Felswand/See, der aber stillgelegt ist (F2/F3-Neuaufbau geplant). Flora-features[] wurden zusätzlich aus allen Waypoints entfernt (Kundenentscheid) — Waypoints existieren nur noch für die Anker-Messung, xPct/widthPx ohne Wirkung auf die Form.",
+      "Backdrop-Kopplung: HomePageContent rendert bei gesetztem backdrop-Prop KEINEN Vorhang und KEINE 7 Sektionen, sondern die fremde Seite innerhalb <RiverFlow>. Die Editor-Seite reicht bctx.backdrop durch. RiverFlow/GrafikLayer bleiben unverändert (backdrop-agnostisch).",
+      "TitleCurtain-Kopplung: Seite entfernt den Vorhang-Latch (sessionStorage 'wee-title-curtain-seen') im Render-Body EINMAL pro Laufzeit (Modul-Flag latchGeloest, bewusst NICHT im Effect — Kind-Effekte laufen vor Eltern-Effekten). vollAufgedeckt=Default false, damit die originale Scroll-Animation inkl. Tropfen (RiverBirth) editierbar bleibt.",
+      "Zonen-Remount-Robustheit: .river-zone kann neu gemountet werden (Backdrop lädt async aus IndexedDB → HomePageContent-Zweig wechselt). MutationObserver auf document.body + selbstbeendendes 200ms-Polling (max 3s) hängt den ResizeObserver ans neue Element um und misst frisch — sonst blieben die Handles auf dem alten Stand.",
+      "Schaumbreite ist bewusst KEIN Regler (Kundenvorgabe): FOAM_SPREAD=1.2, fest an die Flussbreite gekoppelt. Deshalb fehlt sie im Front-Reiter.",
+      "Sparkle: nur mode 'dezent' ist implementiert; 'linien'/'magisch' aus dem Typ SparkleMode sind (noch) nicht gerendert.",
+      "BackdropAuswahl ist EINE geteilte Komponente (Grafik- + Fluss-Editor) — Basis-Buttons erben die Optik aus dem jeweiligen Panel-CSS (.rke-panel/.gre-panel). Jeder Editor hat einen EIGENEN BackdropProvider (kein seitenübergreifender Live-Sync).",
+      "RiverLakeBlob.tsx ist VERWAIST (nirgends importiert, geometry.lakeD immer undefined) — geparkter Baustein ohne aktuelle Wirkung; beim Aufräumen nicht mit einer aktiven Funktion verwechseln.",
+      "Grenzwerte hart im Code: MIN_X=40, MAX_X=1160 (1200−40), MIN_BREITE=6, MAX_BREITE=900, WHEEL_FAKTOR=1.08, KLICK_TOLERANZ_PX=4, RIVER_DESIGN_WIDTH_PX=1200, HORIZONT_Y_PCT=0.6, Standard-Startbreite 240, KNOTEN_ABSTAND=600. Minimum 2 Knoten beim Löschen.",
+      "Dateiname = Profilname (Leon-Vorgabe): Export verlangt, dass das Profil unter genau diesem Namen erst gespeichert wurde ('Profil erst speichern, dann exportieren'). 'Als SVG exportieren' nutzt dagegen direkt die Live-Geometrie und braucht nur zone+liveGeometrie+liveFarben.",
+      "'Animation zurücksetzen' erscheint nur auf den Reitern Wasser/Front/Nebel und setzt anim komplett auf ANIM_DEFAULTS (auch Knoten-unabhängig)."
+    ]
+  },
+  "shared": {
+    "bereich": "Geteilte Infrastruktur + Reste: Backdrop-Modus (editorübergreifend), Embed-/Export-Kette, Vektorisierer-Bibliothek, Autoren-API (app/api/*), lib/*, Puck-Spike/-Import, Demo-Landing-Konsum, Root-Configs (grafik/river/curtain.config.json), CSS-/Design-Tokens, scripts/. TitleCurtain nur als Schnittstelle (uebernommen-Prop).",
+    "dateien": [
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/Backdrop.tsx",
+        "zeilen": 188,
+        "rolle": "Rendering der 3 Backdrop-Modi (bild=<img> Data-URL, html=<iframe srcDoc> same-origin mit ResizeObserver-Höhensync, ordner=<iframe src=/wee-site/> über Service Worker). Alle 3 pointer-events:none. BackdropOrdner mountet Cache-Befüllung+SW-Registrierung; key=quelle erzwingt Remount bei Ordnerwechsel."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/BackdropAuswahl.tsx",
+        "zeilen": 243,
+        "rolle": "Panel-UI 'Hintergrund' — EINE gemeinsame Komponente in BEIDEN Editor-Panels (.gre-panel + .rke-panel). Buttons: Screenshot laden, HTML laden, Ordner öffnen, Ordner erneut freigeben (amber, nur wenn ordnerWartet), Zurück zur echten Seite. Verstecktes bild/html file-input. Status-Zeile."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/BackdropContext.tsx",
+        "zeilen": 65,
+        "rolle": "React-Context/Provider (backdrop, setBackdrop, laedt). Eigener Provider je Editor-Seite (kein Tab-Sync). Lädt beim Mount aus IndexedDB, setBackdrop persistiert sofort. Auf echter Landing / existiert kein Provider."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/BackdropHilfeIcon.tsx",
+        "zeilen": 120,
+        "rolle": "?-Hilfe-Icon mit Popover (hover+pin). Position per getBoundingClientRect+position:fixed (Panels scrollen intern). Escape/Klick-außerhalb/Scroll/Resize schließt. Eigenständige Kopie von GrafikHilfe (an kein Panel gebunden)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/backdrop-store.ts",
+        "zeilen": 109,
+        "rolle": "IndexedDB-Persistenz. EIGENE DB 'wee-backdrop' (store 'keyval'), da editorübergreifend. idbGet/idbSet (generisch, auch für Ordner-Handle), backdropLaden/backdropSpeichern (key 'aktuell'), alsDataUrl (Screenshot), alsText (HTML). Fehler = 'kein Backdrop' statt Absturz."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/backdrop-types.ts",
+        "zeilen": 28,
+        "rolle": "Datenmodell: BackdropArt='bild'|'html'|'ordner'; Backdrop{art,quelle,name}. quelle=Data-URL (bild) / roher HTML-Text (html) / Ordnername-Marker (ordner; echte Dateien im Cache Storage)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/backdrop.css",
+        "zeilen": 168,
+        "rolle": "CSS des Backdrop, Präfix 'hg-' (an KEIN Panel gebunden). Rendering (.hg-backdrop-bild/-html/-hinweis) + Panel-UI (.hg-row/-aktuell/-status/-freischalten amber) + Hilfe-Icon (Spezifitäts-Trick .hg-hilfe-icon.hg-hilfe-icon). Palette hart wiederholt (kein Import)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/backdrop/ordner-serve.ts",
+        "zeilen": 216,
+        "rolle": "'Ordner öffnen'-Kern: File System Access API (showDirectoryPicker read), Handle-Persistenz IndexedDB (K_ORDNER_HANDLE), queryPermission(still)/requestPermission(Geste), rekursiv einlesen→Cache Storage 'wee-site' (MAX_DATEIEN=2000, MAX_TIEFE=12, MIME-Map), swRegistrieren(scope /wee-site/), ordnerBereitstellen/-Aufraeumen."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/public/wee-site-sw.js",
+        "zeilen": 52,
+        "rolle": "Service Worker für Ordner-Backdrop. Plain JS (public/ → 1:1 in Export). Scope /wee-site/. skipWaiting+clients.claim; fetch-Handler beantwortet GET unter /wee-site/ aus Cache 'wee-site' (/ →index.html, ignoreSearch), sonst 404-Text."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/embed/EmbedRoot.tsx",
+        "zeilen": 116,
+        "rolle": "Wurzel des STANDALONE-Embeds. Rendert RiverFromSnapshot+GrafikLayer als React-Portal-Overlay (<div direkt unter body, position:absolute, pointer-events:none). Injiziert :root{} Farb-Tokens (FARBEN_TOKEN_KEYS aus config.farben/fluss.farben/DEFAULT_FARBEN, da River fest an var(--water-*) gebunden). EmbedConfig{grafiken,grafikenDocH?,fluss?,farben?}."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/embed/embed-entry.tsx",
+        "zeilen": 106,
+        "rolle": "Einstiegspunkt des Embed-Bundles (→public/wee-embed.js). Sucht [data-wee-anim]-Mounts; Config-Quellen in Reihenfolge: data-config=URL(fetch) → <script data-wee-config>(inline JSON, via data-config-id oder erstes) → window.__WEE_ANIM__. Ungültige Config: nur DIESER Mount übersprungen + console.warn. createRoot(mount).render(<EmbedRoot/>)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/embed/embed-export.ts",
+        "zeilen": 167,
+        "rolle": "Editor-Tooling (NICHT im Runtime-Bundle): baueEmbedConfig (bilderInline: Projekt-URLs '/…' via fetch→Data-URL, inkl. srcOverride; grafikenDocH nur bei grafiken>0; farben aus fluss), baueReadme, baueOverlayHtml (escapeFuerInlineScript maskiert < gegen </script). Genutzt von GrafikExportPanel."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/public/embed-demo.html",
+        "zeilen": 42,
+        "rolle": "Portabilitätsbeweis: reines HTML (kein React/Next), 8 Platzhalter-Sektionen, <div data-wee-anim>, inline <script data-wee-config> (Fluss-Snapshot+2 Grafiken-Fixture), <script src=/wee-embed.js>."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/typen.ts",
+        "zeilen": 93,
+        "rolle": "Gemeinsame Vektor-Typen. ÖFFENTLICHER VERTRAG mit der API-Route: VektorOptionen(maxFarben/minFlaechePx/glaettung/alphaSchwelle), VektorGruppe, VektorErgebnis(svg,gruppen,breite,hoehe,dauerMs), AufgeloesteOptionen, Punkt, RGB, Region, Kontur, RegionMitKontur."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/vektorisieren.ts",
+        "zeilen": 111,
+        "rolle": "Öffentlicher Einstiegspunkt der Vektorisier-Pipeline (DOM-frei, keine npm-Deps): quantisieren→findeRegionen→traceKontur→vereinfachePolygon→baueSvg. Defaults (maxFarben=8,minFlaeche=40,glaettung=0.5,alpha=128), RDP-Toleranz=0.5+glaettung*2.5, leeresErgebnis-Fallback."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/quantisieren.ts",
+        "zeilen": 307,
+        "rolle": "Median-Cut-Quantisierung (kritischster Schritt gegen Anti-Aliasing-Säume): Histogramm→Palette→Snap auf nächste Palettenfarbe→3x3-Mehrheitsfilter (neuer Puffer, deterministisch). labelBuffer Int16 (-1=transparent)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/regionen.ts",
+        "zeilen": 147,
+        "rolle": "Zusammenhangskomponenten (4er-Nachbarschaft) je Palettenfarbe. BFS mit wiederverwendeter Int32-Queue (kein Rekursions-Stack-Overflow bei ~400k px). Filter minFlaechePx, regionMap+regionen in Scan-Reihenfolge."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/konturen.ts",
+        "zeilen": 168,
+        "rolle": "Kontur je Region (äußerer Rand + Löcher) auf lokal gepolsterter Maske (bbox+1px). Löcher = nicht-von-außen-erreichbare Hintergrund-Komponenten. Nutzt Moore-Tracing."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/moore.ts",
+        "zeilen": 113,
+        "rolle": "Generischer Moore-Neighbor-Randverfolger (8er, im Uhrzeigersinn) mit Jacob's Stopping Criterion. Prädikat-basiert (kennt keine Region-/Loch-Begriffe)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/vereinfachen.ts",
+        "zeilen": 70,
+        "rolle": "Ramer-Douglas-Peucker (iterativ, Array-Stack statt Rekursion). senkrechterAbstand mit degeneriertem-Segment-Fallback."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/bezier.ts",
+        "zeilen": 126,
+        "rolle": "Eckenerhaltende kubische Bezier-Anpassung (Winkel-Schwelle 40°, Catmull-Rom-Tangenten an glatten Punkten) → SVG-Teilpfad 'M…C…Z', 1 Nachkommastelle."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/svg.ts",
+        "zeilen": 115,
+        "rolle": "Baut finales SVG. 1 <g> je Palettenfarbe (id 'gruppe-<farbname>'), Zeichenreihenfolge nach GRÖSSE (große Flächen hinten), fill-rule evenodd bei Löchern, Wurzel-Gruppe id 'baum'."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/vektor/farbe.ts",
+        "zeilen": 89,
+        "rolle": "rgbZuHex + deutsche HSL-Namensheuristik (schwarz/weiss/grau/braun-Sonderfall/Farbkreis mit -dunkel/-hell). Für lesbare SVG-Gruppen-IDs."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/vektorisieren/route.ts",
+        "zeilen": 220,
+        "rolle": "POST /api/vektorisieren. runtime=nodejs (sharp/libvips). Grenzen: Body 12MB, Kante hart 4000px, Arbeit 1600px (Downscale). Data-URL-Muster, sharp→RGBA→vektorisiere. Eigene AnfrageFehler-Klasse + geteiltes pruefeUrsprung."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/abbild/route.ts",
+        "zeilen": 247,
+        "rolle": "POST /api/abbild (aktion-Dispatch): liste/lade/speichere/loesche (abbilder/<name>.json) + standard (schreibt grafik.config.json!). Pfad-Guard, pruefeAbbild, MAX_BODY 8MB, MAX_ABBILDER 200. $doc/$koordinaten-Header in Dateien."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/assets/route.ts",
+        "zeilen": 165,
+        "rolle": "POST /api/assets: liste (public/ rekursiv, Bild-Endungen, MAX 500, überspringt .git/node_modules/.next) + schreibe (Base64-Data-URL → public/vektor/, Pfad-Guard, MAX 8MB). Assets als URL '/…' zurück (keine Data-URL)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/builder/status/route.ts",
+        "zeilen": 42,
+        "rolle": "POST /api/builder/status: Discovery/Health (doctor). Liefert name, version(package.json), apiVersion(SEITEN_VERSION), zeit, komponentenTypen(PUCK_KOMPONENTEN_TYPEN), routen-Liste."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/import/grafik-setup/route.ts",
+        "zeilen": 107,
+        "rolle": "POST /api/import/grafik-setup (Importer Stufe A): GrafikSetup ODER abbildName → grafikSetupToPuck → pruefePuckData → dryRun-by-default-Bericht; dryRun=false schreibt via speichereSeite (Konflikt-Optionen)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/puck-seite/liste/route.ts",
+        "zeilen": 19,
+        "rolle": "POST /api/puck-seite/liste → listeSeiten() (seiten/, neueste zuerst). Getrennte POST-Pfade statt Dispatch (je eigenes Agenten-Tool)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/puck-seite/lade/route.ts",
+        "zeilen": 26,
+        "rolle": "POST /api/puck-seite/lade {name} → {name,gespeichert,version,data}. MAX_BODY 10k."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/puck-seite/speichere/route.ts",
+        "zeilen": 38,
+        "rolle": "POST /api/puck-seite/speichere {name,data,erwartetGespeichert?,ueberschreibe?}. pruefePuckData (Registry-Klemme+migrate), 409 bei Konflikt. MAX_BODY 8MB."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/api/puck-seite/loesche/route.ts",
+        "zeilen": 21,
+        "rolle": "POST /api/puck-seite/loesche {name} → loescheSeite(). 404 wenn fehlt."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/api/server-helfer.ts",
+        "zeilen": 96,
+        "rolle": "Geteilter API-Unterbau: AnfrageFehler, fehlerAntwort (kein Stack-Leak), pruefeUrsprung (CSRF-Gate: fremder Origin→403, fehlender Origin ok=Agenten; ERLAUBTE_ORIGINS localhost/127.0.0.1:3113), leseJsonBody (Größenlimit), saubererName (Pfad-/Windows-Sanitisierung, Unicode-Buchstaben ok)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/api/seiten-speicher.ts",
+        "zeilen": 183,
+        "rolle": "Persistenz-Kern Puck-Seiten (seiten/<name>.json). pruefePuckData (Struktur + istRegistrierterTyp-Klemme + migrate() OHNE config, zones→hart 400), Konflikt-Modell (erwartetGespeichert===gespeichert ODER ueberschreibe, sonst 409), liste/lade/speichere/loesche. SEITEN_VERSION=1, MAX 500."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/api/grafik-validierung.ts",
+        "zeilen": 113,
+        "rolle": "Validierung Grafik-/Abbild-Nutzlast (aus abbild-Route herausgelöst, geteilt mit Import). istGrafik/istAsset/istKeyframe (MEDIENARTEN bild/lottie/video), pruefeMeta, pruefeAbbild (grafiken Pflicht, pool/uebernommen optional). Optionale Flags (modus/versteckt/gesperrt/stumm) unvalidiert."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/grafik-setup-to-puck.ts",
+        "zeilen": 64,
+        "rolle": "R2b Adapter (deterministisch, kein LLM): GrafikSetup→Puck-Data. Jede Grafik→'GrafikLayer'-Baustein, nach z sortiert, statischer Zustand aus keyframes[0] (scale/opacity/rotation). GrafikLayerBlockProps-Interface."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/puck-registry.ts",
+        "zeilen": 25,
+        "rolle": "UI-freie Registry der Puck-Typen (PUCK_KOMPONENTEN_TYPEN=['ShapeAccent','GrafikLayer'], istRegistrierterTyp). SYNCHRONPFLICHT mit puck.config.tsx. Server-Gate, da <Render> unbekannte Typen still verschluckt."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/puck/page.tsx",
+        "zeilen": 58,
+        "rolle": "/puck (R2a-Spike): montiert <Puck config,data>, mounted-Gate (client-only, Hydration), lädt initial aus localStorage 'flowcode-puck-spike', onPublish→localStorage (kein Backend)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/puck/puck.config.tsx",
+        "zeilen": 180,
+        "rolle": "Puck-Config: 2 Komponenten. ShapeAccent (Felder variant/color/position/size → ShapeAccent-Komponente), GrafikLayer (Felder name/src/art/breitePx/scale/opacity/rotation/z → GrafikMedium, Import-Zielbaustein). initialData mit 1 ShapeAccent."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/puck-import/page.tsx",
+        "zeilen": 44,
+        "rolle": "/puck-import (R2b Stufe-A-Beweis): grafikSetupToPuck(beispielSetup) via useMemo→<Puck data>. mounted-Gate, onPublish no-op."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/puck-import/beispiel-setup.ts",
+        "zeilen": 50,
+        "rolle": "Beispiel-GrafikSetup (Export-Format) mit 3 realen Assets (hero-fields-aerial.jpg, titelbild.svg, tree-1-0.png). Ersetzbar durch echten Grafik-Editor-Export."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/layout.tsx",
+        "zeilen": 34,
+        "rolle": "RootLayout. next/font Syne (--font-syne) + Montserrat (--font-montserrat), lädt design-tokens.css dann globals.css. metadata (Titel/Description WEE-Prototyp). lang=de."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/page.tsx",
+        "zeilen": 24,
+        "rolle": "'/' Landing-Route: propless Wrapper um <HomePageContent/> (Next-App-Router-Exportbeschränkung → Backdrop-Prop lebt in HomePageContent). Ohne backdrop-Prop = Vorhang + Bens 7 Sektionen."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/pilot-projekt/page.tsx",
+        "zeilen": 55,
+        "rolle": "/pilot-projekt: 2. Demo-Seite. <TitleCurtain> mit eigenen Props (kicker/title), ohne uebernommen. Beweist Wiederverwendbarkeit der Titelkarte."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/design-tokens.css",
+        "zeilen": 129,
+        "rolle": "EINZIGE Quelle für Farben/Typo/Spacing/Effekte. green-/sand-/orange-/ink-Skalen, semantic, accent, surfaces, --water-*/--bank-* (Fluss!), Typo (Syne/Montserrat), radii/shadows/glass/nav-glass, motion, layout-helpers, texture-flow (SVG-Data-URI)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/app/globals.css",
+        "zeilen": 1015,
+        "rolle": "Reset + Bens Design-System (prose/statement/features-cycle/cards/stats/ctaBand), Custom-Wassertropfen-Cursor (SVG-Data-URI, a/button-Variante), shape-accent, section-texture, hero, .btn, #mission/#haltung/#oasis/#stats Rechtsbündig-Muster (Fluss links), section--tal. Werte nur aus design-tokens.css."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/grafik.config.json",
+        "zeilen": 13,
+        "rolle": "Fest hinterlegte Scroll-Grafiken der Landing. {meta,grafiken:[],uebernommen:[]} (aktuell leer). Gelesen von GrafikContext (Landing-Startpunkt), geschrieben von /api/abbild aktion=standard. Schlanker als abbilder (kein pool/version)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/river.config.json",
+        "zeilen": 123,
+        "rolle": "Fluss-Konfiguration. disabledWaypointTypes(waterfallBox/cliff/lake), sourceExit, breath, sparkle, bank, waypoints[] (Anker-DOM-Selektoren für Kurs-Messung; Flora entfernt). Gelesen von TitleCurtain/RiverFlow/RiverKursContext. Look-Werte in design-tokens.css."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/curtain.config.json",
+        "zeilen": 211,
+        "rolle": "Vorhangeffekt-Config. scrollDistanceVh(660), background, dissolve, birth-Phasen(crossfade/fall/splash/spring), layers(ebene-1/2/3 mit links/rechts Baum-Arrays: file/xVw/heightPct/outVw/delay, openEnd), Flags grass/sway/fauna/sun/wildlife/river. Gelesen von TitleCurtain+GrafikSeiteTab, NIE vom Builder geschrieben."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/build-embed.mjs",
+        "zeilen": 82,
+        "rolle": "Embed-Bundle-Builder: esbuild (IIFE, bundle, minify, NODE_ENV=production define) components/embed/embed-entry.tsx→public/wee-embed.js. Zweistufig: JS+CSS in Speicher, CSS als <style>-Injektion voranstellen (ein selbsttragendes File). Läuft in npm build vor next build."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/api-roundtrip.mjs",
+        "zeilen": 149,
+        "rolle": "Smoke-Test der Autoren-API gegen laufenden Dev-Server: Status, Seiten-CRUD, Konflikt-409, Import (dry-run+echt), Registry-Gate, CSRF-Origin-Gate."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/test-route.mjs",
+        "zeilen": 86,
+        "rolle": "E2E-Test der Vektorisier-Route inkl. Schutzgrenzen (Dev-Server :3113)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/test-editor.mjs",
+        "zeilen": 177,
+        "rolle": "Browser-Test des Grafik-Editors mit eigenem frischem Chromium (nicht MCP-Profil)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/test-vektor.ts",
+        "zeilen": 117,
+        "rolle": "Vektorisierer an echten Baum-PNGs, Ergebnis-SVGs → .vektor-test/ (gitignored). npx tsx."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/test-vektor-treue.ts",
+        "zeilen": 112,
+        "rolle": "Formtreue-Prüfung: SVG→PNG zurück, Pixel-Vergleich mit Original (Silhouetten-+Farb-Abweichung)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/lib-png.mjs",
+        "zeilen": 116,
+        "rolle": "Mini-PNG-Decoder (8-bit RGB/RGBA) via zlib. Basis für validate-assets + Kompositions-Scripts."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/validate-assets.mjs",
+        "zeilen": 207,
+        "rolle": "Asset-Validierung Vorhang (nur Flächen, keine Hintergrundfarbe) für public/curtain/ebene-*.png."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/extract-canva-trees.mjs",
+        "zeilen": 146,
+        "rolle": "Extrahiert Einzelbäume aus Canva-Export als freigestellte Sprites (Flood-Fill) → .assets-src/trees/ + Manifest."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/compose-curtain-assets.mjs",
+        "zeilen": 114,
+        "rolle": "Komponiert Vorhang-Ebenen-Assets aus Canva-Baum-Sprites (Reihen→Ebenen-Mapping, bottom-bündig)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/make-placeholder-assets.mjs",
+        "zeilen": 92,
+        "rolle": "Platzhalter-Vorhang-Assets aus v2-Flora → public/curtain/ (gleiche Dateinamen, später ersetzbar)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/trace-logo.mjs",
+        "zeilen": 304,
+        "rolle": "Silhouetten-Trace des WEE-Logo-Tropfens (F1b) aus logo-weiss.png Alpha-Kanal."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/find-css-bug.mjs",
+        "zeilen": 70,
+        "rolle": "Findet CSS-Regel, an der cssnano-Minify scheitert (nackter / im Selektor)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/verify.mjs",
+        "zeilen": 175,
+        "rolle": "Verifikations-Harness TitleCurtain v2 (Screenshots → docs/)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/verify-river.mjs",
+        "zeilen": 619,
+        "rolle": "Verifikations-Harness Fluss-Feature (Pixel-/DOM-Belege, JSON)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/scripts/verify-grass-soft.mjs",
+        "zeilen": 83,
+        "rolle": "Visueller Beleg weiche Gras-Reaktion (Maus-Wisch-Screenshots)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/next.config.mjs",
+        "zeilen": 17,
+        "rolle": "output:'export' (Static Export, keine Server-Laufzeit → API nur unter next dev), images.unoptimized, trailingSlash, distDir=NEXT_DIST_DIR||.next (Build-vs-Dev-Kollisionsschutz)."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/package.json",
+        "zeilen": 29,
+        "rolle": "dev=next dev -p 3113 -H 127.0.0.1; build=build-embed+next build; build:embed. Deps: @puckeditor/core 0.22, motion 12, next 15.5.20, react 19, sharp, lottie-web, @imgly/background-removal, onnxruntime-web. Dev: esbuild, typescript 5.7."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/tsconfig.json",
+        "zeilen": 21,
+        "rolle": "strict, moduleResolution=bundler, resolveJsonModule (Config-Imports), paths @/*→./*, jsx=preserve, next-Plugin."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/openapi.yaml",
+        "zeilen": 456,
+        "rolle": "Vertrag der Autoren-API (3-fach: Doku, Printing-Press --spec, Diff-Anker). Alle 9 POST-Operationen + Schemas (Fehler/SeitenName/SeitenInfo/PuckData/PuckContentItem/Grafik/GrafikKeyframe/GrafikSetup) + Responses (Ungueltig/NichtGefunden/FremderUrsprung). x-auth-type none, 127.0.0.1:3113 only."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/.gitignore",
+        "zeilen": 29,
+        "rolle": "Ignoriert node_modules/.next/out, .vektor-test/, .env*, .next-build/, public/wee-embed.js + .css (generiert), Dev-Logs."
+      },
+      {
+        "pfad": "C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/components/HomePageContent.tsx",
+        "zeilen": 507,
+        "rolle": "KONSUMENT der Configs (nicht mein Kern, aber Backdrop-Kopplung): liest KONFIG_GRAFIKEN/-_DOC_H/-_UEBERNOMMEN aus GrafikContext(grafik.config.json). Bei backdrop-Prop: nur <RiverFlow>{backdrop}</RiverFlow>+GrafikLayer (kein Vorhang/keine 7 Sektionen). Sonst TitleCurtain(uebernommen)+7 Bens-Sektionen in RiverFlow+GrafikLayer."
+      }
+    ],
+    "reiterOderPanels": [
+      {
+        "name": "Backdrop-Reiter 'Hintergrund' (in BEIDEN Editoren identisch)",
+        "zweck": "Fremde Website als Hintergrund unter den Editor legen — zum Bäume-Setzen/Fluss-Ziehen über einer fremden Seite (z.B. Bens Entwurf). EINE gemeinsame Komponente BackdropAuswahl, gerendert im Grafik-Editor-Panel (.gre-panel) UND Fluss-Editor-Panel (.rke-panel).",
+        "elemente": [
+          {
+            "element": "?-Hilfe-Icon",
+            "funktion": "Popover mit HILFE_TEXT (Screenshot/HTML/Ordner erklärt). Hover öffnet, Klick pinnt, Escape/Scroll/Resize/Klick-außerhalb schließt.",
+            "implementiertIn": "BackdropHilfeIcon.tsx; BackdropAuswahl.tsx:168"
+          },
+          {
+            "element": "'Aktuell'-Anzeige / 'Kein Hintergrund gewählt'",
+            "funktion": "Zeigt Name+Art (Screenshot/HTML/Ordner) des aktiven Backdrops bzw. Leer-Hinweis; 'Lade gemerkten Hintergrund…' während laedt=true.",
+            "implementiertIn": "BackdropAuswahl.tsx:176-185"
+          },
+          {
+            "element": "Button '🖼 Screenshot laden'",
+            "funktion": "Öffnet verstecktes bild-file-input (accept image/*); FileReader→Data-URL; setBackdrop{art:'bild'}. Validiert Bildformat.",
+            "implementiertIn": "BackdropAuswahl.tsx:200-206, bildGewaehlt:78"
+          },
+          {
+            "element": "Button '📄 HTML laden'",
+            "funktion": "Öffnet verstecktes html-file-input (.html/.htm); FileReader→Text; setBackdrop{art:'html'}. Validiert .html-Endung/text-html.",
+            "implementiertIn": "BackdropAuswahl.tsx:207-213, htmlGewaehlt:95"
+          },
+          {
+            "element": "Button '📁 Ordner öffnen'",
+            "funktion": "showDirectoryPicker (nur Chrome/Edge) → rekursiv in Cache 'wee-site' + SW registrieren → setBackdrop{art:'ordner'}. Zeigt Datei-Anzahl. disabled während ordnerLaedt.",
+            "implementiertIn": "BackdropAuswahl.tsx:216-223, ordnerGewaehlt:131, ordnerBereitstellenUndSetzen:115"
+          },
+          {
+            "element": "Button '🔓 Ordner erneut freigeben' (amber, bedingt)",
+            "funktion": "Nur sichtbar wenn art=ordner UND ordnerWartet (Zugriff verloren nach Reload). requestPermission (Nutzergeste) → Cache neu füllen. .hg-freischalten.",
+            "implementiertIn": "BackdropAuswahl.tsx:187-197, ordnerFreigeben:148"
+          },
+          {
+            "element": "Button '← Zurück zur echten Seite'",
+            "funktion": "setBackdrop(null) → echte Landing. disabled wenn kein Backdrop aktiv.",
+            "implementiertIn": "BackdropAuswahl.tsx:225-233, zurueck:159"
+          },
+          {
+            "element": "Status-Zeile",
+            "funktion": "Zeigt letzte Aktion ('… als Hintergrund gesetzt — Positionen neu setzen', Fehler, Datei-Anzahl).",
+            "implementiertIn": "BackdropAuswahl.tsx:239"
+          },
+          {
+            "element": "Verstecktes bild/html file-input",
+            "funktion": "type=file hidden, value='' nach Auswahl (erlaubt erneutes Wählen derselben Datei).",
+            "implementiertIn": "BackdropAuswahl.tsx:236-237"
+          }
+        ]
+      },
+      {
+        "name": "Puck-Spike-Editor (/puck)",
+        "zweck": "R2a-Beweis: bestehende Komponente (ShapeAccent) in Puck editierbar. Persistiert nach localStorage 'flowcode-puck-spike' (kein Backend).",
+        "elemente": [
+          {
+            "element": "ShapeAccent-Baustein",
+            "funktion": "Felder: variant (select arc/sunburst/blob-a/-b/-c), color (radio accent/green/sand), position (select 5 Ecken/Mitte), size (number 80-640). render→ShapeAccent-Komponente in relativem Wrapper.",
+            "implementiertIn": "app/puck/puck.config.tsx:40-96"
+          },
+          {
+            "element": "GrafikLayer-Baustein",
+            "funktion": "Felder: name(text), src(text), art(select bild/lottie/video), breitePx(number 40-1600), scale(0.1-5), opacity(0-1), rotation(Grad), z(number). render→GrafikMedium (Parität mit echter Render-Einheit).",
+            "implementiertIn": "app/puck/puck.config.tsx:99-160"
+          },
+          {
+            "element": "Publish-Aktion",
+            "funktion": "onPublish→localStorage.setItem('flowcode-puck-spike', JSON). Puck bringt eigenes Drag-Drop/Undo/Feld-Panel mit.",
+            "implementiertIn": "app/puck/page.tsx:47-54"
+          }
+        ]
+      },
+      {
+        "name": "Puck-Import-Editor (/puck-import)",
+        "zweck": "R2b Stufe-A-Beweis: reales GrafikSetup ohne LLM → editierbare Puck-Bausteine.",
+        "elemente": [
+          {
+            "element": "Importierte Grafik-Ebenen",
+            "funktion": "grafikSetupToPuck(beispielSetup) via useMemo → <Puck data>. Zeigt 3 GrafikLayer-Bausteine (nach z sortiert). onPublish no-op.",
+            "implementiertIn": "app/puck-import/page.tsx:24-43; lib/import/grafik-setup-to-puck.ts"
+          }
+        ]
+      },
+      {
+        "name": "Demo-Landing / (+ /pilot-projekt) — Config-Konsum",
+        "zweck": "Zeigt, wie die Root-Configs gelesen werden (NICHT geschrieben). Kein Editor-Panel, aber der Verlust-relevante Konsumpfad.",
+        "elemente": [
+          {
+            "element": "grafik.config.json-Konsum",
+            "funktion": "GrafikContext importiert grafik.config.json → KONFIG_GRAFIKEN/-_DOC_H/-_UEBERNOMMEN; HomePageContent rendert <GrafikLayer grafiken={KONFIG_GRAFIKEN} authoredDocH={KONFIG_GRAFIKEN_DOC_H}>. Leer = keine Grafiken.",
+            "implementiertIn": "components/grafik/GrafikContext.tsx:12; HomePageContent.tsx:287,504"
+          },
+          {
+            "element": "curtain.config.json-Konsum + uebernommen-Skip",
+            "funktion": "TitleCurtain importiert curtain.config.json (Baum-Layers/birth/dissolve). uebernommen-Prop (aus grafik.config.json) → TitleCurtain überspringt genau diese 'ebene:seite:index'-Bäume beim Zeichnen (kein Doppel-Baum). curtain.config bleibt unangetastet.",
+            "implementiertIn": "components/title-curtain/TitleCurtain.tsx:50,255,494; HomePageContent.tsx:277,302"
+          },
+          {
+            "element": "river.config.json-Konsum",
+            "funktion": "RiverFlow/RiverKursContext/TitleCurtain importieren river.config.json (waypoints/sourceExit/breath/sparkle). disabledWaypointTypes stillgelegt cliff/lake/waterfallBox.",
+            "implementiertIn": "components/river/RiverFlow.tsx:35; RiverKursContext.tsx:17; TitleCurtain.tsx:51"
+          }
+        ]
+      }
+    ],
+    "tastenkuerzel": [
+      {
+        "kuerzel": "Escape",
+        "wirkung": "Schließt das angepinnte Backdrop-Hilfe-Popover (BackdropHilfeIcon.tsx onEsc). Einziges eigenes Tastenkürzel meines Bereichs."
+      },
+      {
+        "kuerzel": "(Puck-intern)",
+        "wirkung": "Die Puck-Editoren /puck und /puck-import bringen die Tastenkürzel von @puckeditor/core mit (Undo/Redo etc.) — nicht in unserem Code implementiert, gehören zur Bibliothek."
+      }
+    ],
+    "interaktionen": [
+      "Backdrop-Rendering: ALLE 3 Modi (bild/html/ordner) tragen pointer-events:none — der Backdrop fängt NIE Klicks/Scroll ab; der Editor-Overlay bedient sich selbst. Der iframe navigiert/scrollt nie.",
+      "HTML-Backdrop: <iframe srcDoc> mit injiziertem <base target=_blank>; Höhe wird nach onLoad per contentDocument.scrollHeight gemessen, ResizeObserver hält sie synchron (Web-Fonts/Bilder wachsen nach). Starthöhe 600px gegen Null-Sprung.",
+      "Ordner-Backdrop: Cache-Befüllung + SW-Registrierung passiert beim MOUNTEN von BackdropOrdner (nicht in der Auswahl) — garantiert, dass die iframe erst auf /wee-site/ zeigt, wenn der Cache gefüllt ist (kein 404-Wettlauf). key=Ordnername erzwingt Remount bei Ordnerwechsel.",
+      "Ordner-Wahl: nativer showDirectoryPicker-Dialog (braucht Nutzergeste). Beim Seiten-Reload still queryPermission (kein request ohne Geste); 'erneut freigeben'-Button liefert die Geste für requestPermission.",
+      "Screenshot/HTML-Wahl: verstecktes file-input, per Button-Klick ausgelöst; input.value='' erlaubt erneute Auswahl derselben Datei.",
+      "Backdrop-Hilfe-Popover: Hover öffnet (schwebtDrueber), Klick pinnt (angepinnt), position:fixed per getBoundingClientRect mit Rand-Klemmung (Panels scrollen intern → kein position:absolute).",
+      "Embed-Overlay: React-Portal an selbst erzeugtes <div> direkt unter document.body (position:absolute, top/left 0, width 100%, pointer-events:none) — nicht im Host-Mount-Div, damit GrafikLayer in Dokument-Koordinaten und RiverFromSnapshot gegen den Viewport messen können.",
+      "Puck-Editoren (/puck, /puck-import): Drag-Drop-Komposition + Feld-Panel von @puckeditor/core (Kompositions-Editor, keine Scroll-Bühne — keyframes[] werden im Editor bewusst NICHT abgespielt, nur keyframes[0] als statischer Zustand).",
+      "Vektorisierer: reine Pixel-/Geometrie-Pipeline ohne DOM/Maus — aufgerufen server-seitig (sharp dekodiert) oder in Tests; keine Canvas-Interaktion in meinem Bereich."
+    ],
+    "zustaende": [
+      {
+        "speicherort": "IndexedDB 'wee-backdrop', store 'keyval', key 'aktuell'",
+        "inhalt": "Aktiver Backdrop {art,quelle,name} — editorübergreifend geteilt (Grafik+Fluss). null/gelöscht = echte Seite. Screenshot als Data-URL (mehrere MB → IndexedDB statt localStorage)."
+      },
+      {
+        "speicherort": "IndexedDB 'wee-backdrop', store 'keyval', key 'ordnerHandle'",
+        "inhalt": "Gemerkter FileSystemDirectoryHandle des Ordner-Backdrops (ordner-serve.ts). Überlebt Reload, Zugriff via queryPermission/requestPermission."
+      },
+      {
+        "speicherort": "Cache Storage 'wee-site'",
+        "inhalt": "Alle Dateien des gepickten Ordner-Backdrops unter /wee-site/<relpfad> (rekursiv, MIME-getypt). Vom Service Worker ausgeliefert. Überschreibt bei erneutem Einlesen."
+      },
+      {
+        "speicherort": "Service Worker (public/wee-site-sw.js), scope '/wee-site/'",
+        "inhalt": "Registrierung, die GET unter /wee-site/ aus Cache 'wee-site' beantwortet. skipWaiting+clients.claim."
+      },
+      {
+        "speicherort": "localStorage 'flowcode-puck-spike'",
+        "inhalt": "Puck-Spike-Daten (/puck onPublish). Kein Backend."
+      },
+      {
+        "speicherort": "sessionStorage 'wee-title-curtain-seen'",
+        "inhalt": "Vorhang-Latch (TitleCurtain). Beide Editor-Seiten (grafik/fluss-editor page.tsx) LÖSCHEN ihn beim Laden (Modul-Flag latchGeloest, einmal pro Laufzeit), damit die Vorhang-Animation im Editor immer läuft."
+      },
+      {
+        "speicherort": "Datei grafik.config.json (Projektwurzel)",
+        "inhalt": "Landing-Grafiken {meta,grafiken,uebernommen}. Gelesen von GrafikContext, geschrieben von POST /api/abbild aktion=standard."
+      },
+      {
+        "speicherort": "Dateien abbilder/<name>.json",
+        "inhalt": "Editor-Zustands-Schnappschüsse {version,meta,grafiken,pool,uebernommen}. CRUD via POST /api/abbild. Ordner aktuell leer."
+      },
+      {
+        "speicherort": "Dateien seiten/<name>.json",
+        "inhalt": "Puck-Seiten {version,name,gespeichert,data}. CRUD via /api/puck-seite/* + Import. migrate()-gehoben, Registry-geklemmt. Ordner aktuell leer."
+      },
+      {
+        "speicherort": "Dateien public/vektor/*.svg",
+        "inhalt": "Vom Vektorisierer erzeugte SVGs, geschrieben via POST /api/assets aktion=schreibe (Base64→Datei)."
+      },
+      {
+        "speicherort": "Datei public/wee-embed.js (gitignored)",
+        "inhalt": "Generiertes Embed-Runtime-Bundle (esbuild IIFE, CSS inline). Reproduzierbar via npm run build:embed."
+      },
+      {
+        "speicherort": "Root-Configs curtain.config.json / river.config.json",
+        "inhalt": "Demo-Fixtures für Vorhang bzw. Fluss. NUR gelesen (Builder schreibt sie nie), von TitleCurtain/RiverFlow/GrafikSeiteTab/RiverKursContext."
+      }
+    ],
+    "apiAbhaengigkeiten": [
+      "POST /api/builder/status — Discovery/Health (doctor): name,version,apiVersion,komponentenTypen,routen.",
+      "POST /api/abbild — aktion-Dispatch: liste|lade|speichere|loesche (abbilder/) + standard (schreibt grafik.config.json).",
+      "POST /api/assets — liste (public/ rekursiv) | schreibe (Data-URL→public/vektor/).",
+      "POST /api/vektorisieren — Data-URL → SVG (sharp, runtime=nodejs; Body 12MB, Kante 4000/1600px).",
+      "POST /api/import/grafik-setup — GrafikSetup|abbildName → Puck-Data (dry-run-by-default).",
+      "POST /api/puck-seite/liste|lade|speichere|loesche — Puck-Seiten-CRUD (409-Konflikt-Modell).",
+      "CSRF-Vertrag ALLER Routen: pruefeUrsprung (fremder Origin→403, fehlender Origin=Agenten erlaubt); ausschließlich POST (output:export würde GET statisch vorrendern); nur unter next dev auf 127.0.0.1:3113.",
+      "Browser-APIs: File System Access (showDirectoryPicker, nur Chrome/Edge), Cache Storage, Service Worker, IndexedDB, FileReader, ResizeObserver, IntersectionObserver, createPortal.",
+      "npm: @puckeditor/core (Puck+migrate/Data), motion, lottie-web (GrafikMedium, ins Embed gebündelt), sharp (nur Vektor-Route, libvips), esbuild (Embed-Build), @imgly/background-removal+onnxruntime-web (Editor).",
+      "Embed-Config-Quellen (Runtime): data-config=URL | <script data-wee-config> inline JSON | window.__WEE_ANIM__."
+    ],
+    "cssDateien": [
+      "app/design-tokens.css — EINZIGE Quelle für Farben/Typo/Spacing/Effekte inkl. --water-*/--bank-* (Fluss), --green/--sand/--orange, Fonts, glass/nav-glass, texture-flow (SVG-Data-URI). Von EmbedRoot als DEFAULT_FARBEN 1:1 gespiegelt.",
+      "app/globals.css — Reset + Bens Design-System (prose/statement/features-cycle/cards/stats/ctaBand/hero/.btn/shape-accent/section-texture/section--tal) + Custom-Wassertropfen-Cursor (SVG-Data-URI). 1015 Zeilen.",
+      "components/backdrop/backdrop.css — Präfix 'hg-', an KEIN Editor-Panel gebunden (sitzt in .gre-panel UND .rke-panel). Rendering + Panel-UI + Hilfe-Icon (Spezifitäts-Trick doppelte Klasse).",
+      "@puckeditor/core/puck.css — importiert in app/puck/page.tsx + app/puck-import/page.tsx (Puck-Editor-Optik)."
+    ],
+    "besonderheiten": [
+      "ARCHITEKTUR-KERN output:'export': API-Routen (app/api/*) laufen NUR unter next dev (Port 3113, -H 127.0.0.1). Deshalb sind ALLE Routen POST (GET würde statisch vorgerendert → 500). Im Deploy existieren keine Routen. next build bricht sogar ab, solange POST-Routen existieren (die Vektor-Route dokumentiert diesen Konflikt).",
+      "BACKDROP IST EDITORÜBERGREIFEND: EINE BackdropAuswahl-Komponente + EINE 'wee-backdrop'-IndexedDB werden von BEIDEN Editoren geteilt. Beim Zusammenlegen der Editoren zu EINEM Tool bleibt das der natürliche gemeinsame Nenner — aber jeder Editor hat aktuell einen EIGENEN BackdropProvider (kein Tab-Sync, lädt bei Öffnen aus IndexedDB).",
+      "BACKDROP↔LANDING-KOPPLUNG: Ist ein Backdrop gesetzt, rendert HomePageContent NUR <RiverFlow>{backdrop}</RiverFlow> + GrafikLayer — KEIN Vorhang, KEINE 7 Bens-Sektionen. RiverFlow+GrafikLayer sind bewusst backdrop-agnostisch. Ohne Prop (echte Landing /) ändert sich nichts.",
+      "VORHANG-UEBERNOMMEN-KOPPLUNG (Verlustgefahr!): grafik.config.json.uebernommen listet Plätze 'ebene:seite:index'; TitleCurtain ÜBERSPRINGT genau diese Bäume beim Zeichnen (sonst Doppel-Baum, wenn der Grafik-Editor einen Vorhang-Baum in eine Builder-Grafik übernommen hat). curtain.config.json bleibt dabei IMMER unangetastet — der Builder schreibt curtain/river.config NIE.",
+      "CONFIG-READ/WRITE-KARTE: grafik.config.json = GELESEN von GrafikContext (Landing-Start), GESCHRIEBEN von /api/abbild aktion=standard. curtain.config.json = nur GELESEN (TitleCurtain, GrafikSeiteTab). river.config.json = nur GELESEN (RiverFlow, RiverKursContext, TitleCurtain). grafik.config-Format ist schlanker als abbilder (kein pool/version/name).",
+      "BACKDROP-MODI im Detail: bild=<img> Data-URL (intrinsische Höhe=Dokumenthöhe); html=<iframe srcDoc> same-origin (about:srcdoc erbt Rechte → contentDocument lesbar, ResizeObserver-Höhensync, <base target=_blank> injiziert); ordner=<iframe src=/wee-site/> über Service Worker + Cache (statt viele Blob-URLs mit umgeschriebenen Pfaden — SW beantwortet jede relative Referenz wie ein echter Server).",
+      "ORDNER-BACKDROP braucht Chrome/Edge (File System Access API); ordnerApiDa() gated. Sicherheitsgrenzen MAX_DATEIEN=2000, MAX_TIEFE=12. ordnerAufraeumen existiert, wird aber von keiner UI aufgerufen.",
+      "EMBED-FARB-INJEKTION: RiverFromSnapshot/RiverWaves sind FEST an var(--water-*) gebunden (dürfen nicht angefasst werden). EmbedRoot injiziert deshalb :root{} aus config.farben/fluss.farben/DEFAULT_FARBEN (10 Tokens FARBEN_TOKEN_KEYS, 1:1 aus design-tokens.css). Ein fremder Host kennt die Tokens sonst nicht.",
+      "EMBED grafikenDocH-NORMALISIERUNG: grafiken[].keyframes[].scrollY/y sind Dokument-absolut, gegen die Editor-Dokumenthöhe autoriert. Ein fremder Host hat andere Höhe → GrafikLayer skaliert via authoredDocH. Alte Exporte ohne Feld: faktor=1.",
+      "EMBED-BUILD zweistufig: esbuild bündelt JS+CSS in Speicher (write:false), dann CSS als <style>-Injektion vor den JS-Text → EIN selbsttragendes public/wee-embed.js (gitignored). NODE_ENV=production-define entfernt react-dom-Dev-Zweig. escapeFuerInlineScript maskiert < gegen vorzeitiges </script.",
+      "PUCK ist R2a/R2b-SPIKE (isoliert, additiv): /puck (localStorage) + /puck-import (deterministischer Adapter). SYNCHRONPFLICHT: lib/puck-registry.ts (['ShapeAccent','GrafikLayer']) MUSS mit app/puck/puck.config.tsx übereinstimmen (api-roundtrip.mjs fällt sonst auf). Server nutzt migrate() OHNE config → zones-Payload wirft hart 400.",
+      "VEKTOR-PIPELINE deterministisch + DOM-frei + ohne npm-Deps im Kern (sharp NUR in der Route). Reihenfolge quantisieren→regionen→konturen→vereinfachen→bezier→svg. Die 4 Vektor*-Typen (typen.ts) sind ÖFFENTLICHER VERTRAG mit der Route — Feldnamen nicht ändern. Output: 1 <g> je Farbe, Wurzel-Gruppe id 'baum'.",
+      "server-helfer als geteilter Unterbau ALLER Routen (AnfrageFehler/fehlerAntwort/pruefeUrsprung/leseJsonBody/saubererName). Zwei AnfrageFehler-Klassen existieren (server-helfer + Alt-Klasse in vektorisieren/route.ts), beide im catch behandelt.",
+      "FEATURE-FLAGS in curtain.config.json: grass/sway/fauna/sun/wildlife/river (bool) schalten Vorhang-Teilsysteme. river.config.json disabledWaypointTypes (waterfallBox/cliff/lake) legt Wegpunkt-Typen still (F2/F3-Neubau ausstehend).",
+      "distDir=NEXT_DIST_DIR||.next: `NEXT_DIST_DIR=.next-build npm run build` verhindert, dass ein Build den laufenden Dev-Server lahmlegt (geteilter .next-Ordner sonst → 500er).",
+      "README positioniert das Repo als Whitelabel-Produkt (Wix-/Elementor-Klasse); WEE ist nur EIN Demo-Fall. Zielarchitektur: Animation=diese Tools / Komposition=Puck / Inhalt=Decap (geplant). Ausführliche Pläne in docs/ (zielbuild-und-stand.md, builder-plan.md, agent-schnittstelle.md, puck-erweiterungsebene.md).",
+      "seiten/ und abbilder/ sind aktuell LEER (Ausgangszustand); grafik.config.json hat leeres grafiken/uebernommen. Die Editoren laufen also 'aus der Box' mit Demo-Fixtures (curtain/river.config gefüllt), aber ohne gespeicherte Nutzer-Setups."
+    ]
+  }
+}
