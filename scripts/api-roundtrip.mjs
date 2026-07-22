@@ -12,6 +12,7 @@
 const BASIS = "http://127.0.0.1:3113";
 const TEST_SEITE = "roundtrip-testseite";
 const TEST_IMPORT = "roundtrip-import";
+const TEST_ANIM = "roundtrip-anim";
 
 let gruen = 0;
 let rot = 0;
@@ -136,11 +137,134 @@ let gespeichertStand = "";
   ok("import: geschriebene Seite ladbar + 1 Baustein", lade.status === 200 && lade.json?.data?.content?.length === 1);
 }
 
+/* 6b — Slot-Gate: rekursive Pruefung der Slot-Kinder (SektionBlock.kinder).
+   Ein registrierter Container mit gueltigen Kindern -> 200; ein unbekannter
+   Typ TIEF in einem Slot -> 400 (sonst verschluckt <Render> ihn still). */
+{
+  const gut = await post("/api/puck-seite/speichere", {
+    name: TEST_SEITE,
+    ueberschreibe: true,
+    data: {
+      root: {},
+      content: [
+        {
+          type: "SektionBlock",
+          props: {
+            id: "sek-rt-1",
+            hintergrund: "transparent",
+            kinder: [
+              { type: "TextBlock", props: { id: "txt-rt-1", text: "Hallo", variante: "h1" } },
+              { type: "BildBlock", props: { id: "bild-rt-1", src: "/x.png", alt: "", breiteProzent: 100 } },
+            ],
+          },
+        },
+      ],
+    },
+  });
+  ok("slot-gate: gueltige Slot-Kinder -> 200", gut.status === 200, `status=${gut.status} ${JSON.stringify(gut.json)}`);
+
+  const boese = await post("/api/puck-seite/speichere", {
+    name: TEST_SEITE,
+    ueberschreibe: true,
+    data: {
+      root: {},
+      content: [
+        {
+          type: "SektionBlock",
+          props: {
+            id: "sek-rt-2",
+            hintergrund: "transparent",
+            kinder: [{ type: "GibtEsNichtImSlot", props: { id: "z" } }],
+          },
+        },
+      ],
+    },
+  });
+  ok(
+    "slot-gate: unbekannter Typ TIEF im Slot -> 400",
+    boese.status === 400 && /GibtEsNichtImSlot/.test(boese.json?.fehler ?? ""),
+    `status=${boese.status}`,
+  );
+}
+
+/* 6c — Import-Asset-Endpunkt: Smoke ohne echtes Schreiben (Negativfaelle). */
+{
+  const ohneDaten = await post("/api/import/asset", { slug: "rt", name: "a.png" });
+  ok("import/asset: fehlende dataUrl -> 400", ohneDaten.status === 400, `status=${ohneDaten.status}`);
+
+  /* saubererName lehnt ":" hart ab (Windows-Laufwerk/Pfad) — echter
+     Reject-Fall (ein blosses "../x" wuerde saubererName still zum Basisnamen
+     kuerzen, also KEIN Ausbruch, aber auch kein 400). */
+  const boeserSlug = await post("/api/import/asset", {
+    slug: "c:evil",
+    name: "a.png",
+    dataUrl: "data:image/png;base64,iVBORw0KGgo=",
+  });
+  ok("import/asset: ungueltiger Slug (:) -> 400", boeserSlug.status === 400, `status=${boeserSlug.status}`);
+
+  const keinBild = await post("/api/import/asset", {
+    slug: "rt",
+    name: "schad.exe",
+    dataUrl: "data:image/png;base64,iVBORw0KGgo=",
+  });
+  ok("import/asset: Nicht-Bild-Endung -> 400", keinBild.status === 400, `status=${keinBild.status}`);
+}
+
+/* 6d — anim-Roundtrip (Welle 4c): Seite mit anim speichern, laden, anim zurueck.
+   Dann: reiner Daten-Speichervorgang OHNE anim erhaelt das anim (nicht loeschen). */
+{
+  const beispielAnimGrafik = {
+    id: "rt-anim-1",
+    name: "Anim-Grafik",
+    src: "/curtain/trees/tree-1-0.png",
+    art: "bild",
+    breitePx: 200,
+    z: 1,
+    keyframes: [{ scrollY: 0, x: 100, y: 200, scale: 1, opacity: 1, rotation: 0, ankerId: "puck:x" }],
+  };
+  const mitAnim = await post("/api/puck-seite/speichere", {
+    name: TEST_ANIM,
+    data: beispielData,
+    anim: { grafiken: [beispielAnimGrafik], uebernommen: [] },
+  });
+  ok("anim: speichern mit anim -> 200", mitAnim.status === 200, `status=${mitAnim.status} ${JSON.stringify(mitAnim.json)}`);
+  const stand = mitAnim.json?.gespeichert ?? "";
+
+  const geladen = await post("/api/puck-seite/lade", { name: TEST_ANIM });
+  ok(
+    "anim: laden liefert anim.grafiken zurueck",
+    geladen.status === 200 && geladen.json?.anim?.grafiken?.[0]?.id === "rt-anim-1",
+    `status=${geladen.status} ${JSON.stringify(geladen.json?.anim)}`,
+  );
+
+  const boese = await post("/api/puck-seite/speichere", {
+    name: TEST_ANIM,
+    data: beispielData,
+    ueberschreibe: true,
+    anim: { grafiken: [{ id: "kaputt" }] },
+  });
+  ok("anim: unvollstaendige Grafik -> 400", boese.status === 400, `status=${boese.status}`);
+
+  const ohneAnim = await post("/api/puck-seite/speichere", {
+    name: TEST_ANIM,
+    data: beispielData,
+    erwartetGespeichert: stand,
+  });
+  ok("anim: Speichern ohne anim -> 200", ohneAnim.status === 200, `status=${ohneAnim.status}`);
+  const nachOhne = await post("/api/puck-seite/lade", { name: TEST_ANIM });
+  ok(
+    "anim: bleibt nach anim-losem Speichern erhalten",
+    nachOhne.status === 200 && nachOhne.json?.anim?.grafiken?.[0]?.id === "rt-anim-1",
+    `anim=${JSON.stringify(nachOhne.json?.anim)}`,
+  );
+}
+
 /* 7 — Aufraeumen */
 {
   const l1 = await post("/api/puck-seite/loesche", { name: TEST_SEITE });
   const l2 = await post("/api/puck-seite/loesche", { name: TEST_IMPORT });
-  ok("loesche: beide Testseiten entfernt", l1.status === 200 && l2.status === 200);
+  const l3 = await post("/api/puck-seite/loesche", { name: TEST_ANIM });
+  ok("loesche: alle Testseiten entfernt", l1.status === 200 && l2.status === 200 && l3.status === 200);
   const nochmal = await post("/api/puck-seite/lade", { name: TEST_SEITE });
   ok("lade nach loesche: 404", nochmal.status === 404, `status=${nochmal.status}`);
 }

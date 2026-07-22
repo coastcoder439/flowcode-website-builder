@@ -22,10 +22,25 @@ import { join, resolve, sep } from "node:path";
 import { migrate, type Data } from "@puckeditor/core";
 import { AnfrageFehler } from "./server-helfer";
 import { istRegistrierterTyp } from "@/lib/puck-registry";
+import { istGrafik } from "./grafik-validierung";
+import type { Grafik } from "@/components/grafik/grafik-types";
 
 const SEITEN_ORDNER = resolve(process.cwd(), "seiten");
 export const SEITEN_VERSION = 1;
 const MAX_SEITEN = 500;
+
+/** Animations-Abbild einer Seite (Welle 4c, docs/editor-vereinheitlichung.md
+ *  §9/4c(3)): die vom Animator ueber DIESER Seite gesetzten Scroll-Grafiken —
+ *  dieselben `Grafik`-Objekte wie im Abbild-Speicher (abbilder/*.json), nur
+ *  hier direkt an der Seite. So ist EINE Datei = Seite + Animation. Die
+ *  Anker-Felder der Keyframes (ankerId="puck:<id>") zeigen auf die Bausteine
+ *  DIESER Seite (data-og-id, s. app/puck/puck.config.tsx). */
+export interface SeitenAnim {
+  grafiken: Grafik[];
+  /** Uebernommene Plaetze (Vorhang-Kopplung) — reine Anzeige/Filterlogik,
+   *  nur auf Form geprueft (Array aus Strings). Optional. */
+  uebernommen?: string[];
+}
 
 export interface SeitenDatei {
   $doc: string;
@@ -33,6 +48,31 @@ export interface SeitenDatei {
   name: string;
   gespeichert: string;
   data: Data;
+  /** Optional (Welle 4c): das Animations-Abbild ueber dieser Seite. Aeltere
+   *  Seiten ohne dieses Feld laden unveraendert. */
+  anim?: SeitenAnim;
+}
+
+/** Strukturprueft ein anim-Feld (Welle 4c). Nutzt istGrafik aus der
+ *  bestehenden Grafik-Validierung (grafik-validierung.ts) wieder — dieselben
+ *  Sicherheits-/Rendering-Felder wie beim Abbild-Import, kein Duplikat. Wirft
+ *  bei Formfehlern (400) statt still Falsches zu schreiben. */
+export function pruefeAnim(v: unknown): SeitenAnim {
+  if (typeof v !== "object" || v === null) throw new AnfrageFehler(400, "anim ungültig");
+  const o = v as Record<string, unknown>;
+  if (!Array.isArray(o.grafiken) || !o.grafiken.every(istGrafik)) {
+    throw new AnfrageFehler(400, "anim.grafiken ungültig");
+  }
+  if (
+    o.uebernommen !== undefined &&
+    (!Array.isArray(o.uebernommen) || !o.uebernommen.every((x) => typeof x === "string"))
+  ) {
+    throw new AnfrageFehler(400, "anim.uebernommen ungültig");
+  }
+  return {
+    grafiken: o.grafiken as Grafik[],
+    ...(o.uebernommen !== undefined ? { uebernommen: o.uebernommen as string[] } : {}),
+  };
 }
 
 const SEITEN_DOC =
@@ -59,6 +99,51 @@ function seitenPfad(name: string): string {
  *  und die UI-Config ist serverseitig tabu (s. lib/puck-registry.ts). Traegt
  *  ein Payload doch zones, wirft migrate hart -> sauberer 400 statt stiller
  *  Datenverlust. */
+/** Ein Prop-Wert ist ein Slot-/Inhalts-Array, wenn er ein Array aus
+ *  ComponentData-artigen Objekten ist ({type, props}). Slots sind im
+ *  Puck-0.22-Modell normale Props vom Typ ComponentData[] (Slot-Kinder liegen
+ *  inline in props, nicht in zones — puck-erweiterungsebene.md §2.3). Ein
+ *  leeres Array zaehlt mit (harmlos — es gibt dann nichts zu pruefen). */
+function istInhaltsArray(v: unknown): v is Record<string, unknown>[] {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      (e) =>
+        typeof e === "object" &&
+        e !== null &&
+        typeof (e as { type?: unknown }).type === "string" &&
+        typeof (e as { props?: unknown }).props === "object" &&
+        (e as { props?: unknown }).props !== null,
+    )
+  );
+}
+
+/** Strukturprueft EIN content-Item (Typ registriert? props.id vorhanden?) und
+ *  steigt rekursiv in jeden Slot-Prop (ComponentData[]) ab — sonst ruschten
+ *  verschachtelte, nicht registrierte Bausteine (z.B. in SektionBlock.kinder)
+ *  ungeprueft durch und wuerden von <Render> still verschluckt. Sammelt
+ *  unbekannte Typen in `unbekannte`. */
+function pruefeItem(item: unknown, unbekannte: string[]): void {
+  if (typeof item !== "object" || item === null) {
+    throw new AnfrageFehler(400, "data.content enthält ein Nicht-Objekt");
+  }
+  const eintrag = item as Record<string, unknown>;
+  if (typeof eintrag.type !== "string") {
+    throw new AnfrageFehler(400, "data.content[]: type fehlt");
+  }
+  const props = eintrag.props;
+  if (typeof props !== "object" || props === null || typeof (props as Record<string, unknown>).id !== "string") {
+    throw new AnfrageFehler(400, `data.content[] (${eintrag.type}): props.id fehlt`);
+  }
+  if (!istRegistrierterTyp(eintrag.type)) unbekannte.push(eintrag.type);
+  /* Slot-Kinder rekursiv (beliebig tief). */
+  for (const wert of Object.values(props as Record<string, unknown>)) {
+    if (istInhaltsArray(wert)) {
+      for (const kind of wert) pruefeItem(kind, unbekannte);
+    }
+  }
+}
+
 export function pruefePuckData(v: unknown): Data {
   if (typeof v !== "object" || v === null) throw new AnfrageFehler(400, "data fehlt");
   const o = v as Record<string, unknown>;
@@ -67,20 +152,7 @@ export function pruefePuckData(v: unknown): Data {
     throw new AnfrageFehler(400, "data.root ungültig");
   }
   const unbekannte: string[] = [];
-  for (const item of o.content) {
-    if (typeof item !== "object" || item === null) {
-      throw new AnfrageFehler(400, "data.content enthält ein Nicht-Objekt");
-    }
-    const eintrag = item as Record<string, unknown>;
-    if (typeof eintrag.type !== "string") {
-      throw new AnfrageFehler(400, "data.content[]: type fehlt");
-    }
-    const props = eintrag.props;
-    if (typeof props !== "object" || props === null || typeof (props as Record<string, unknown>).id !== "string") {
-      throw new AnfrageFehler(400, `data.content[] (${eintrag.type}): props.id fehlt`);
-    }
-    if (!istRegistrierterTyp(eintrag.type)) unbekannte.push(eintrag.type);
-  }
+  for (const item of o.content) pruefeItem(item, unbekannte);
   if (unbekannte.length > 0) {
     /* Hartes Gate statt stillem Verschlucken durch <Render> — s. puck-registry.ts. */
     throw new AnfrageFehler(400, `Nicht registrierte Komponenten-Typen: ${[...new Set(unbekannte)].join(", ")}`);
@@ -145,6 +217,10 @@ export interface SpeichernOptionen {
   erwartetGespeichert?: string;
   /** Ausdrueckliches Ueberschreiben ohne Stand-Abgleich. */
   ueberschreibe?: boolean;
+  /** Animations-Abbild (Welle 4c). GESETZT → wird geschrieben. NICHT gesetzt
+   *  (undefined) → ein bereits an der Seite haengendes anim bleibt ERHALTEN
+   *  (ein normaler Puck-Speichervorgang loescht die Animation also nicht). */
+  anim?: SeitenAnim;
 }
 
 export async function speichereSeite(name: string, data: Data, opts: SpeichernOptionen = {}): Promise<SeitenDatei> {
@@ -162,12 +238,16 @@ export async function speichereSeite(name: string, data: Data, opts: SpeichernOp
         `erst laden (erwartetGespeichert mitschicken) oder ueberschreibe:true setzen`,
     );
   }
+  /* anim: uebergebenes gewinnt; sonst das bestehende erhalten (nicht stumm
+     wegwerfen, wenn ein reiner Daten-Speichervorgang kein anim mitschickt). */
+  const animEffektiv = opts.anim !== undefined ? opts.anim : bestehend?.anim;
   const datei: SeitenDatei = {
     $doc: SEITEN_DOC,
     version: SEITEN_VERSION,
     name,
     gespeichert: new Date().toISOString(),
     data,
+    ...(animEffektiv ? { anim: animEffektiv } : {}),
   };
   await mkdir(SEITEN_ORDNER, { recursive: true });
   await writeFile(pfad, JSON.stringify(datei, null, 2), "utf-8");

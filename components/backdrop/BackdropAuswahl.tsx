@@ -35,11 +35,21 @@ const HILFE_TEXT =
   "musst du Grafiken bzw. den Fluss neu positionieren — die alten Positionen galten für eine " +
   "andere Seite.";
 
+/** Ein Eintrag der Seiten-Liste (Teilform von SeitenInfo, /api/puck-seite/liste). */
+interface SeiteKurz {
+  name: string;
+  contentAnzahl: number;
+}
+
 export function BackdropAuswahl() {
   const ctx = useBackdropCtx();
   const [status, setStatus] = useState("");
   const [ordnerWartet, setOrdnerWartet] = useState(false);
   const [ordnerLaedt, setOrdnerLaedt] = useState(false);
+  /* Eigene Puck-Seiten als Buehne (Welle 4c, §9/4c(2)). Liste einmalig laden;
+     Fehlschlag → leere Liste (Abschnitt zeigt dann nur den Leer-Hinweis). */
+  const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
+  const [seitenGeladen, setSeitenGeladen] = useState(false);
   const bildRef = useRef<HTMLInputElement>(null);
   const htmlRef = useRef<HTMLInputElement>(null);
 
@@ -72,8 +82,37 @@ export function BackdropAuswahl() {
     };
   }, [ctxLaedt, backdropArt]);
 
+  /* Seiten-Liste einmalig laden (unabhaengig vom Backdrop-Zustand) — vor dem
+     ctx-Null-Check, damit die Hook-Reihenfolge stabil bleibt. */
+  useEffect(() => {
+    let tot = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/puck-seite/liste", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const json = (await res.json()) as { seiten?: SeiteKurz[] };
+        if (!tot && res.ok && Array.isArray(json.seiten)) setSeiten(json.seiten);
+      } catch {
+        /* Route nicht erreichbar → leere Liste. */
+      } finally {
+        if (!tot) setSeitenGeladen(true);
+      }
+    })();
+    return () => {
+      tot = true;
+    };
+  }, []);
+
   if (!ctx) return null;
   const { backdrop, setBackdrop, laedt } = ctx;
+
+  const seiteWaehlen = (name: string) => {
+    setBackdrop({ art: "puck-seite", quelle: name, name });
+    setStatus(`Seite „${name}“ als Buehne gesetzt — Animator liegt jetzt darueber`);
+  };
 
   const bildGewaehlt = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -178,7 +217,14 @@ export function BackdropAuswahl() {
       ) : backdrop ? (
         <div className="hg-aktuell">
           Aktuell: <b>{backdrop.name}</b> (
-          {backdrop.art === "bild" ? "Screenshot" : backdrop.art === "html" ? "HTML" : "Ordner"})
+          {backdrop.art === "bild"
+            ? "Screenshot"
+            : backdrop.art === "html"
+              ? "HTML"
+              : backdrop.art === "puck-seite"
+                ? "Eigene Seite"
+                : "Ordner"}
+          )
         </div>
       ) : (
         <div className="hg-leer">Kein Hintergrund gewählt — echte Seite aktiv.</div>
@@ -222,6 +268,34 @@ export function BackdropAuswahl() {
           📁 Ordner öffnen
         </button>
       </div>
+      {/* Welle 4c(2): eigene Puck-Seite als Buehne. Anders als Screenshot/HTML/
+          Ordner wird die Seite INLINE gerendert (kein iframe) — nur so verankern
+          sich Animator-Keyframes automatisch an ihren Bausteinen. */}
+      <div className="hg-eigene-seite">
+        <div className="hg-eigene-seite-titel">Eigene Seite als Buehne</div>
+        {!seitenGeladen ? (
+          <div className="hg-leer">Lade Seiten…</div>
+        ) : seiten.length === 0 ? (
+          <div className="hg-leer">
+            Noch keine Seiten — im Bereich „Seiten“ eine anlegen oder importieren.
+          </div>
+        ) : (
+          <div className="hg-seiten-liste">
+            {seiten.map((s) => (
+              <button
+                key={s.name}
+                type="button"
+                className={backdrop?.art === "puck-seite" && backdrop.quelle === s.name ? "hg-seite-aktiv" : undefined}
+                onClick={() => seiteWaehlen(s.name)}
+                title={`seiten/${s.name}.json als Animator-Buehne laden`}
+              >
+                {s.name} ({s.contentAnzahl})
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div className="hg-row">
         <button
           type="button"

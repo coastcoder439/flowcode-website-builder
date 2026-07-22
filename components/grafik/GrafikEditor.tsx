@@ -654,6 +654,58 @@ export function GrafikEditor() {
     [grafiken, setzeGrafiken],
   );
 
+  /* --- Puck-Seiten-Modus (Welle 4c, docs/editor-vereinheitlichung.md §9/4c) --
+     Liegt eine eigene Seite als Backdrop-Buehne (art "puck-seite"), ist der
+     Animator im „Puck-Seiten-Modus": die Bausteine dieser Seite tragen
+     data-og-id="puck:<id>", der 3b-Anker-Mechanismus verankert Keyframes an
+     ihnen, und die Animation wird direkt IN die Seite gespeichert statt in ein
+     Abbild. `puckSeiteName` = der aktive Seiten-Name ODER null. */
+  const puckSeiteName =
+    backdropCtx?.backdrop?.art === "puck-seite" ? backdropCtx.backdrop.quelle : null;
+
+  /** Schreibt das aktuelle Grafik-Abbild ins anim-Feld der aktiven Puck-Seite
+   *  (Welle 4c(3)). Read-modify-write mit Konflikt-Stempel: erst die Seite
+   *  frisch laden (data + gespeichert), dann mit unveraenderter data + neuem
+   *  anim zurueckschreiben (erwartetGespeichert = frischer Stand). */
+  const animInSeiteSpeichern = useCallback(async () => {
+    if (!puckSeiteName) return;
+    setStatus(`Speichere Animation in Seite „${puckSeiteName}“…`);
+    try {
+      const ladeRes = await fetch("/api/puck-seite/lade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: puckSeiteName }),
+      });
+      const geladen = (await ladeRes.json()) as { data?: unknown; gespeichert?: string; fehler?: string };
+      if (!ladeRes.ok || !geladen.data) {
+        throw new Error(geladen.fehler ?? `Laden fehlgeschlagen (HTTP ${ladeRes.status})`);
+      }
+      const res = await fetch("/api/puck-seite/speichere", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: puckSeiteName,
+          data: geladen.data,
+          erwartetGespeichert: geladen.gespeichert,
+          anim: { grafiken, uebernommen: ctx?.uebernommen ?? [] },
+        }),
+      });
+      const daten = (await res.json()) as { fehler?: string };
+      if (res.status === 409) {
+        setStatus("Konflikt: Seite wurde zwischenzeitlich geändert — Bühne neu wählen und erneut speichern.");
+        return;
+      }
+      if (!res.ok) throw new Error(daten.fehler ?? res.statusText);
+      setStatus(
+        `Animation in Seite „${puckSeiteName}“ gespeichert (${grafiken.length} Grafik(en)) — eine Datei = Seite + Animation.`,
+      );
+    } catch (error) {
+      setStatus(
+        `Animation-Speichern fehlgeschlagen (${error instanceof Error ? error.message : "unbekannt"})`,
+      );
+    }
+  }, [puckSeiteName, grafiken, ctx]);
+
   /* --- Website-OG (AP-D, Welle 3a) ------------------------------------- */
 
   /* Ist-Stand-Liste beim Start UND bei Backdrop-Wechsel neu aus dem DOM lesen.
@@ -697,6 +749,56 @@ export function GrafikEditor() {
   useEffect(() => {
     if (ctx?.auswahl || flussObjekt?.fokus) setOgAuswahl(null);
   }, [ctx?.auswahl, flussObjekt?.fokus]);
+
+  /* --- Welle 4c(3): anim-Feld einer Puck-Seite in den Animator laden --------
+     Wird eine Seite als Buehne gewaehlt (puckSeiteName wechselt auf einen
+     Namen), ihr gespeichertes Animations-Abbild automatisch uebernehmen. ctx +
+     grafiken-Anzahl liegen in einem Ref, damit der Effekt NUR an puckSeiteName
+     haengt (ctx-Value wird bei jedem Render neu erzeugt — als Dep wuerde der
+     Effekt sonst dauerlaufen). Bestaetigungs-Hinweis, wenn der Animator schon
+     Grafiken traegt (Spec: nicht ungefragt ueberschreiben). */
+  const puckLadeRef = useRef<{ ctx: typeof ctx; grafikenAnzahl: number }>({ ctx, grafikenAnzahl: 0 });
+  puckLadeRef.current = { ctx, grafikenAnzahl: grafiken.length };
+  useEffect(() => {
+    if (!puckSeiteName) return;
+    let abbruch = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/puck-seite/lade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: puckSeiteName }),
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as { anim?: { grafiken?: Grafik[]; uebernommen?: string[] } };
+        if (abbruch) return;
+        const anim = json.anim;
+        if (!anim || !Array.isArray(anim.grafiken) || anim.grafiken.length === 0) return;
+        const c = puckLadeRef.current.ctx;
+        if (!c) return;
+        if (
+          puckLadeRef.current.grafikenAnzahl > 0 &&
+          !window.confirm(
+            `Die Seite „${puckSeiteName}“ bringt eine gespeicherte Animation mit ` +
+              `(${anim.grafiken.length} Grafik(en)). Den aktuellen Animator-Stand dadurch ersetzen?`,
+          )
+        ) {
+          return;
+        }
+        c.setGrafiken(anim.grafiken);
+        c.setUebernommen(anim.uebernommen ?? []);
+        c.resetHistory();
+        setStatus(`Animation aus Seite „${puckSeiteName}“ geladen (${anim.grafiken.length} Grafik(en)).`);
+      } catch {
+        /* Route nicht erreichbar → Animator-Stand bleibt unveraendert. */
+      }
+    })();
+    return () => {
+      abbruch = true;
+    };
+    // ctx/grafiken bewusst NICHT in den Deps (s.o., via Ref) — nur puckSeiteName.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puckSeiteName]);
 
   /** OG-Element auswählen: Grafik-Auswahl + Fluss-Fokus räumen (Ausschluss),
    *  dann markieren; `scroll` zeigt es auf der Bühne (Liste ja, Alt+Klick
@@ -3318,6 +3420,31 @@ export function GrafikEditor() {
               />
             </div>
           )}
+
+          {/* Block 3 — Animation in die aktive Puck-Seite speichern (Welle 4c(3)).
+              Nur sichtbar im Puck-Seiten-Modus (eine eigene Seite liegt als
+              Bühne). Schreibt das aktuelle Grafik-Abbild ins anim-Feld der Seite
+              → EINE Datei = Seite + Animation. Bewusst getrennt vom Grafik-Setup
+              (Server-Abbild) darüber: hier landet die Animation AN der Seite. */}
+          {puckSeiteName && (
+            <div className="gre-speichern-block">
+              <div className="gre-block-titel">
+                Animation in Seite (Puck-Seiten-Modus)
+                <HilfeIcon
+                  label="Animation in Seite"
+                  text={`Die aktuelle Bühne ist deine eigene Seite „${puckSeiteName}“. „Animation in Seite speichern“ legt deine platzierten Scroll-Grafiken direkt in DIESE Seite (anim-Feld) — beim nächsten Öffnen als Bühne sind sie wieder da. Anker (data-og-id="puck:…") halten die Grafiken an den Bausteinen der Seite.`}
+                />
+              </div>
+              <div className="gre-hilfe">
+                Bühne: <code>{puckSeiteName}</code> · {grafiken.length} Grafik(en) im Animator.
+              </div>
+              <div className="gre-row">
+                <button onClick={() => void animInSeiteSpeichern()}>
+                  Animation in Seite speichern
+                </button>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -3351,6 +3478,16 @@ export function GrafikEditor() {
           }
           /* Welle 3c: aktuelle Auswahl nur zum Vorwählen im Einzelelement-Export. */
           auswahlId={ctx.auswahl ?? undefined}
+          /* Welle 4c(4): im Puck-Seiten-Modus liefert der Geber das Markup der
+             Render-Bühne (innerHTML des data-fc-puck-buehne-Containers, inkl.
+             data-og-ids) — der „Ganze Seite"-Export fusioniert es dann mit dem
+             Animations-Overlay in EIN Dokument. Außerhalb des Modus: undefined
+             → unveränderter Seiten-Export (leere Bühne). */
+          seitenMarkupGeber={
+            puckSeiteName
+              ? () => document.querySelector<HTMLElement>("[data-fc-puck-buehne]")?.innerHTML ?? null
+              : undefined
+          }
         />
       )}
       </div>

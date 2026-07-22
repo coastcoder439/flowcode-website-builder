@@ -94,9 +94,15 @@ interface GrafikExportPanelProps {
    *  Einzelelement-Export (Welle 3c). Optional/additiv: fehlt sie, wird die
    *  erste platzierte Grafik vorgewählt. */
   auswahlId?: string;
+  /** Welle 4c(4) — PUCK-FUSION: liefert (im Puck-Seiten-Modus) das Markup der
+   *  gerenderten Seiten-Bühne per DOM-Abgriff, erst beim Export-Klick gelesen.
+   *  Gesetzt → „Ganze Seite (HTML)" fusioniert Seite + Overlay in EINE Datei.
+   *  Fehlt der Geber (kein Puck-Seiten-Modus), bleibt der Seiten-Export leer
+   *  (bisheriges Verhalten). */
+  seitenMarkupGeber?: () => string | null;
 }
 
-export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId }: GrafikExportPanelProps) {
+export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seitenMarkupGeber }: GrafikExportPanelProps) {
   const [verlaeufe, setVerlaeufe] = useState<Record<string, FlussVerlauf>>({});
   const [gewaehlterFluss, setGewaehlterFluss] = useState(KEIN_FLUSS);
   const [bilderInline, setBilderInline] = useState(true);
@@ -266,10 +272,13 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId }: Gr
       const res = await fetch(EMBED_URL);
       if (!res.ok) throw new Error(`Runtime HTTP ${res.status}`);
       const runtimeJs = await res.text();
-      const html = baueSeiteHtml(config, { runtimeJs, embedUrl: EMBED_URL });
+      /* Welle 4c(4): im Puck-Seiten-Modus die Render-Bühne als Markup mitgeben →
+         Seite + Overlay fusioniert. Sonst undefined → leere Bühne wie bisher. */
+      const seitenMarkup = seitenMarkupGeber?.() ?? undefined;
+      const html = baueSeiteHtml(config, { runtimeJs, embedUrl: EMBED_URL, seitenMarkup });
       downloadeBlob(new Blob([html], { type: "text/html" }), "wee-seite.html");
       setStatus(
-        `Ganze Seite ${formatKb(new Blob([html]).size)} · ${config.grafiken.length} Grafik(en)${flussStatusteil(config)}`,
+        `Ganze Seite ${formatKb(new Blob([html]).size)} · ${config.grafiken.length} Grafik(en)${flussStatusteil(config)}${seitenMarkup ? " · mit Puck-Seite fusioniert" : ""}`,
       );
     } catch (error) {
       setStatus(`Export fehlgeschlagen (${fehlerText(error)})`);
@@ -411,7 +420,7 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId }: Gr
         </button>
         <HilfeIcon
           label="Ganze Seite (HTML)"
-          text={`Lädt wee-seite.html herunter – ein komplettes HTML-Dokument, das Overlay, Config und Runtime in EINER Datei bündelt. Datei einfach im Browser öffnen = die Animation läuft auf leerer Seite. Eigenen Inhalt legt man später darunter (s. Anleitung).`}
+          text={`Lädt wee-seite.html herunter – ein komplettes HTML-Dokument, das Overlay, Config und Runtime in EINER Datei bündelt. Datei einfach im Browser öffnen = die Animation läuft auf leerer Seite. Eigenen Inhalt legt man später darunter (s. Anleitung). Im Puck-Seiten-Modus (eine eigene Seite liegt als Bühne) wird stattdessen die Seite MIT der Animation in eine Datei fusioniert – die Anker-Auflösung ist dabei statisch eingefroren (die Runtime nutzt die absoluten Werte).`}
         />
       </div>
 

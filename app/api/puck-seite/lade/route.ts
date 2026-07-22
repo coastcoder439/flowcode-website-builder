@@ -19,6 +19,9 @@ export async function POST(req: NextRequest) {
       gespeichert: datei.gespeichert,
       version: datei.version,
       data: datei.data,
+      /* Welle 4c: das Animations-Abbild mitliefern (falls vorhanden), damit der
+         Animator es beim Laden der Seite als Buehne uebernehmen kann. */
+      ...(datei.anim ? { anim: datei.anim } : {}),
     });
   } catch (e) {
     return fehlerAntwort(e, "puck-seite/lade");

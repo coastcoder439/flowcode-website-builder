@@ -16,7 +16,18 @@
  * beim Import auf).
  */
 
-export const PUCK_KOMPONENTEN_TYPEN = ["ShapeAccent", "GrafikLayer"] as const;
+export const PUCK_KOMPONENTEN_TYPEN = [
+  "ShapeAccent",
+  "GrafikLayer",
+  // Welle 4b (Ordner-Import): generische Bausteine des deterministischen
+  // HTML->Puck-Adapters (lib/import/html-zu-puck.ts). SektionBlock traegt
+  // einen Slot `kinder` (verschachtelte ComponentData[]) — das Server-Gate
+  // (lib/api/seiten-speicher.ts) prueft die Slot-Kinder rekursiv.
+  "SektionBlock",
+  "TextBlock",
+  "BildBlock",
+  "HtmlBlock",
+] as const;
 
 export type PuckKomponentenTyp = (typeof PUCK_KOMPONENTEN_TYPEN)[number];
 

@@ -1,0 +1,514 @@
+/* seiten-bereich.css — Styles fuer den Bereichs-Umschalter „Animator | Seiten"
+   und den Seiten-Bereich (Welle 4a, docs/editor-vereinheitlichung.md §9/4a).
+   Wird nur in /editor geladen (Import in app/editor/page.tsx bzw.
+   SeitenBereich.tsx) und beruehrt weder die Landing noch das Animator-Panel.
+
+   Positionierungs-Vertrag (siehe page.tsx-Kommentar): Der Umschalter ist eine
+   kompakte, fixierte Pille oben MITTIG mit hohem z-index (ueber .gre-panel=60,
+   grafik-hilfe=300 UND ueber dem Puck-Editor). Er kollidiert bewusst NICHT mit
+   dem links sitzenden Animator-Panel (.gre-panel, top:12px/left:12px). Im
+   Seiten-Bereich beginnt die Puck-Flaeche 44px tiefer, damit die Pille frei
+   ueber Pucks eigenem Kopf schwebt. */
+
+/* ---- Bereichs-Umschalter (tablist) ---- */
+.editor-umschalter {
+  position: fixed;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(20, 30, 24, 0.92);
+  border: 1px solid var(--border-strong, rgba(46, 58, 51, 0.38));
+  border-radius: var(--radius-pill, 999px);
+  box-shadow: var(--shadow-md, 0 8px 22px -8px rgba(20, 48, 33, 0.18));
+  font: var(--fw-medium, 500) 13px/1 var(--font-body, system-ui, sans-serif);
+}
+
+.editor-umschalter [role="tab"] {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill, 999px);
+  background: transparent;
+  color: #d7dcd3;
+  font: inherit;
+}
+
+.editor-umschalter [role="tab"][aria-selected="true"] {
+  background: var(--accent-500, #ea8914);
+  color: #fff;
+  font-weight: var(--fw-semibold, 600);
+}
+
+.editor-umschalter [role="tab"]:hover:not([aria-selected="true"]) {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.editor-umschalter [role="tab"]:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 2px;
+}
+
+/* ---- Seiten-Flaeche (ersetzt die Buehne im Seiten-Bereich) ---- */
+.editor-seiten-flaeche {
+  position: fixed;
+  inset: 0;
+  z-index: 40; /* unter dem Umschalter (1000), ueber der leeren Seite */
+  padding-top: 44px; /* Freiraum fuer die schwebende Umschalter-Pille */
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-page, #f5efe3);
+  font-family: var(--font-body, system-ui, sans-serif);
+  color: var(--text-body, #2e3a33);
+}
+
+/* ---- Verwaltungs-Ansicht (Liste, wenn keine Seite offen) ---- */
+.seiten-verwaltung {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px clamp(16px, 5vw, 64px) 48px;
+}
+
+.seiten-verwaltung-innen {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.seiten-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.seiten-kopf h1 {
+  margin: 0;
+  font: var(--fw-bold, 700) var(--text-2xl, 1.75rem) / var(--lh-snug, 1.18)
+    var(--font-display, system-ui, sans-serif);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-hilfe-icon {
+  appearance: none;
+  cursor: pointer;
+  margin-left: auto; /* Hilfe-Icon rechts, egal wie viele Knoepfe davor liegen */
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default, rgba(46, 58, 51, 0.2));
+  background: var(--surface, #fff);
+  color: var(--text-body, #2e3a33);
+  font-weight: var(--fw-bold, 700);
+  line-height: 1;
+}
+
+.seiten-hilfe-icon:hover {
+  border-color: var(--accent-500, #ea8914);
+  color: var(--accent-600, #c47210);
+}
+
+.seiten-hilfe-icon:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 2px;
+}
+
+/* Formular „Neue Seite" */
+.seiten-neu {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  padding: 16px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  border-radius: var(--radius-sm, 10px);
+  box-shadow: var(--shadow-xs, 0 1px 2px rgba(20, 48, 33, 0.06));
+}
+
+.seiten-neu-feld {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.seiten-neu-feld label {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-muted, #5a6960);
+}
+
+.seiten-flaeche input[type="text"] {
+  padding: 8px 10px;
+  border: 1px solid var(--border-default, rgba(46, 58, 51, 0.2));
+  border-radius: var(--radius-xs, 6px);
+  font: inherit;
+  background: var(--surface, #fff);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-flaeche input[type="text"]:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 1px;
+  border-color: var(--accent-500, #ea8914);
+}
+
+/* Buttons */
+.seiten-flaeche button.seiten-btn {
+  appearance: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: var(--radius-xs, 6px);
+  border: 1px solid var(--border-default, rgba(46, 58, 51, 0.2));
+  background: var(--surface, #fff);
+  color: var(--text-body, #2e3a33);
+  font: var(--fw-medium, 500) var(--text-sm, 0.875rem) / 1
+    var(--font-body, system-ui, sans-serif);
+}
+
+.seiten-flaeche button.seiten-btn:hover:not(:disabled) {
+  border-color: var(--accent-500, #ea8914);
+}
+
+.seiten-flaeche button.seiten-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 2px;
+}
+
+.seiten-flaeche button.seiten-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.seiten-flaeche button.seiten-btn--primaer {
+  background: var(--accent-500, #ea8914);
+  border-color: var(--accent-500, #ea8914);
+  color: #fff;
+  font-weight: var(--fw-semibold, 600);
+}
+
+.seiten-flaeche button.seiten-btn--gefahr {
+  color: var(--danger, #c9442e);
+  border-color: color-mix(in srgb, #c9442e 40%, transparent);
+}
+
+.seiten-flaeche button.seiten-btn--gefahr:hover:not(:disabled) {
+  border-color: var(--danger, #c9442e);
+}
+
+/* Liste */
+.seiten-liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seiten-liste li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  border-radius: var(--radius-sm, 10px);
+}
+
+.seiten-liste-name {
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-liste-meta {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text-muted, #5a6960);
+}
+
+.seiten-liste-aktionen {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+}
+
+.seiten-leer {
+  padding: 32px;
+  text-align: center;
+  color: var(--text-muted, #5a6960);
+  background: var(--surface, #fff);
+  border: 1px dashed var(--border-default, rgba(46, 58, 51, 0.2));
+  border-radius: var(--radius-sm, 10px);
+}
+
+.seiten-meldung {
+  padding: 10px 14px;
+  border-radius: var(--radius-xs, 6px);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.seiten-meldung--fehler {
+  background: color-mix(in srgb, #c9442e 12%, transparent);
+  color: var(--danger, #c9442e);
+  border: 1px solid color-mix(in srgb, #c9442e 30%, transparent);
+}
+
+/* ---- Editor-Ansicht (Puck offen) ---- */
+.seiten-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.seiten-editor-kopf {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: rgba(20, 30, 24, 0.94);
+  color: #f2efe7;
+  flex-wrap: wrap;
+}
+
+.seiten-editor-kopf .seiten-editor-name {
+  font-weight: var(--fw-semibold, 600);
+}
+
+.seiten-editor-kopf .seiten-editor-status {
+  font-size: var(--text-xs, 0.75rem);
+  color: #b0d38c;
+}
+
+.seiten-editor-kopf .seiten-editor-status--speichern {
+  color: #f8c060;
+}
+
+.seiten-editor-aktionen {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.seiten-editor-kopf button.seiten-btn {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2efe7;
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.seiten-editor-kopf button.seiten-btn:hover:not(:disabled) {
+  border-color: var(--accent-500, #ea8914);
+}
+
+/* Konflikt-Banner (409) */
+.seiten-konflikt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: color-mix(in srgb, #c9442e 16%, #16201a);
+  color: #ffe3dc;
+  border-bottom: 1px solid color-mix(in srgb, #c9442e 50%, transparent);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.seiten-puck-wrapper {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Puck fuellt seinen Wrapper vollstaendig. */
+.seiten-puck-wrapper > div {
+  height: 100%;
+}
+
+/* ---- Hilfe-Dialog ---- */
+.seiten-hilfe-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100; /* ueber dem Umschalter (1000) */
+  background: rgba(16, 33, 23, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.seiten-hilfe-dialog {
+  max-width: 520px;
+  width: 100%;
+  max-height: 80vh;
+  overflow: auto;
+  background: var(--surface, #fff);
+  color: var(--text-body, #2e3a33);
+  border-radius: var(--radius-md, 16px);
+  box-shadow: var(--shadow-xl, 0 36px 80px -24px rgba(20, 48, 33, 0.3));
+  padding: 24px;
+}
+
+.seiten-hilfe-dialog h2 {
+  margin: 0 0 12px;
+  font: var(--fw-bold, 700) var(--text-xl, 1.375rem) / var(--lh-snug, 1.18)
+    var(--font-display, system-ui, sans-serif);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-hilfe-dialog h3 {
+  margin: 16px 0 4px;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-hilfe-dialog p {
+  margin: 0 0 8px;
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(--lh-normal, 1.5);
+}
+
+.seiten-hilfe-dialog-fuss {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ---- Ordner-Import-Assistent (Welle 4b) ---- */
+.seiten-import-hinweis {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(--lh-normal, 1.5);
+  color: var(--text-muted, #5a6960);
+}
+
+.seiten-import-schritt {
+  display: flex;
+  gap: 8px;
+}
+
+.seiten-import-dateien {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  border-radius: var(--radius-sm, 10px);
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.seiten-import-dateien legend {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-muted, #5a6960);
+  padding: 0 4px;
+}
+
+.seiten-import-datei {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-body, #2e3a33);
+  cursor: pointer;
+}
+
+.seiten-import-bericht {
+  padding: 16px 20px;
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  border-radius: var(--radius-sm, 10px);
+  background: var(--surface, #fff);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.seiten-import-bericht h2 {
+  margin: 0;
+  font: var(--fw-bold, 700) var(--text-lg, 1.125rem) / var(--lh-snug, 1.18)
+    var(--font-display, system-ui, sans-serif);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-import-bericht h3 {
+  margin: 0 0 6px;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-import-statistik {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.seiten-import-statistik li {
+  padding: 8px 14px;
+  border-radius: var(--radius-xs, 6px);
+  background: color-mix(in srgb, #72ac43 12%, transparent);
+  color: var(--text-body, #2e3a33);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.seiten-import-statistik b {
+  color: var(--text-strong, #16201a);
+}
+
+.seiten-import-flags {
+  border-top: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  padding-top: 12px;
+}
+
+.seiten-import-flags ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.seiten-import-flags li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.seiten-import-flag-grund {
+  flex: 0 0 auto;
+  font-weight: var(--fw-semibold, 600);
+  color: var(--danger, #c9442e);
+}
+
+.seiten-import-flag-detail {
+  color: var(--text-muted, #5a6960);
+  word-break: break-word;
+}
+
+.seiten-import-keine-flags {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--success, #3f7d3f);
+}
+
+.seiten-import-aktionen {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}

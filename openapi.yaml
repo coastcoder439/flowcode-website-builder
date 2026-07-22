@@ -97,6 +97,7 @@ paths:
                   gespeichert: { type: string }
                   version: { type: integer }
                   data: { $ref: "#/components/schemas/PuckData" }
+                  anim: { $ref: "#/components/schemas/SeitenAnim" }
         "400": { $ref: "#/components/responses/Ungueltig" }
         "403": { $ref: "#/components/responses/FremderUrsprung" }
         "404": { $ref: "#/components/responses/NichtGefunden" }
@@ -127,6 +128,14 @@ paths:
                 ueberschreibe:
                   type: boolean
                   default: false
+                anim:
+                  allOf:
+                    - $ref: "#/components/schemas/SeitenAnim"
+                  description: >-
+                    Welle 4c — optionales Animations-Abbild (Scroll-Grafiken des
+                    Animators ueber dieser Seite). Gesetzt → wird geschrieben;
+                    weggelassen → ein bereits an der Seite haengendes anim bleibt
+                    erhalten (ein reiner Daten-Speichervorgang loescht es nicht).
       responses:
         "200":
           description: Geschrieben
@@ -226,6 +235,45 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Fehler" }
+
+  /api/import/asset:
+    post:
+      operationId: importAsset
+      summary: "Ordner-Import: grosses Bild-Asset nach public/import/<slug>/ kopieren"
+      description: >-
+        Welle 4b. Der Client bettet kleine Bilder (<300 KB) als Data-URL in die
+        Seite ein; groessere Assets aus dem importierten Ordner landen
+        hierueber als echte Datei unter public/import/<slug>/<name>. Guards wie
+        /api/assets aktion=schreibe: Origin-Gate, Pfad-Guards (kein Ausbruch aus
+        public/import/), Groessenlimit (8 MB), Endungs-Whitelist (Bild).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, name, dataUrl]
+              properties:
+                slug: { $ref: "#/components/schemas/SeitenName" }
+                name:
+                  type: string
+                  description: Reiner Ziel-Dateiname mit Bild-Endung.
+                dataUrl: { type: string, description: "data:image/...;base64,..." }
+      responses:
+        "200":
+          description: Geschrieben
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [slug, name, pfad, url]
+                properties:
+                  slug: { type: string }
+                  name: { type: string }
+                  pfad: { type: string }
+                  url: { type: string }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
 
   /api/abbild:
     post:
@@ -379,6 +427,22 @@ components:
         content:
           type: array
           items: { $ref: "#/components/schemas/PuckContentItem" }
+
+    SeitenAnim:
+      type: object
+      required: [grafiken]
+      description: >-
+        Welle 4c — Animations-Abbild einer Seite (lib/api/seiten-speicher.ts
+        SeitenAnim). Dieselben Grafik-Objekte wie im Abbild-Speicher, hier direkt
+        an der Seite gespeichert (eine Datei = Seite + Animation). Struktur-Gate
+        ueber die bestehende Grafik-Validierung (istGrafik).
+      properties:
+        grafiken:
+          type: array
+          items: { $ref: "#/components/schemas/Grafik" }
+        uebernommen:
+          type: array
+          items: { type: string }
 
     PuckContentItem:
       type: object

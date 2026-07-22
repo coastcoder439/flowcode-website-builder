@@ -6,7 +6,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { AnfrageFehler, fehlerAntwort, leseJsonBody, pruefeUrsprung, saubererName } from "@/lib/api/server-helfer";
-import { pruefePuckData, speichereSeite } from "@/lib/api/seiten-speicher";
+import { pruefeAnim, pruefePuckData, speichereSeite } from "@/lib/api/seiten-speicher";
 
 export const runtime = "nodejs";
 /* Wie /api/abbild: reine JSON-Nutzlast (Assets stehen als URL drin) —
@@ -22,9 +22,13 @@ export async function POST(req: NextRequest) {
     if (body.erwartetGespeichert !== undefined && typeof body.erwartetGespeichert !== "string") {
       throw new AnfrageFehler(400, "erwartetGespeichert muss ein String sein");
     }
+    /* Welle 4c: optionales Animations-Abbild. Nur pruefen/setzen, wenn wirklich
+       mitgeschickt — sonst bleibt ein bestehendes anim erhalten (speichereSeite). */
+    const anim = body.anim !== undefined ? pruefeAnim(body.anim) : undefined;
     const datei = await speichereSeite(name, data, {
       erwartetGespeichert: body.erwartetGespeichert as string | undefined,
       ueberschreibe: body.ueberschreibe === true,
+      anim,
     });
     return NextResponse.json({
       name: datei.name,

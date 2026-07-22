@@ -26,6 +26,7 @@
  * authoredDocH-Prop-Pfad übersprungen → keine Doppel-Skalierung.
  */
 
+import { useEffect, useRef, useState } from "react";
 import { HomePageContent } from "@/components/HomePageContent";
 import { GrafikProvider } from "@/components/grafik/GrafikContext";
 import { GrafikEditor } from "@/components/grafik/GrafikEditor";
@@ -35,6 +36,8 @@ import { FlussHandlesEbene } from "@/components/river/FlussHandlesEbene";
 import "@/components/river/river-kurs-editor.css";
 import { Backdrop } from "@/components/backdrop/Backdrop";
 import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { SeitenBereich } from "./SeitenBereich";
+import "./seiten-bereich.css";
 
 /** Vorhang-Latch (TitleCurtain: "wee-title-curtain-seen") lösen, damit die
  *  originale Scroll-Animation inkl. Tropfen bei JEDEM Laden läuft — sonst
@@ -96,11 +99,126 @@ function EditorInner() {
   );
 }
 
-export default function EditorPage() {
-  vorhangLatchLoesen();
+/* ---- Welle 4a: Bereichs-Umschalter „Animator | Seiten" ----
+ *
+ * Der Zustand liegt im Query-Param `?bereich=seiten` statt in einer eigenen
+ * Route. Begruendung (docs/editor-vereinheitlichung.md §9/4a laesst „Route
+ * ODER Client-State — nach Code-Lage" offen):
+ *   - `output: "export"` erzeugt EINE statische /editor-Shell; eine dynamische
+ *     Unterroute `/editor/seiten/[name]` braeuchte generateStaticParams und
+ *     wuerde den bestehenden, bewusst isolierten Animator-Einstieg zerschneiden.
+ *   - Der Query-Param ist reload-fest (beim Laden aus window.location gelesen)
+ *     und teilbar, ohne den Router-Baum anzufassen.
+ *   - History via pushState/popstate statt useSearchParams: letzteres zwingt
+ *     unter Next 15 zu einer Suspense-Grenze und CSR-Bailout — hier unnoetig.
+ *
+ * Der Animator-Zweig bleibt exakt der bisherige (BackdropProvider → EditorInner),
+ * nur in einen layout-neutralen `display:contents`-tabpanel-Wrapper gehuellt. */
+type Bereich = "animator" | "seiten";
+
+function leseBereich(): Bereich {
+  if (typeof window === "undefined") return "animator";
+  return new URLSearchParams(window.location.search).get("bereich") === "seiten" ? "seiten" : "animator";
+}
+
+function BereichsUmschalter({ bereich, onWechsel }: { bereich: Bereich; onWechsel: (b: Bereich) => void }) {
+  const animRef = useRef<HTMLButtonElement>(null);
+  const seitenRef = useRef<HTMLButtonElement>(null);
+
+  /* Pfeiltasten schalten zwischen den beiden Reitern um (WAI-ARIA-Tabs). */
+  function beiTaste(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft" && e.key !== "Home" && e.key !== "End") return;
+    e.preventDefault();
+    const ziel: Bereich = e.key === "Home" ? "animator" : e.key === "End" ? "seiten" : bereich === "animator" ? "seiten" : "animator";
+    onWechsel(ziel);
+    (ziel === "animator" ? animRef : seitenRef).current?.focus();
+  }
+
   return (
-    <BackdropProvider>
-      <EditorInner />
-    </BackdropProvider>
+    <div className="editor-umschalter" role="tablist" aria-label="Editor-Bereich" onKeyDown={beiTaste}>
+      <button
+        ref={animRef}
+        type="button"
+        role="tab"
+        id="tab-animator"
+        aria-selected={bereich === "animator"}
+        aria-controls="bereich-animator"
+        tabIndex={bereich === "animator" ? 0 : -1}
+        onClick={() => onWechsel("animator")}
+      >
+        Animator
+      </button>
+      <button
+        ref={seitenRef}
+        type="button"
+        role="tab"
+        id="tab-seiten"
+        aria-selected={bereich === "seiten"}
+        aria-controls="bereich-seiten"
+        tabIndex={bereich === "seiten" ? 0 : -1}
+        onClick={() => onWechsel("seiten")}
+      >
+        Seiten
+      </button>
+    </div>
+  );
+}
+
+export default function EditorPage() {
+  const [bereich, setBereich] = useState<Bereich>("animator");
+  const [mounted, setMounted] = useState(false);
+
+  /* Erst nach dem Mount aus der URL lesen (hydration-sicher: der Prerender und
+     die erste Client-Runde zeigen den Animator, danach korrigiert der Effect
+     auf ?bereich=seiten). popstate haelt Vor/Zurueck im Browser synchron. */
+  useEffect(() => {
+    setMounted(true);
+    setBereich(leseBereich());
+    function beiPop() {
+      setBereich(leseBereich());
+    }
+    window.addEventListener("popstate", beiPop);
+    return () => window.removeEventListener("popstate", beiPop);
+  }, []);
+
+  function wechsle(ziel: Bereich) {
+    setBereich(ziel);
+    const url = ziel === "seiten" ? "?bereich=seiten" : window.location.pathname;
+    window.history.pushState(null, "", url);
+  }
+
+  const zeigeSeiten = mounted && bereich === "seiten";
+  /* Vorhang-Latch nur loesen, wenn der Animator (mit TitleCurtain) wirklich
+     rendert — im Seiten-Bereich ist die Buehne gar nicht gemountet. */
+  if (!zeigeSeiten) vorhangLatchLoesen();
+
+  return (
+    <>
+      <BereichsUmschalter bereich={mounted ? bereich : "animator"} onWechsel={wechsle} />
+      {zeigeSeiten ? (
+        <div
+          className="editor-seiten-flaeche"
+          id="bereich-seiten"
+          role="tabpanel"
+          aria-labelledby="tab-seiten"
+          tabIndex={0}
+        >
+          <SeitenBereich />
+        </div>
+      ) : (
+        /* display:contents → der Wrapper ist layout-neutral, der Animator bleibt
+           pixelgleich zu heute; die fixierten Overlays haengen ohnehin am Viewport. */
+        <div
+          id="bereich-animator"
+          role="tabpanel"
+          aria-labelledby="tab-animator"
+          style={{ display: "contents" }}
+        >
+          <BackdropProvider>
+            <EditorInner />
+          </BackdropProvider>
+        </div>
+      )}
+    </>
   );
 }

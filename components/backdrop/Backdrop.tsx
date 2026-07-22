@@ -32,6 +32,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Render, type Data } from "@puckeditor/core";
+import { config } from "@/app/puck/puck.config";
 import type { Backdrop as BackdropDaten } from "./backdrop-types";
 import { ordnerBereitstellen, ordnerHolen } from "./ordner-serve";
 import "./backdrop.css";
@@ -172,9 +174,81 @@ function BackdropOrdner() {
   );
 }
 
+type PuckStatus = "laedt" | "bereit" | "leer" | "fehler";
+
+/** Puck-Seiten-Backdrop (Welle 4c, docs/editor-vereinheitlichung.md §9/4c(2)):
+ *  laedt seiten/<name>.json ueber /api/puck-seite/lade und rendert sie per
+ *  <Render> INLINE als Buehne des Animators — kein iframe (anders als HTML/
+ *  Ordner), damit die data-og-id="puck:<id>"-Anker der Bausteine im SELBEN
+ *  Dokument liegen und der 3b-Anker-Mechanismus (GrafikLayer) sie findet.
+ *
+ *  Das aeussere data-fc-puck-buehne markiert den Buehnen-Container: der
+ *  Export-Reiter greift dessen innerHTML ab, um Seite + Animation in EIN
+ *  Dokument zu fusionieren (Welle 4c(4), GrafikExportPanel). pointer-events:
+ *  none wie alle Backdrop-Modi — der Animator-Overlay bedient sich selbst. */
+function BackdropPuckSeite({ name }: { name: string }) {
+  const [status, setStatus] = useState<PuckStatus>("laedt");
+  const [data, setData] = useState<Data | null>(null);
+
+  useEffect(() => {
+    let tot = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/puck-seite/lade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name }),
+        });
+        if (!res.ok) {
+          if (!tot) setStatus("fehler");
+          return;
+        }
+        const json = (await res.json()) as { data?: Data };
+        if (tot) return;
+        if (!json.data || json.data.content.length === 0) {
+          setData(json.data ?? null);
+          setStatus("leer");
+          return;
+        }
+        setData(json.data);
+        setStatus("bereit");
+      } catch {
+        if (!tot) setStatus("fehler");
+      }
+    })();
+    return () => {
+      tot = true;
+    };
+  }, [name]);
+
+  if (status === "laedt") {
+    return <div className="hg-backdrop-hinweis">Lade Seite „{name}“…</div>;
+  }
+  if (status === "fehler") {
+    return (
+      <div className="hg-backdrop-hinweis">
+        Seite „{name}“ konnte nicht geladen werden — im Panel „Hintergrund“ eine andere waehlen.
+      </div>
+    );
+  }
+  return (
+    <div className="hg-backdrop-puck" data-fc-puck-buehne>
+      {data ? <Render config={config} data={data} /> : null}
+      {status === "leer" && (
+        <div className="hg-backdrop-hinweis">Seite „{name}“ hat noch keine Bausteine.</div>
+      )}
+    </div>
+  );
+}
+
 export function Backdrop({ backdrop }: { backdrop: BackdropDaten }) {
   if (backdrop.art === "bild") {
     return <img src={backdrop.quelle} alt="" className="hg-backdrop-bild" />;
+  }
+  if (backdrop.art === "puck-seite") {
+    /* key=quelle: Wechsel auf eine ANDERE Puck-Seite erzwingt Remount +
+       Neuladen (wie beim Ordner-Backdrop). */
+    return <BackdropPuckSeite key={backdrop.quelle} name={backdrop.quelle} />;
   }
   if (backdrop.art === "ordner") {
     /* key=quelle (Ordnername): erzwingt einen Remount (und damit ein neues

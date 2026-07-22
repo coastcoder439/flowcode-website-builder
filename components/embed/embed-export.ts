@@ -197,6 +197,18 @@ export interface BaueSeiteHtmlOptionen {
   /** s. BaueReadmeOptionen.embedUrl – nur für den Anleitungs-Kommentar; im
    *  Seiten-Export gibt es kein externes <script src>, die Runtime steckt inline. */
   embedUrl: string;
+  /** Welle 4c(4) — PUCK-FUSION: das Markup der gerenderten Puck-Seite (innerHTML
+   *  der Render-Bühne, data-og-ids inklusive; per DOM-Abgriff im Editor). Gesetzt
+   *  → die Seite kommt in den <body> UND das Animations-Overlay legt sich darüber
+   *  (eine Datei = Seite + Animation). Nicht gesetzt → das bisherige Verhalten
+   *  (leere Bühne mit 300vh Scroll-Raum), byte-identisch zum 3c-Export.
+   *
+   *  EHRLICHE GRENZE (Spec §9/4c): Die Anker-Auflösung ist im Export STATISCH
+   *  eingefroren. Die Runtime bleibt unverändert und nutzt die ABSOLUTEN
+   *  Keyframe-Werte (x/y/scrollY) — sie liest die ankerId-Felder NICHT. Verschiebt
+   *  sich das Seiten-Markup im fremden Host, driften die Grafiken; nur der
+   *  Editor-Live-Pfad (GrafikLayer) löst Anker dynamisch auf. */
+  seitenMarkup?: string;
 }
 
 /** Baut ein VOLLSTÄNDIGES, eigenständiges HTML-Dokument (Welle 3c, Spec §8/3c
@@ -204,8 +216,13 @@ export interface BaueSeiteHtmlOptionen {
  *  EINEM Dokument. Datei aufmachen = die Animation läuft auf einer leeren Seite;
  *  eigenen Inhalt legt man später darunter (s. Anleitung). Nutzt dieselben
  *  Bausteine wie der Overlay-Export (Kommentar-Kopf, Mount+Config) – nur die
- *  Runtime kommt inline statt als externes <script src>. */
+ *  Runtime kommt inline statt als externes <script src>.
+ *
+ *  Welle 4c(4): Ist `seitenMarkup` gesetzt (Puck-Seiten-Modus), wird es als
+ *  Buehne in den <body> gelegt (die Seite bringt ihre eigene Hoehe mit → kein
+ *  kuenstliches min-height:300vh) und das Overlay legt sich darueber. */
 export function baueSeiteHtml(config: EmbedConfig, optionen: BaueSeiteHtmlOptionen): string {
+  const fusion = typeof optionen.seitenMarkup === "string" && optionen.seitenMarkup.trim().length > 0;
   return [
     `<!doctype html>`,
     `<html lang="de">`,
@@ -215,14 +232,31 @@ export function baueSeiteHtml(config: EmbedConfig, optionen: BaueSeiteHtmlOption
     `<title>WEE-Animation</title>`,
     `<style>`,
     `  html, body { margin: 0; padding: 0; }`,
-    `  /* Scroll-Raum, damit die Scroll-Animation auf der noch leeren Seite`,
-    `     überhaupt eine Strecke hat. Eigenen Inhalt einfach hier im <body>`,
-    `     ergänzen – die Animations-Ebene liegt klick-durchlässig darüber. */`,
-    `  body { min-height: 300vh; background: #ffffff; }`,
+    ...(fusion
+      ? [
+          `  /* Puck-Fusion (Welle 4c): die eigene Seite unten bringt ihre eigene`,
+          `     Hoehe mit — kein kuenstlicher Scroll-Raum. Das Animations-Overlay`,
+          `     liegt klick-durchlaessig darueber (data-wee-anim). */`,
+          `  body { background: #ffffff; }`,
+        ]
+      : [
+          `  /* Scroll-Raum, damit die Scroll-Animation auf der noch leeren Seite`,
+          `     überhaupt eine Strecke hat. Eigenen Inhalt einfach hier im <body>`,
+          `     ergänzen – die Animations-Ebene liegt klick-durchlässig darüber. */`,
+          `  body { min-height: 300vh; background: #ffffff; }`,
+        ]),
     `</style>`,
     `</head>`,
     `<body>`,
     ...baueKommentarKopf(config, { embedUrl: optionen.embedUrl }),
+    /* Puck-Seite als Buehne (unveraendertes Markup inkl. data-og-ids) VOR dem
+       Overlay-Mount — das Overlay (position im Dokument) legt sich darueber. */
+    ...(fusion
+      ? [
+          `<!-- Welle 4c: gerenderte Puck-Seite (Buehne); Anker im Export statisch eingefroren. -->`,
+          `<div data-wee-seite>${optionen.seitenMarkup}</div>`,
+        ]
+      : []),
     ...baueMountUndConfig(config),
     `<script>`,
     escapeRuntimeFuerInline(optionen.runtimeJs),

@@ -25,6 +25,16 @@
   pointer-events: none;
 }
 
+/* Puck-Seiten-Backdrop (Backdrop.tsx BackdropPuckSeite): die per <Render>
+   INLINE gerenderte eigene Seite als Animator-Buehne. pointer-events:none wie
+   alle Backdrop-Modi — der Animator-Overlay faengt alle Klicks selbst ab. Die
+   Bausteine bringen ihre eigene Optik (Inline-Styles) mit. */
+.hg-backdrop-puck {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+}
+
 /* Platzhalter-Hinweis des Ordner-Backdrops (BackdropOrdner in Backdrop.tsx),
    solange der Cache noch befuellt wird bzw. bei fehlendem Zugriff — bewusst
    NICHT interaktiv (pointer-events:none wie alles in Backdrop.tsx): der
@@ -112,6 +122,42 @@ button.hg-freischalten.hg-freischalten {
 button.hg-freischalten.hg-freischalten:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+/* Abschnitt "Eigene Seite als Buehne" (Welle 4c(2), BackdropAuswahl.tsx). */
+.hg-eigene-seite {
+  border-top: 1px solid rgba(159, 214, 138, 0.2);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.hg-eigene-seite-titel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9fd68a;
+}
+
+.hg-seiten-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.hg-seiten-liste button {
+  text-align: left;
+  font-size: 11.5px;
+}
+
+/* Aktive Buehnen-Seite hervorheben — Doppel-Klasse fuers Spezifitaets-Duell
+   mit ".gre-panel button"/".rke-panel button" (s. .hg-freischalten oben). */
+.hg-seiten-liste button.hg-seite-aktiv.hg-seite-aktiv {
+  background: #3f6e3a;
+  color: #fff;
+  border: 1px solid #9fd68a;
 }
 
 /* --- Hilfe-Icon (BackdropHilfeIcon.tsx) ---------------------------------
