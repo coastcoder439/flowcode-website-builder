@@ -2010,9 +2010,10 @@ export function GrafikEditor() {
         >
           ? Hilfe
         </button>
-        <a className="gre-wechsel" href="/fluss-editor">
-          ← Fluss
-        </a>
+        {/* Kreuz-Link „← Fluss" entfällt (Welle 2a): Grafik- und Fluss-Editor
+            liegen jetzt gemeinsam auf /editor, ein Editor-Wechsel-Link zeigte
+            nur auf die tote Trennung (Inventar §4.3). Das Fluss-Panel ist auf
+            derselben Route oben rechts direkt sichtbar. */}
       </div>
       <div className="gre-scroll">scrollY {Math.round(scrollY)}</div>
 

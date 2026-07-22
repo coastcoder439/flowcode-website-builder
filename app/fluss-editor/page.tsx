@@ -1,58 +1,37 @@
 "use client";
 
 /*
- * /fluss-editor – eigene Bearbeitungs-Seite („CMS-like, nur Flusssteuerung",
- * Kundenauftrag): rendert die KOMPLETTE echte Landing (HomePage) und legt
- * das Kurs-Editor-Overlay darüber. Der RiverKursProvider verbindet Overlay
- * und Fluss-Engine (RiverFlow konsumiert den Kontext optional — die normale
- * Landing unter / bleibt komplett unberührt, dort existiert kein Provider).
+ * /fluss-editor – UMGEZOGEN. Fluss- und Grafik-Editor sind zu EINEM Werkzeug
+ * unter /editor zusammengelegt (Welle 2a, s. docs/editor-vereinheitlichung.md).
+ * Diese Route bleibt als leichtgewichtiger CLIENT-Redirect bestehen, damit
+ * Alt-Links, Lesezeichen und der frühere Kreuz-Link „← Fluss" nicht ins Leere
+ * zeigen (Inventar §4.3).
+ *
+ * WARUM Client-Redirect statt next.config-Redirect: dieses Projekt baut mit
+ * output:"export" (statischer Export) — dort greifen die redirects aus
+ * next.config.mjs NICHT (sie brauchen einen Node-Server). Deshalb ersetzt ein
+ * useEffect + router.replace() die URL im Browser; der Verlauf wird per
+ * replace (nicht push) ersetzt, damit „Zurück" nicht in einer Redirect-
+ * Schleife landet. Bis der Effect greift, steht ein sichtbarer Hinweis samt
+ * echtem <a>-Fallback (funktioniert auch ohne JS / bei blockiertem Skript).
  */
 
-import { HomePageContent } from "@/components/HomePageContent";
-import { RiverKursProvider } from "@/components/river/RiverKursContext";
-import { RiverKursEditor } from "@/components/river/RiverKursEditor";
-import "@/components/river/river-kurs-editor.css";
-import { Backdrop } from "@/components/backdrop/Backdrop";
-import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-/** Latch des Vorhangs (TitleCurtain: "wee-title-curtain-seen"). Im Editor
- *  soll die ORIGINALE Scroll-Animation inkl. Tropfen IMMER laufen — sonst
- *  springt die Bühne bei Client-Navigation/erneutem Besuch in den
- *  Instant-Modus und Leon editiert den Fluss ohne seine Entstehung.
- *  Bewusst im Render-Body (nicht im Effect): Kind-Effekte laufen VOR den
- *  Eltern-Effekten, der Latch muss aber gelöscht sein, bevor TitleCurtain
- *  ihn liest. Nur EINMAL pro Laufzeit (Modul-Flag) — sonst würde jeder
- *  Editor-Render (jeder Drag-Frame!) erneut in den Storage schreiben. */
-let latchGeloest = false;
+export default function FlussEditorRedirect() {
+  const router = useRouter();
 
-function vorhangLatchLoesen() {
-  if (latchGeloest || typeof window === "undefined") return;
-  latchGeloest = true;
-  try {
-    window.sessionStorage.removeItem("wee-title-curtain-seen");
-  } catch {
-    /* Storage gesperrt → Vorhang läuft ohnehin */
-  }
-}
+  useEffect(() => {
+    router.replace("/editor");
+  }, [router]);
 
-/** Liest den Backdrop-Zustand (BackdropProvider) und reicht ihn — falls
- *  gesetzt — als Prop an HomePage durch (gleiches Muster wie
- *  GrafikEditorInner in app/grafik-editor/page.tsx). */
-function FlussEditorInner() {
-  const bctx = useBackdropCtx();
   return (
-    <RiverKursProvider>
-      <HomePageContent backdrop={bctx?.backdrop ? <Backdrop backdrop={bctx.backdrop} /> : undefined} />
-      <RiverKursEditor />
-    </RiverKursProvider>
-  );
-}
-
-export default function FlussEditorPage() {
-  vorhangLatchLoesen();
-  return (
-    <BackdropProvider>
-      <FlussEditorInner />
-    </BackdropProvider>
+    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <p>
+        Der Editor ist umgezogen → <Link href="/editor">/editor</Link>
+      </p>
+    </main>
   );
 }

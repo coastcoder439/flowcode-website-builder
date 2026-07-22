@@ -1,56 +1,37 @@
 "use client";
 
 /*
- * /grafik-editor – Bearbeitungs-Seite für die Scroll-Grafiken: rendert die
- * KOMPLETTE echte Landing (HomePage), legt die Grafik-Ebene darüber und das
- * Editor-Overlay obendrauf. Gleiches Muster wie /fluss-editor — die normale
- * Landing unter / bleibt unberührt (dort existiert kein Provider).
+ * /grafik-editor – UMGEZOGEN. Grafik- und Fluss-Editor sind zu EINEM
+ * Werkzeug unter /editor zusammengelegt (Welle 2a, s.
+ * docs/editor-vereinheitlichung.md). Diese Route bleibt als leichtgewichtiger
+ * CLIENT-Redirect bestehen, damit Alt-Links, Lesezeichen und der frühere
+ * Kreuz-Link „Grafiken →" nicht ins Leere zeigen (Inventar §4.3).
+ *
+ * WARUM Client-Redirect statt next.config-Redirect: dieses Projekt baut mit
+ * output:"export" (statischer Export) — dort greifen die redirects aus
+ * next.config.mjs NICHT (sie brauchen einen Node-Server). Deshalb ersetzt ein
+ * useEffect + router.replace() die URL im Browser; der Verlauf wird per
+ * replace (nicht push) ersetzt, damit „Zurück" nicht in einer Redirect-
+ * Schleife landet. Bis der Effect greift, steht ein sichtbarer Hinweis samt
+ * echtem <a>-Fallback (funktioniert auch ohne JS / bei blockiertem Skript).
  */
 
-import { HomePageContent } from "@/components/HomePageContent";
-import { GrafikProvider } from "@/components/grafik/GrafikContext";
-import { GrafikEditor } from "@/components/grafik/GrafikEditor";
-import { Backdrop } from "@/components/backdrop/Backdrop";
-import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
-/** Vorhang-Latch (TitleCurtain) lösen, damit die originale Scroll-Animation
- *  inkl. Tropfen bei JEDEM Laden läuft — sonst platziert Leon Grafiken auf
- *  einer Seite, die es so nie gibt. Nur EINMAL pro Laufzeit (Modul-Flag):
- *  sonst schriebe jeder Editor-Render erneut in den Storage. */
-let latchGeloest = false;
+export default function GrafikEditorRedirect() {
+  const router = useRouter();
 
-function vorhangLatchLoesen() {
-  if (latchGeloest || typeof window === "undefined") return;
-  latchGeloest = true;
-  try {
-    window.sessionStorage.removeItem("wee-title-curtain-seen");
-  } catch {
-    /* Storage gesperrt → Vorhang läuft ohnehin */
-  }
-}
+  useEffect(() => {
+    router.replace("/editor");
+  }, [router]);
 
-/** Liest den Backdrop-Zustand (BackdropProvider) und reicht ihn — falls
- *  gesetzt — als Prop an HomePage durch. Eigene Komponente statt Inline im
- *  Page-Export: useBackdropCtx() braucht einen Nachfahren von
- *  <BackdropProvider>, der Export selbst rendert den Provider erst. */
-function GrafikEditorInner() {
-  const bctx = useBackdropCtx();
-  /* Die Grafik-Ebene selbst steckt IN der HomePage — hier kommt nur der
-     Provider (Editor-Zustand schlägt die Config) und das Overlay dazu.
-     Zwei Ebenen würden sich sonst überlagern. */
   return (
-    <GrafikProvider>
-      <HomePageContent backdrop={bctx?.backdrop ? <Backdrop backdrop={bctx.backdrop} /> : undefined} />
-      <GrafikEditor />
-    </GrafikProvider>
-  );
-}
-
-export default function GrafikEditorPage() {
-  vorhangLatchLoesen();
-  return (
-    <BackdropProvider>
-      <GrafikEditorInner />
-    </BackdropProvider>
+    <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif" }}>
+      <p>
+        Der Editor ist umgezogen → <Link href="/editor">/editor</Link>
+      </p>
+    </main>
   );
 }

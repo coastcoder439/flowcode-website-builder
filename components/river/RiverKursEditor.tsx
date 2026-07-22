@@ -640,9 +640,11 @@ export function RiverKursEditor() {
       <div className="rke-panel">
         <div className="rke-kopf">
           <strong>Fluss-Editor</strong>
-          <a className="rke-wechsel" href="/grafik-editor">
-            Grafiken →
-          </a>
+          {/* Kreuz-Link „Grafiken →" entfällt (Welle 2a): Fluss- und
+              Grafik-Editor liegen jetzt gemeinsam auf /editor, ein
+              Editor-Wechsel-Link zeigte nur auf die tote Trennung (Inventar
+              §4.3). Das Grafik-Panel ist auf derselben Route links direkt
+              sichtbar. */}
         </div>
         <div className="rke-zaehler">{nodes?.length ?? 0} Knoten</div>
 
