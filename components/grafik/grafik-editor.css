@@ -891,6 +891,20 @@
   cursor: not-allowed;
 }
 
+/* Welle 5c: „⟳ Neu einlesen" in der Ist-Stand-Gruppe — dezenter, voll breiter
+   Knopf. Die Buehne (aktive Puck-Seite) laedt asynchron; dieser Knopf holt die
+   Ist-Stand-Liste nach, falls die getaggten Bausteine spaet erscheinen. */
+.gre-panel button.gre-og-neu {
+  width: 100%;
+  margin-bottom: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.gre-panel button.gre-og-neu:hover {
+  opacity: 1;
+}
+
 /* Bühnen-Overlay: Rahmen um das ausgewählte Original-Element. Eigene Ebene,
    pointer-events:none, z-index UNTER dem Panel (60) — stört weder Panel-Klicks
    noch das Alt+Klick-Auswählen. Position setzt WebsiteOgOverlay pro Frame. */

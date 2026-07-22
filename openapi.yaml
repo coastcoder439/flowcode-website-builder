@@ -98,6 +98,13 @@ paths:
                   version: { type: integer }
                   data: { $ref: "#/components/schemas/PuckData" }
                   anim: { $ref: "#/components/schemas/SeitenAnim" }
+                  styles:
+                    type: array
+                    items: { type: string }
+                    description: >-
+                      Welle 5a — uebernommene Stylesheet-URLs (public/import/<slug>/css/…),
+                      falls die Seite welche hat. Bühne/Puck-Render/Vorschau injizieren
+                      sie gescoped.
         "400": { $ref: "#/components/responses/Ungueltig" }
         "403": { $ref: "#/components/responses/FremderUrsprung" }
         "404": { $ref: "#/components/responses/NichtGefunden" }
@@ -136,6 +143,14 @@ paths:
                     Animators ueber dieser Seite). Gesetzt → wird geschrieben;
                     weggelassen → ein bereits an der Seite haengendes anim bleibt
                     erhalten (ein reiner Daten-Speichervorgang loescht es nicht).
+                styles:
+                  type: array
+                  items: { type: string }
+                  description: >-
+                    Welle 5a — uebernommene Stylesheet-URLs (nur root-relative
+                    /import/…-Pfade erlaubt). Gleiche Erhaltungs-Semantik wie
+                    anim: gesetzt → wird geschrieben; weggelassen → bestehendes
+                    styles bleibt erhalten.
       responses:
         "200":
           description: Geschrieben
@@ -246,6 +261,8 @@ paths:
         hierueber als echte Datei unter public/import/<slug>/<name>. Guards wie
         /api/assets aktion=schreibe: Origin-Gate, Pfad-Guards (kein Ausbruch aus
         public/import/), Groessenlimit (8 MB), Endungs-Whitelist (Bild).
+        Welle 5a: zusaetzlich .css erlaubt (dann data:text/css und Ablage unter
+        public/import/<slug>/css/) — Endung↔MIME sind eng gekoppelt.
       requestBody:
         required: true
         content:
@@ -257,8 +274,8 @@ paths:
                 slug: { $ref: "#/components/schemas/SeitenName" }
                 name:
                   type: string
-                  description: Reiner Ziel-Dateiname mit Bild-Endung.
-                dataUrl: { type: string, description: "data:image/...;base64,..." }
+                  description: Reiner Ziel-Dateiname mit Bild- oder .css-Endung.
+                dataUrl: { type: string, description: "data:image/...;base64,... oder data:text/css;base64,... (Welle 5a)" }
       responses:
         "200":
           description: Geschrieben

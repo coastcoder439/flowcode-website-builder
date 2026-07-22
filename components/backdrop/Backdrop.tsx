@@ -34,6 +34,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Render, type Data } from "@puckeditor/core";
 import { config } from "@/app/puck/puck.config";
+import { GescopteSeitenStyles } from "@/components/import/SeitenStyles";
 import type { Backdrop as BackdropDaten } from "./backdrop-types";
 import { ordnerBereitstellen, ordnerHolen } from "./ordner-serve";
 import "./backdrop.css";
@@ -189,6 +190,8 @@ type PuckStatus = "laedt" | "bereit" | "leer" | "fehler";
 function BackdropPuckSeite({ name }: { name: string }) {
   const [status, setStatus] = useState<PuckStatus>("laedt");
   const [data, setData] = useState<Data | null>(null);
+  /* Welle 5a: uebernommene Stylesheet-URLs der Seite — gescoped auf die Bühne. */
+  const [styles, setStyles] = useState<string[]>([]);
 
   useEffect(() => {
     let tot = false;
@@ -203,8 +206,9 @@ function BackdropPuckSeite({ name }: { name: string }) {
           if (!tot) setStatus("fehler");
           return;
         }
-        const json = (await res.json()) as { data?: Data };
+        const json = (await res.json()) as { data?: Data; styles?: string[] };
         if (tot) return;
+        setStyles(Array.isArray(json.styles) ? json.styles : []);
         if (!json.data || json.data.content.length === 0) {
           setData(json.data ?? null);
           setStatus("leer");
@@ -233,6 +237,9 @@ function BackdropPuckSeite({ name }: { name: string }) {
   }
   return (
     <div className="hg-backdrop-puck" data-fc-puck-buehne>
+      {/* Welle 5a: uebernommene Seiten-Styles, per @scope auf diesen Container
+          begrenzt (leert sich selbst, wenn die Seite keine styles hat). */}
+      <GescopteSeitenStyles urls={styles} selektor="[data-fc-puck-buehne]" />
       {data ? <Render config={config} data={data} /> : null}
       {status === "leer" && (
         <div className="hg-backdrop-hinweis">Seite „{name}“ hat noch keine Bausteine.</div>
@@ -242,6 +249,14 @@ function BackdropPuckSeite({ name }: { name: string }) {
 }
 
 export function Backdrop({ backdrop }: { backdrop: BackdropDaten }) {
+  if (backdrop.art === "demo-landing") {
+    /* Sentinel (Welle 5b): die Demo-Landing ist KEIN eigener Backdrop-Render —
+       der Animator soll dafuer die echte WEE-Landing zeigen (backdrop-Prop
+       undefined). EditorInner faengt "demo-landing" bereits ab, bevor <Backdrop>
+       gerendert wird; diese Guard verhindert nur den sonst leeren HTML-Frame,
+       falls der Sentinel doch einmal hier landet. */
+    return null;
+  }
   if (backdrop.art === "bild") {
     return <img src={backdrop.quelle} alt="" className="hg-backdrop-bild" />;
   }

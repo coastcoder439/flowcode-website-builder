@@ -27,12 +27,19 @@ import { GrafikInspector } from "./GrafikInspector";
 import { GrafikKeyframeTimeline } from "./GrafikKeyframeTimeline";
 import { SeiteTab } from "./GrafikSeiteTab";
 import { GrafikTutorial, HilfeIcon, tutorialAlsGesehenMerken, tutorialNochNichtGesehen } from "./GrafikHilfe";
+import {
+  HilfeMenue,
+  ProduktTutorial,
+  produktTutorialAlsGesehenMerken,
+  produktTutorialNochNichtGesehen,
+} from "./ProduktTutorial";
 import { GrafikExportPanel } from "./GrafikExportPanel";
 import { useFlussObjekt } from "@/components/river/FlussObjektContext";
 import { FlussObjektBild } from "@/components/river/FlussObjektBild";
 import { ProfileSektion } from "@/components/river/sektionen/ProfileSektion";
 import { BackdropAuswahl } from "@/components/backdrop/BackdropAuswahl";
 import { useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { useAktiveSeite } from "@/lib/aktive-seite";
 import {
   WebsiteOgEbene,
   WebsiteOgObjekt,
@@ -383,6 +390,16 @@ export function GrafikEditor() {
   const [ogListe, setOgListe] = useState<OgEintrag[]>([]);
   const [ogAuswahl, setOgAuswahl] = useState<string | null>(null);
   const [ogStatus, setOgStatus] = useState("");
+  /* Welle 5b: die aktive Website ist die Default-Buehne des Animators (statt
+     der WEE-Demo-Landing, s. app/editor/page.tsx). Der Name selbst wird hier
+     NICHT verarbeitet — er dient nur als Rescan-Ausloeser: wechselt die aktive
+     Seite, montiert die Buehne neu und der Ist-Stand muss frisch eingelesen
+     werden (Welle 5c, s. OG-Scan-Effekt unten). */
+  const aktiveSeite = useAktiveSeite();
+  /* Welle 5c: manueller Rescan der Ist-Stand-Liste („Neu einlesen"). Die Buehne
+     (Puck-Seite) laedt asynchron; erhoeht der Knopf diesen Zaehler, laeuft der
+     OG-Scan-Effekt erneut. */
+  const [ogNeuEinlesenNonce, setOgNeuEinlesenNonce] = useState(0);
   const [reiter, setReiter] = useState<Reiter>("bibliothek");
   const [setups, setSetups] = useState<Record<string, GrafikSetup>>({});
   /** Abbilder, die wirklich auf der Platte liegen (abbilder/*.json via
@@ -394,6 +411,14 @@ export function GrafikEditor() {
   /** Einstiegs-Tutorial: offen beim allerersten Besuch (s. Effekt unten) UND
    *  jederzeit über den „? Hilfe"-Knopf im Panel-Kopf wieder aufrufbar. */
   const [tutorialOffen, setTutorialOffen] = useState(false);
+  /** Produkt-Onboarding (Welle 5d, §10/5d): eigener Latch, laeuft beim ersten
+   *  Besuch VOR dem Animator-Tutorial und ist danach ueber das „?"-Kopf-Menue
+   *  einzeln aufrufbar (s. ProduktTutorial.tsx). */
+  const [produktTutorialOffen, setProduktTutorialOffen] = useState(false);
+  /** Merkt, dass das Produkt-Tutorial gerade als AUTOMATISCHE Erst-Besuch-Kette
+   *  laeuft — dann folgt nach dem Schliessen das Animator-Tutorial. Bei manuellem
+   *  Aufruf ueber das Kopf-Menue bleibt es aus (kein ungewolltes Nachladen). */
+  const produktAutoKetteRef = useRef(false);
   const [scrollY, setScrollY] = useState(0);
   /** true, solange eine Datei über der Seite schwebt (Drop-Hinweis). */
   const [dropAktiv, setDropAktiv] = useState(false);
@@ -610,10 +635,19 @@ export function GrafikEditor() {
   }, []);
 
   /* Tutorial beim ALLERERSTEN Besuch automatisch zeigen (Merker in
-     localStorage, s. GrafikHilfe.tsx) — danach nie wieder von selbst, nur
-     noch über den Kopf-Knopf. */
+     localStorage) — danach nie wieder von selbst, nur noch über den
+     Kopf-Knopf. Reihenfolge (Welle 5d, §10/5d): das Produkt-Tutorial läuft
+     VOR dem Animator-Tutorial. Ist es noch nicht gesehen, öffnet es zuerst und
+     merkt sich die AUTO-Kette (produktAutoKetteRef); das Animator-Tutorial
+     folgt dann beim Schließen. Ist das Produkt-Tutorial schon gesehen, greift
+     unverändert die bisherige Animator-Auto-Anzeige. */
   useEffect(() => {
-    if (tutorialNochNichtGesehen()) setTutorialOffen(true);
+    if (produktTutorialNochNichtGesehen()) {
+      produktAutoKetteRef.current = true;
+      setProduktTutorialOffen(true);
+    } else if (tutorialNochNichtGesehen()) {
+      setTutorialOffen(true);
+    }
   }, []);
 
   /** Schließen merkt IMMER "gesehen" — egal ob per Knopf, Esc oder Klick auf
@@ -621,6 +655,19 @@ export function GrafikEditor() {
   const tutorialSchliessen = () => {
     tutorialAlsGesehenMerken();
     setTutorialOffen(false);
+  };
+
+  /** Produkt-Tutorial schließen: Latch setzen; lief es als automatische
+   *  Erst-Besuch-Kette, folgt jetzt das Animator-Tutorial (falls auch das noch
+   *  nicht gesehen wurde). Beim manuellen Aufruf über das Kopf-Menue bleibt die
+   *  Kette aus. */
+  const produktTutorialSchliessen = () => {
+    produktTutorialAlsGesehenMerken();
+    setProduktTutorialOffen(false);
+    if (produktAutoKetteRef.current) {
+      produktAutoKetteRef.current = false;
+      if (tutorialNochNichtGesehen()) setTutorialOffen(true);
+    }
   };
 
   const grafiken = ctx?.grafiken ?? [];
@@ -708,31 +755,42 @@ export function GrafikEditor() {
 
   /* --- Website-OG (AP-D, Welle 3a) ------------------------------------- */
 
-  /* Ist-Stand-Liste beim Start UND bei Backdrop-Wechsel neu aus dem DOM lesen.
-     Per rAF, damit die Landing (bzw. der neue Backdrop) erst gerendert ist.
+  /* Ist-Stand-Liste beim Start, bei Backdrop-Wechsel, bei Wechsel der aktiven
+     Website (Welle 5b/5c) UND auf „Neu einlesen" (manueller Nonce) neu aus dem
+     DOM lesen. Per rAF, damit die Landing bzw. die neue Bühne erst gerendert ist.
      Findet der erste Frame noch nichts (dev-Hydration hängt die Landing-Sektionen
-     minimal später ein), wird ein paar Frames lang nachgefasst — im
-     Backdrop-Modus (dort gibt es legitim keine getaggten Elemente) läuft das
-     einfach ins Leere aus. */
+     minimal später ein; die Puck-Seiten-Bühne lädt sogar asynchron per fetch +
+     <Render>), wird ein paar Sekunden lang nachgefasst — im Bild-Backdrop-Modus
+     (dort gibt es legitim keine getaggten Elemente) läuft das einfach ins Leere
+     aus. Reicht das nicht (sehr langsames Laden), holt der Knopf „Neu einlesen"
+     in der Ist-Stand-Gruppe die Liste jederzeit nach. */
   useEffect(() => {
     let abbruch = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const start = performance.now();
-    /* Letzter gesetzter Umfang — der Zustand wird nur bei ECHTER Änderung
-       geschrieben, damit der Poll im Backdrop-Modus (dauerhaft 0 getaggte
-       Elemente) keine sinnlosen Re-Renders auslöst. */
-    let gesetzt = -1;
+    /* Zuletzt gesetzte Ist-Stand-SIGNATUR (Menge der ids, nicht bloß die
+       Anzahl): die Puck-Seiten-Bühne lädt asynchron per fetch + <Render> und
+       TAUSCHT die getaggten Elemente aus (WEE-Landing → geladene aktive Seite).
+       Würde nur die Anzahl verglichen, bliebe eine gleich lange, aber inhaltlich
+       VERALTETE Liste stehen (frühere Landing-Einträge statt Bens Bausteinen) —
+       ein Klick darauf fände sein Element dann nicht mehr. Deshalb über die
+       id-Signatur vergleichen. Der Zustand wird nur bei ECHTER Änderung
+       geschrieben (Backdrop-Bild-Modus: dauerhaft leer → keine Re-Renders). */
+    let signatur = " ";
     const scan = () => {
       if (abbruch) return;
       const liste = ogScannen();
-      if (liste.length !== gesetzt) {
-        gesetzt = liste.length;
+      const neueSignatur = liste.map((o) => o.id).join("|");
+      if (neueSignatur !== signatur) {
+        signatur = neueSignatur;
         setOgListe(liste);
       }
-      /* Solange noch nichts gefunden wurde, kurz nachfassen — die Landing hängt
-         sich per Hydration/Vorhang-Umschaltung minimal später ein. Deckel bei
-         4 s (danach ist entweder alles da oder es ist Backdrop-Modus). */
-      if (liste.length === 0 && performance.now() - start < 4000) {
+      /* Das ganze 4-s-Fenster über nachfassen (nicht nur solange leer), damit
+         der Wechsel Landing → asynchron gerenderte Puck-Seite auch dann erfasst
+         wird, wenn die alte Liste noch kurz im DOM stand. Im Bild-Backdrop-
+         Modus (dauerhaft 0 getaggte Elemente) läuft es leer aus; die Signatur
+         bleibt konstant, es entstehen keine Re-Renders. */
+      if (performance.now() - start < 4000) {
         timer = setTimeout(scan, 150);
       }
     };
@@ -741,7 +799,15 @@ export function GrafikEditor() {
       abbruch = true;
       if (timer) clearTimeout(timer);
     };
-  }, [backdropCtx?.backdrop]);
+  }, [backdropCtx?.backdrop, aktiveSeite, ogNeuEinlesenNonce]);
+
+  /* Welle 5c: fällt das aktuell gewählte OG-Element aus der frisch eingelesenen
+     Liste (Bühnen-Wechsel — die veralteten Landing-Einträge verschwinden), die
+     Auswahl leeren. Sonst zeigten Objekt-Reiter und Bühnen-Overlay einen
+     „nicht gefunden"-Rest eines nicht mehr gerenderten Elements. */
+  useEffect(() => {
+    if (ogAuswahl && !ogListe.some((o) => o.id === ogAuswahl)) setOgAuswahl(null);
+  }, [ogListe, ogAuswahl]);
 
   /* Gegenseitige Ausschließlichkeit (Spec §8/3a): sobald eine Grafik
      ausgewählt ODER der Fluss fokussiert ist, verliert die OG-Auswahl. Der
@@ -2527,13 +2593,13 @@ export function GrafikEditor() {
             ↷
           </button>
         </div>
-        <button
-          className="gre-hilfe-knopf"
-          onClick={() => setTutorialOffen(true)}
-          title="Anleitung erneut anzeigen"
-        >
-          ? Hilfe
-        </button>
+        {/* Welle 5d (§10/5d): Der frühere einzelne „? Hilfe"-Knopf öffnete nur
+            das Animator-Tutorial. Jetzt ein kleines Auswahl-Menue — Produkt-Tour
+            ODER Animator-Anleitung einzeln aufrufbar (s. ProduktTutorial.tsx). */}
+        <HilfeMenue
+          onProdukt={() => setProduktTutorialOffen(true)}
+          onAnimator={() => setTutorialOffen(true)}
+        />
         {/* Kreuz-Link „← Fluss" entfällt (Welle 2a): Grafik- und Fluss-Editor
             liegen jetzt gemeinsam auf /editor, ein Editor-Wechsel-Link zeigte
             nur auf die tote Trennung (Inventar §4.3). Das Fluss-Panel ist auf
@@ -2928,6 +2994,19 @@ export function GrafikEditor() {
             liste={ogListe}
             auswahl={ogAuswahl}
             onWaehlen={(id) => ogWaehlen(id, true)}
+            /* Welle 5c: die Bühne (aktive Puck-Seite) lädt asynchron — der
+               Knopf liest die Ist-Stand-Liste bei Bedarf neu ein. */
+            onNeuEinlesen={() => setOgNeuEinlesenNonce((n) => n + 1)}
+            /* Die Bühne trägt taggbare Elemente, wenn eine Seite darauf liegt:
+               ein Puck-Seiten-Backdrop, ODER (kein expliziter Backdrop) die
+               aktive Website als Default-Bühne, ODER gar kein Backdrop = Landing.
+               Nur Bild-/HTML-/Ordner-Backdrops können nie taggen → dort bleibt
+               die leere Gruppe (samt „Neu einlesen") aus. */
+            buehneKannTaggen={
+              !backdropCtx?.backdrop ||
+              backdropCtx.backdrop.art === "puck-seite" ||
+              backdropCtx.backdrop.art === "demo-landing"
+            }
           />
         </>
       )}
@@ -3570,6 +3649,9 @@ export function GrafikEditor() {
         grafik-editor.css). Nur bei OG-Auswahl. */}
     {ogAuswahl && <WebsiteOgOverlay ogId={ogAuswahl} />}
     <GrafikTutorial offen={tutorialOffen} onSchliessen={tutorialSchliessen} />
+    {/* Welle 5d (§10/5d): Produkt-Onboarding — eigener Latch, läuft beim ersten
+        Besuch VOR dem Animator-Tutorial. */}
+    <ProduktTutorial offen={produktTutorialOffen} onSchliessen={produktTutorialSchliessen} />
     </>
   );
 }

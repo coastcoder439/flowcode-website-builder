@@ -31,6 +31,7 @@ import {
   listeHtmlDateien,
   ordnerApiDa,
   sammleImportDateien,
+  uebernimmStyles,
   waehleImportOrdner,
 } from "@/lib/import/ordner-import";
 import type { OrdnerHandle } from "@/components/backdrop/ordner-serve";
@@ -47,6 +48,18 @@ interface Analyse {
   data: Data;
   statistik: ImportStatistik;
   flags: ImportFlag[];
+  /** Welle 5a: uebernommene Stylesheet-URLs (leer, wenn Styles nicht
+   *  uebernommen wurden). */
+  styles: string[];
+}
+
+/** Welle 5a: erkennt eine eigene GEBAUTE Next-Seite an der `_next/`-Struktur im
+ *  Ordner (out/). Dann ist „Styles uebernehmen" sinnvoll und per Default an. */
+function hatNextStruktur(map: Map<string, File>): boolean {
+  for (const pfad of map.keys()) {
+    if (pfad === "_next" || pfad.startsWith("_next/") || pfad.includes("/_next/")) return true;
+  }
+  return false;
 }
 
 /** Client-seitiger Slug — der Server saeubert final (saubererName). Kleiner,
@@ -71,6 +84,9 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
   const [speichert, setSpeichert] = useState(false);
+  /* Welle 5a: „Styles der Seite uebernehmen (eigene Seite)". Default AN, wenn
+     der Ordner eine _next/-Struktur hat (eine eigene gebaute Next-Seite). */
+  const [styleUebernehmen, setStyleUebernehmen] = useState(false);
   const handleRef = useRef<OrdnerHandle | null>(null);
 
   /* --- Schritt 1: Ordner waehlen --- */
@@ -102,8 +118,14 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
       setHtmlDateien(html);
       setGewaehlteDatei(html[0]);
       setAnalyse(null);
+      /* Eigene gebaute Seite (out/ mit _next/) → Styles-Uebernahme vorschlagen. */
+      const eigeneSeite = hatNextStruktur(map);
+      setStyleUebernehmen(eigeneSeite);
       setName((n) => n || slugify(handle!.name));
-      setStatus(`${map.size} Datei${map.size === 1 ? "" : "en"} gelesen, ${html.length} HTML-Datei${html.length === 1 ? "" : "en"}.`);
+      setStatus(
+        `${map.size} Datei${map.size === 1 ? "" : "en"} gelesen, ${html.length} HTML-Datei${html.length === 1 ? "" : "en"}` +
+          (eigeneSeite ? " · eigene gebaute Seite erkannt (Styles-Uebernahme vorgeschlagen)." : "."),
+      );
     } catch {
       setFehler("Ordner konnte nicht gelesen werden.");
       setStatus("");
@@ -125,10 +147,23 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
     setStatus("Analysiere HTML …");
     try {
       const roh = await dateien.get(gewaehlteDatei)!.text();
-      const bericht = htmlZuPuck(roh, { idPraefix: slug });
+      const bericht = htmlZuPuck(roh, { idPraefix: slug, styleUebernehmen });
       /* Bilder gegen den Ordner aufloesen (klein -> Data-URL, gross -> Upload). */
       const { data, flags } = await aufloeseBilderAusOrdner(bericht, dateien, slug);
-      setAnalyse({ data, statistik: bericht.statistik, flags: [...bericht.flags, ...flags] });
+      /* Welle 5a: Styles uebernehmen (CSS-Dateien kopieren + Inline sammeln). */
+      let styles: string[] = [];
+      let stilFlags: ImportFlag[] = [];
+      if (styleUebernehmen) {
+        const uebernahme = await uebernimmStyles(bericht, dateien, slug);
+        styles = uebernahme.styles;
+        stilFlags = uebernahme.flags;
+      }
+      setAnalyse({
+        data,
+        statistik: bericht.statistik,
+        flags: [...bericht.flags, ...flags, ...stilFlags],
+        styles,
+      });
       setStatus("Analyse fertig — Bericht prüfen, dann speichern.");
     } catch {
       setFehler("Analyse fehlgeschlagen.");
@@ -152,7 +187,13 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
       const res = await fetch("/api/puck-seite/speichere", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: slug, data: analyse.data }),
+        body: JSON.stringify({
+          name: slug,
+          data: analyse.data,
+          /* Welle 5a: uebernommene Styles mitspeichern (leer → Feld weggelassen,
+             damit an einer bestehenden Seite nichts ueberschrieben wird). */
+          ...(analyse.styles.length > 0 ? { styles: analyse.styles } : {}),
+        }),
       });
       const json = (await res.json().catch(() => null)) as { name?: string; fehler?: string } | null;
       if (res.status === 409) {
@@ -176,7 +217,12 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
       <div className="seiten-verwaltung-innen">
         <div className="seiten-kopf">
           <h1 id="seiten-import-titel">Website importieren</h1>
-          <button type="button" className="seiten-btn" onClick={onAbbruch}>
+          <button
+            type="button"
+            className="seiten-btn"
+            onClick={onAbbruch}
+            title="Import abbrechen und zur Seiten-Liste zurueckkehren"
+          >
             Zurück zur Liste
           </button>
         </div>
@@ -194,6 +240,7 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
             className="seiten-btn seiten-btn--primaer"
             onClick={() => void waehleOrdner()}
             disabled={laeuft || speichert}
+            title="Ordner mit der Website waehlen (Chrome/Edge) und die HTML-Dateien einlesen"
           >
             📁 Ordner wählen
           </button>
@@ -240,10 +287,28 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
                 className="seiten-btn seiten-btn--primaer"
                 onClick={() => void analysiere()}
                 disabled={laeuft || speichert}
+                title="HTML zerlegen und den Import-Bericht (was wird zu was, was entfaellt) erzeugen"
               >
                 {laeuft ? "Analysiert …" : "Analysieren"}
               </button>
             </div>
+
+            {/* Welle 5a: Styles-Uebernahme-Schalter */}
+            <label className="seiten-import-style-schalter">
+              <input
+                type="checkbox"
+                checked={styleUebernehmen}
+                onChange={(e) => {
+                  setStyleUebernehmen(e.target.checked);
+                  setAnalyse(null);
+                }}
+              />
+              <span>
+                Styles der Seite übernehmen (eigene Seite) — kopiert die CSS-Dateien der Seite und
+                bindet sie gescoped auf die Bühne ein. Nur für <strong>selbst gebaute</strong> Seiten
+                sinnvoll (same-origin CSS); für fremde Websites aus lassen.
+              </span>
+            </label>
           </>
         )}
 
@@ -275,6 +340,9 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
               <li>
                 <b>{analyse.statistik.htmlBloecke}</b> HTML-Blöcke
               </li>
+              <li>
+                <b>{analyse.styles.length}</b> Styles übernommen
+              </li>
             </ul>
 
             {analyse.flags.length > 0 ? (
@@ -299,10 +367,17 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
                 className="seiten-btn seiten-btn--primaer"
                 onClick={() => void speichere()}
                 disabled={speichert}
+                title="Zerlegte Seite als neue Seiten-Datei speichern und im Editor oeffnen"
               >
                 {speichert ? "Speichert …" : "Als Seite speichern"}
               </button>
-              <button type="button" className="seiten-btn" onClick={onAbbruch} disabled={speichert}>
+              <button
+                type="button"
+                className="seiten-btn"
+                onClick={onAbbruch}
+                disabled={speichert}
+                title="Import verwerfen und zur Seiten-Liste zurueckkehren"
+              >
                 Abbrechen
               </button>
             </div>

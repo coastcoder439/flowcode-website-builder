@@ -71,6 +71,60 @@ const TYP_ICON: Record<OgTyp, string> = {
   hintergrund: "▨",
 };
 
+/* ------------------------------------------------------------------ */
+/* Gruppierung: Landing-Sektion ODER Puck-Baustein-Typ (Welle 5c)      */
+/* ------------------------------------------------------------------ */
+
+/** Baustein-Typ-Gruppen der AKTIVEN Puck-Seite (Welle 5c, Spec §10/5c:
+ *  „Gruppierung: statt Landing-Sektionen sinnvoll nach Baustein-Typ"). Die
+ *  Bausteine der geladenen Website tragen `data-og-id="puck:<props.id>"` (s.
+ *  app/puck/puck.config.tsx) — dort gibt es keine sprechenden Landing-Sektionen,
+ *  deshalb buendeln wir sie nach ihrem OG-Typ statt nach dem ersten id-Segment
+ *  (das waere pauschal „puck"). */
+const PUCK_GRUPPE_LABEL: Record<OgTyp, string> = {
+  sektion: "Sektionen",
+  text: "Texte",
+  bild: "Bilder",
+  svg: "Grafiken",
+  deko: "Deko / HTML",
+  hintergrund: "Hintergruende",
+};
+
+/** Ob eine data-og-id von einem Puck-Baustein stammt (Buehne = geladene aktive
+ *  Website). Landing-Elemente tragen „sektion:element:index", Puck-Bausteine
+ *  „puck:<props.id>" (s. puck.config.tsx). */
+function istPuckId(id: string): boolean {
+  return id.startsWith("puck:");
+}
+
+/** Lesbarer Kurzname eines Puck-Bausteins. Die generierten props.id sind lang
+ *  (Import: `imp-<slug>-sektion-3`, native: `ShapeAccent-1`); fuer die Liste
+ *  zeigen wir den sprechenden Schwanz (Typ + Nummer), der volle Wert steht
+ *  weiterhin im title-Attribut des Eintrags. */
+function puckAnzeigeName(eintrag: OgEintrag): string {
+  const roh = eintrag.element || eintrag.id;
+  const teile = roh.split("-").filter(Boolean);
+  return teile.length >= 2 ? teile.slice(-2).join("-") : roh;
+}
+
+/** Gruppen-Schluessel, -Ueberschrift und Anzeigename eines Eintrags — Puck-
+ *  Bausteine nach Typ, Landing-Elemente wie bisher nach Sektion. EIN Ort fuer
+ *  die Fallunterscheidung, damit Liste und Gruppierung nicht auseinanderlaufen. */
+function gruppierung(e: OgEintrag): { schluessel: string; label: string; name: string } {
+  if (istPuckId(e.id)) {
+    return {
+      schluessel: `puck:${e.typ}`,
+      label: PUCK_GRUPPE_LABEL[e.typ] ?? e.typ,
+      name: puckAnzeigeName(e),
+    };
+  }
+  return {
+    schluessel: e.sektion,
+    label: SEKTION_LABEL[e.sektion] ?? e.sektion,
+    name: e.element || e.sektion,
+  };
+}
+
 /** Liest ALLE getaggten Landing-Elemente aus dem DOM (Dokument-Reihenfolge =
  *  Lesereihenfolge). Stabil, weil die data-og-id sprechend + fix vergeben ist
  *  (keine Zufalls-IDs, s. HomePageContent). Wird beim Editor-Start UND bei
@@ -121,26 +175,47 @@ interface WebsiteOgEbeneProps {
   liste: OgEintrag[];
   auswahl: string | null;
   onWaehlen: (id: string) => void;
+  /** Welle 5c: erneut aus dem DOM scannen. Die Bühne (aktive Puck-Seite) lädt
+   *  asynchron; wenn die getaggten Bausteine spät erscheinen (oder die aktive
+   *  Website gewechselt wurde), holt dieser Knopf die Ist-Stand-Liste nach.
+   *  Fehlt der Callback, wird der Knopf nicht gezeigt. */
+  onNeuEinlesen?: () => void;
+  /** Welle 5c: ob die aktuelle Bühne überhaupt taggbare Elemente tragen kann
+   *  (Landing oder geladene Seite) — dann zeigen wir die Gruppe auch LEER, damit
+   *  „Neu einlesen" für eine noch ladende Seiten-Bühne erreichbar bleibt. Bei
+   *  Bild-/HTML-/Ordner-Backdrops (nie getaggt) bleibt die leere Gruppe verborgen. */
+  buehneKannTaggen?: boolean;
 }
 
-/** Eingeklappte Gruppe im Reiter „Ebenen": alle getaggten Landing-Elemente,
- *  nach Sektion gruppiert. Klick auf einen Eintrag = OG-Auswahl (Highlight +
- *  hinscrollen + Objekt-Reiter). */
-export function WebsiteOgEbene({ liste, auswahl, onWaehlen }: WebsiteOgEbeneProps) {
-  if (liste.length === 0) return null;
+/** Eingeklappte Gruppe im Reiter „Ebenen": alle getaggten Elemente der Bühne,
+ *  gruppiert — Landing-Elemente nach Sektion, Puck-Bausteine der geladenen
+ *  aktiven Website nach Baustein-Typ (s. gruppierung, Spec §10/5c). Klick auf
+ *  einen Eintrag = OG-Auswahl (Highlight + hinscrollen + Objekt-Reiter). */
+export function WebsiteOgEbene({
+  liste,
+  auswahl,
+  onWaehlen,
+  onNeuEinlesen,
+  buehneKannTaggen,
+}: WebsiteOgEbeneProps) {
+  /* Leer UND die Bühne kann nichts tragen (Bild-/HTML-/Ordner-Backdrop) → wie
+     bisher gar nicht zeigen. Sonst (Elemente vorhanden ODER Seiten-Bühne, die
+     evtl. noch lädt) die Gruppe rendern — inkl. „Neu einlesen". */
+  if (liste.length === 0 && !buehneKannTaggen) return null;
 
-  /* Nach Sektion gruppieren, Reihenfolge des ersten Auftretens beibehalten
-     (= Dokument-/Lesereihenfolge aus ogScannen). */
-  const gruppen: { sektion: string; eintraege: OgEintrag[] }[] = [];
+  /* Reihenfolge des ersten Auftretens der Gruppe beibehalten (= Dokument-/
+     Lesereihenfolge aus ogScannen). Anzeigename je Eintrag EINMAL berechnen. */
+  const gruppen: { schluessel: string; label: string; eintraege: { e: OgEintrag; name: string }[] }[] = [];
   const index = new Map<string, number>();
   for (const e of liste) {
-    let i = index.get(e.sektion);
+    const g = gruppierung(e);
+    let i = index.get(g.schluessel);
     if (i === undefined) {
       i = gruppen.length;
-      index.set(e.sektion, i);
-      gruppen.push({ sektion: e.sektion, eintraege: [] });
+      index.set(g.schluessel, i);
+      gruppen.push({ schluessel: g.schluessel, label: g.label, eintraege: [] });
     }
-    gruppen[i].eintraege.push(e);
+    gruppen[i].eintraege.push({ e, name: g.name });
   }
 
   return (
@@ -149,35 +224,52 @@ export function WebsiteOgEbene({ liste, auswahl, onWaehlen }: WebsiteOgEbeneProp
         Website (Ist-Stand) <span className="gre-gruppe-anzahl">({liste.length})</span>
       </summary>
       <div className="gre-hilfe">
-        Was schon auf der Original-Seite steht. Klick markiert das Element auf der Bühne und zeigt
-        es im Reiter „Bild". Alt+Klick direkt auf der Seite wählt es ebenfalls aus.
+        Was schon auf der Bühne liegt — die Sektionen der Original-Seite bzw. die Bausteine deiner
+        geladenen Website. Klick markiert das Element auf der Bühne und zeigt es im Reiter „Bild".
+        Alt+Klick direkt auf der Seite wählt es ebenfalls aus.
       </div>
-      {gruppen.map((g) => (
-        <details key={g.sektion} className="gre-og-sektion" open>
-          <summary>
-            {SEKTION_LABEL[g.sektion] ?? g.sektion}{" "}
-            <span className="gre-gruppe-anzahl">({g.eintraege.length})</span>
-          </summary>
-          <div className="gre-og-liste">
-            {g.eintraege.map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                className={`gre-og-eintrag${auswahl === e.id ? " gre-tausch-aktiv" : ""}`}
-                aria-pressed={auswahl === e.id}
-                onClick={() => onWaehlen(e.id)}
-                title={`${e.id} (${e.typ})`}
-              >
-                <span className="gre-og-typ" aria-hidden="true">
-                  {TYP_ICON[e.typ]}
-                </span>
-                <span className="gre-og-name">{e.element || e.sektion}</span>
-                <span className="gre-og-typlabel">{e.typ}</span>
-              </button>
-            ))}
-          </div>
-        </details>
-      ))}
+      {onNeuEinlesen && (
+        <button
+          type="button"
+          className="gre-og-neu"
+          onClick={onNeuEinlesen}
+          title="Ist-Stand neu aus der Bühne einlesen (nach dem Laden/Wechsel der aktiven Website)"
+        >
+          ⟳ Neu einlesen
+        </button>
+      )}
+      {liste.length === 0 ? (
+        <div className="gre-hilfe">
+          Noch nichts getaggt gefunden. Ist gerade eine eigene Website als Bühne geladen, lädt sie
+          evtl. noch — dann „⟳ Neu einlesen".
+        </div>
+      ) : (
+        gruppen.map((g) => (
+          <details key={g.schluessel} className="gre-og-sektion" open>
+            <summary>
+              {g.label} <span className="gre-gruppe-anzahl">({g.eintraege.length})</span>
+            </summary>
+            <div className="gre-og-liste">
+              {g.eintraege.map(({ e, name }) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  className={`gre-og-eintrag${auswahl === e.id ? " gre-tausch-aktiv" : ""}`}
+                  aria-pressed={auswahl === e.id}
+                  onClick={() => onWaehlen(e.id)}
+                  title={`${e.id} (${e.typ})`}
+                >
+                  <span className="gre-og-typ" aria-hidden="true">
+                    {TYP_ICON[e.typ]}
+                  </span>
+                  <span className="gre-og-name">{name}</span>
+                  <span className="gre-og-typlabel">{e.typ}</span>
+                </button>
+              ))}
+            </div>
+          </details>
+        ))
+      )}
     </details>
   );
 }
@@ -226,7 +318,15 @@ export function WebsiteOgObjekt({ eintrag, onInBuilder, status }: WebsiteOgObjek
     });
   }, [eintrag.id]);
 
-  const holbar = eintrag.typ === "bild" || eintrag.typ === "svg";
+  /* „In den Builder holen" ist möglich, sobald ein echtes übernehmbares Bild
+     erreichbar ist. Neben den direkt als bild|svg getaggten Landing-Elementen
+     zählt dazu ein enthaltenes <img> (masse.quelle ist genau dann gesetzt):
+     Bens importierte Seite taggt ganze HtmlBlock/Sektion-Container (og-typ
+     „deko"/„sektion"), NICHT die einzelnen Fotos darin — ohne diese
+     Inhalts-Prüfung erschiene der Knopf auf der ganzen geladenen Website nie.
+     Ein rein dekorativer Inline-SVG-Baustein (z.B. ShapeAccent, kein <img>)
+     bleibt bewusst nur-auswählbar — dort ist masse.quelle null. */
+  const holbar = eintrag.typ === "bild" || eintrag.typ === "svg" || masse?.quelle != null;
 
   return (
     <>
@@ -351,27 +451,38 @@ export function ogAlsGrafikErzeugen(eintrag: OgEintrag, naechstesZ: number): OgE
   if (!el) {
     return { fehler: `„${eintrag.element || eintrag.id}" nicht gefunden — evtl. gerade nicht sichtbar.` };
   }
-  const r = el.getBoundingClientRect();
-  if (r.width <= 0 || r.height <= 0) {
-    return { fehler: `„${eintrag.element || eintrag.id}" hat aktuell keine sichtbare Größe.` };
-  }
 
+  /* Quell-Element = das eigentliche Bild/SVG. Bei einem direkt getaggten
+     bild|svg-Element IST es el selbst; bei einem importierten HtmlBlock/
+     Sektion-Container, der ein <img> umschließt (Bens Seite taggt ganze Blöcke,
+     nicht die Einzelbilder), das enthaltene <img> — so landet die Kopie präzise
+     auf dem Bild statt auf dem ganzen Block. */
   let src: string | null = null;
   let name = eintrag.element || eintrag.sektion || "element";
+  let quellEl: Element = el;
   const img =
     el instanceof HTMLImageElement ? el : el.querySelector<HTMLImageElement>("img");
   if (img && (img.currentSrc || img.getAttribute("src"))) {
     src = img.currentSrc || img.getAttribute("src");
     name = (src ?? name).split("/").pop() ?? name;
+    quellEl = img;
   } else {
     const svg = el instanceof SVGSVGElement ? el : el.querySelector("svg");
-    if (svg) src = svgAlsDataUrl(svg as SVGSVGElement);
+    if (svg) {
+      src = svgAlsDataUrl(svg as SVGSVGElement);
+      quellEl = svg;
+    }
   }
   if (!src) {
     return { fehler: `„${eintrag.element || eintrag.id}" hat keine übernehmbare Bild-/SVG-Quelle.` };
   }
 
-  const deckkraft = parseFloat(getComputedStyle(el).opacity);
+  const r = quellEl.getBoundingClientRect();
+  if (r.width <= 0 || r.height <= 0) {
+    return { fehler: `„${eintrag.element || eintrag.id}" hat aktuell keine sichtbare Größe.` };
+  }
+
+  const deckkraft = parseFloat(getComputedStyle(quellEl).opacity);
   const kf: GrafikKeyframe = {
     scrollY: window.scrollY,
     x: r.left + r.width / 2 + window.scrollX,

@@ -74,31 +74,39 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
      stößt den Render-Effekt unten an, wenn sich die Map geändert hat. */
   const ankerMapRef = useRef<Map<string, number>>(new Map());
   const [ankerVersion, setAnkerVersion] = useState(0);
+  /* Anker-Map EINMAL bauen: die aktuelle Dokument-Oberkante jedes getaggten
+     [data-og-id]-Elements. Als useCallback herausgezogen (stabil), damit
+     NEBEN dem Mount/Resize/ResizeObserver-Effekt unten auch der Render-Tick
+     einen Neubau anstoßen kann — dort wird eine Layout-Verschiebung mitten in
+     der Seite (z.B. ein Anker-Baustein bekommt marginTop) über die
+     Dokumenthöhe erkannt, die weder ein resize-Event noch der Body-
+     ResizeObserver zuverlässig meldet (der Anker WANDERT, ohne seine eigene
+     Größe zu ändern). Liest nur Layout (kein Schreiben) → keine Reflow-
+     Rückkopplung. */
+  const ankerMapBauen = useCallback(() => {
+    const map = new Map<string, number>();
+    const sy = window.scrollY;
+    document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+      const id = el.getAttribute("data-og-id");
+      if (!id || map.has(id)) return;
+      const r = el.getBoundingClientRect();
+      map.set(id, r.top + sy);
+    });
+    ankerMapRef.current = map;
+    setAnkerVersion((v) => v + 1);
+  }, []);
   useEffect(() => {
     let raf = 0;
-    const bauen = () => {
-      const map = new Map<string, number>();
-      const sy = window.scrollY;
-      document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
-        const id = el.getAttribute("data-og-id");
-        if (!id || map.has(id)) return;
-        const r = el.getBoundingClientRect();
-        map.set(id, r.top + sy);
-      });
-      ankerMapRef.current = map;
-      setAnkerVersion((v) => v + 1);
-    };
     /* rAF-gedrosselt: mehrere Reflow-Events in einem Frame lösen nur EINEN
-       Neubau aus. bauen() liest nur Layout (kein Schreiben) → keine Reflow-
-       Rückkopplung über den ResizeObserver. */
+       Neubau aus. */
     const anstossen = () => {
       if (raf) return;
       raf = requestAnimationFrame(() => {
         raf = 0;
-        bauen();
+        ankerMapBauen();
       });
     };
-    bauen();
+    ankerMapBauen();
     window.addEventListener("resize", anstossen);
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(anstossen) : null;
     if (ro && document.body) ro.observe(document.body);
@@ -107,7 +115,7 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
       window.removeEventListener("resize", anstossen);
       ro?.disconnect();
     };
-  }, []);
+  }, [ankerMapBauen]);
 
   /* Stabile Callback-Fabrik: sonst bekaeme GrafikMedium bei jedem Render
      eine neue Funktion und wuerde seine Lottie-Instanz neu aufbauen. */
@@ -202,8 +210,28 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
 
     let raf = 0;
     let letzterY = -1;
+    /* Editor (ctx): erkennt Layout-Verschiebungen mitten in der Seite über die
+       Gesamt-Dokumenthöhe und baut die Anker-Map neu — bekommt ein verankerter
+       Baustein z.B. marginTop, wächst die Seite, ohne dass ein resize-Event
+       feuert oder der Body-ResizeObserver zuverlässig anschlägt (der Anker
+       wandert, ändert aber nicht seine eigene Größe). scrollHeight wird am
+       Tick-ANFANG gelesen (vor den Transform-/Opacity-Schreibern, die
+       ohnehin nur kompositiert werden) → kein erzwungener Reflow durch eigene
+       Writes. NUR im Editor, damit der Landing-Renderpfad lesefrei/unberührt
+       bleibt. */
+    let letzteDocH = -1;
     const tick = () => {
       const y = window.scrollY;
+      if (ctx) {
+        const docH = document.documentElement.scrollHeight;
+        if (letzteDocH === -1) letzteDocH = docH;
+        else if (docH !== letzteDocH) {
+          letzteDocH = docH;
+          /* Stößt einen Anker-Map-Neubau an (bumpt ankerVersion → dieser Effekt
+             läuft neu und backt die verankerten Positionen frisch). */
+          ankerMapBauen();
+        }
+      }
       /* Nur schreiben, wenn sich der Scroll wirklich geändert hat — spart
          Layout-Arbeit bei Stillstand. */
       if (y !== letzterY) {
@@ -218,7 +246,7 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
     /* ankerVersion: bei Layout-Reflow wurde die Anker-Map neu gebaut → hier
        neu backen, damit verankerte Grafiken an ihre aktualisierte Anker-
        Oberkante nachrücken. */
-  }, [liste, reduced, ctx, authoredDocH, ankerVersion]);
+  }, [liste, reduced, ctx, authoredDocH, ankerVersion, ankerMapBauen]);
 
   if (liste.length === 0) return null;
 

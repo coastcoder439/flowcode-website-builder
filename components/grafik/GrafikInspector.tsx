@@ -224,7 +224,11 @@ export function GrafikInspector({
               ⇕ Vertikal
             </button>
           </div>
-          <button type="button" onClick={() => setZuschneidenOffen(true)}>
+          <button
+            type="button"
+            onClick={() => setZuschneidenOffen(true)}
+            title="Ausschnitt aufziehen und als neues Bild übernehmen (Original bleibt in der Bibliothek)"
+          >
             ✂ Zuschneiden
           </button>
           {zuschneidenOffen && (
@@ -255,6 +259,7 @@ export function GrafikInspector({
             className="gre-inspector-vektor-knopf"
             onClick={onVektorisieren}
             disabled={vektorisiertLaeuft || freistellenLaeuft}
+            title="Rasterbild in eine Vektorgrafik (SVG) umwandeln — Ergebnis landet zusätzlich in der Bibliothek"
           >
             ⬡ In SVG umwandeln
           </button>
@@ -338,6 +343,7 @@ export function GrafikInspector({
             className="gre-inspector-vektor-knopf"
             onClick={onFreistellen}
             disabled={freistellenLaeuft || vektorisiertLaeuft}
+            title="Hintergrund automatisch entfernen (läuft lokal im Browser, ersetzt die Bildquelle)"
           >
             🪄 Freistellen
           </button>
@@ -353,28 +359,65 @@ export function GrafikInspector({
           <span>Datei-Aktionen</span>
         </div>
         <div className="gre-inspector-aktionen">
-          <button type="button" onClick={onTauschen}>
+          <button
+            type="button"
+            onClick={onTauschen}
+            title={
+              tauschAktiv
+                ? "Tausch abbrechen — keine zweite Ebene mehr wählen"
+                : "Datei mit einer anderen Ebene tauschen (Positionen bleiben) — danach die zweite Ebene anklicken"
+            }
+          >
             {tauschAktiv ? "⇄ Tausch abbrechen" : "⇄ Tauschen"}
           </button>
-          <button type="button" onClick={onDateiErsetzen}>
+          <button
+            type="button"
+            onClick={onDateiErsetzen}
+            title="Bilddatei dieser Grafik ersetzen (Keyframes bleiben erhalten)"
+          >
             📄 Datei ersetzen
           </button>
-          <button type="button" onClick={onDuplizieren}>
+          <button
+            type="button"
+            onClick={onDuplizieren}
+            title="Kopie dieser Grafik anlegen (gleiche Datei, leicht versetzt)"
+          >
             ⧉ Duplizieren
           </button>
-          <button type="button" onClick={onNachVorn}>
+          <button
+            type="button"
+            onClick={onNachVorn}
+            title="Eine Ebene nach vorn (über die benachbarte Grafik)"
+          >
             ▲ Nach vorn
           </button>
-          <button type="button" onClick={onNachHinten}>
+          <button
+            type="button"
+            onClick={onNachHinten}
+            title="Eine Ebene nach hinten (unter die benachbarte Grafik)"
+          >
             ▼ Nach hinten
           </button>
-          <button type="button" onClick={onAusblenden}>
+          <button
+            type="button"
+            onClick={onAusblenden}
+            title={grafik.versteckt ? "Grafik wieder einblenden" : "Grafik ausblenden (bleibt in der Ebenenliste)"}
+          >
             {grafik.versteckt ? "👁 Einblenden" : "🚫 Ausblenden"}
           </button>
-          <button type="button" onClick={onSperren}>
+          <button
+            type="button"
+            onClick={onSperren}
+            title={grafik.gesperrt ? "Sperre lösen — Grafik wieder verschiebbar" : "Grafik sperren (auswählbar, aber nicht verschiebbar)"}
+          >
             {grafik.gesperrt ? "🔓 Entsperren" : "🔒 Sperren"}
           </button>
-          <button type="button" className="gre-inspector-loeschen" onClick={onLoeschen}>
+          <button
+            type="button"
+            className="gre-inspector-loeschen"
+            onClick={onLoeschen}
+            title="Grafik löschen (räumt eine etwaige Vorhang-Übernahme mit auf)"
+          >
             ✕ Löschen
           </button>
         </div>

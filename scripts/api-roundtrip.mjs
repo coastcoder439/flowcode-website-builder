@@ -13,6 +13,7 @@ const BASIS = "http://127.0.0.1:3113";
 const TEST_SEITE = "roundtrip-testseite";
 const TEST_IMPORT = "roundtrip-import";
 const TEST_ANIM = "roundtrip-anim";
+const TEST_STYLES = "roundtrip-styles";
 
 let gruen = 0;
 let rot = 0;
@@ -259,12 +260,72 @@ let gespeichertStand = "";
   );
 }
 
+/* 6e — styles-Roundtrip (Welle 5a): Seite mit styles speichern, laden, styles
+   zurueck. Dann: reiner Daten-Speichervorgang OHNE styles erhaelt die styles.
+   Plus: ungueltige styles-URL -> 400. */
+{
+  const mitStyles = await post("/api/puck-seite/speichere", {
+    name: TEST_STYLES,
+    data: beispielData,
+    styles: ["/import/rt-styles/css/haupt.css", "/import/rt-styles/css/roundtrip-styles-inline.css"],
+  });
+  ok("styles: speichern mit styles -> 200", mitStyles.status === 200, `status=${mitStyles.status} ${JSON.stringify(mitStyles.json)}`);
+  const stand = mitStyles.json?.gespeichert ?? "";
+
+  const geladen = await post("/api/puck-seite/lade", { name: TEST_STYLES });
+  ok(
+    "styles: laden liefert styles zurueck",
+    geladen.status === 200 && geladen.json?.styles?.length === 2 && geladen.json.styles[0] === "/import/rt-styles/css/haupt.css",
+    `status=${geladen.status} ${JSON.stringify(geladen.json?.styles)}`,
+  );
+
+  const ungueltig = await post("/api/puck-seite/speichere", {
+    name: TEST_STYLES,
+    data: beispielData,
+    ueberschreibe: true,
+    styles: ["https://fremd.example/x.css"],
+  });
+  ok("styles: fremde/absolute URL -> 400", ungueltig.status === 400, `status=${ungueltig.status}`);
+
+  const ohneStyles = await post("/api/puck-seite/speichere", {
+    name: TEST_STYLES,
+    data: beispielData,
+    erwartetGespeichert: stand,
+  });
+  ok("styles: Speichern ohne styles -> 200", ohneStyles.status === 200, `status=${ohneStyles.status}`);
+  const nachOhne = await post("/api/puck-seite/lade", { name: TEST_STYLES });
+  ok(
+    "styles: bleibt nach styles-losem Speichern erhalten",
+    nachOhne.status === 200 && nachOhne.json?.styles?.length === 2,
+    `styles=${JSON.stringify(nachOhne.json?.styles)}`,
+  );
+}
+
+/* 6f — import/asset CSS-Whitelist (Welle 5a): Endung↔MIME eng gekoppelt.
+   Nur Negativfaelle (kein Schreiben, kein Datei-Muell). */
+{
+  const cssFalscheMime = await post("/api/import/asset", {
+    slug: "rt",
+    name: "stil.css",
+    dataUrl: "data:image/png;base64,iVBORw0KGgo=",
+  });
+  ok("import/asset: .css mit Bild-MIME -> 400", cssFalscheMime.status === 400, `status=${cssFalscheMime.status}`);
+
+  const bildMitCssMime = await post("/api/import/asset", {
+    slug: "rt",
+    name: "a.png",
+    dataUrl: "data:text/css;base64,Ym9keXt9",
+  });
+  ok("import/asset: Bild-Endung mit CSS-MIME -> 400", bildMitCssMime.status === 400, `status=${bildMitCssMime.status}`);
+}
+
 /* 7 — Aufraeumen */
 {
   const l1 = await post("/api/puck-seite/loesche", { name: TEST_SEITE });
   const l2 = await post("/api/puck-seite/loesche", { name: TEST_IMPORT });
   const l3 = await post("/api/puck-seite/loesche", { name: TEST_ANIM });
-  ok("loesche: alle Testseiten entfernt", l1.status === 200 && l2.status === 200 && l3.status === 200);
+  const l4 = await post("/api/puck-seite/loesche", { name: TEST_STYLES });
+  ok("loesche: alle Testseiten entfernt", l1.status === 200 && l2.status === 200 && l3.status === 200 && l4.status === 200);
   const nochmal = await post("/api/puck-seite/lade", { name: TEST_SEITE });
   ok("lade nach loesche: 404", nochmal.status === 404, `status=${nochmal.status}`);
 }

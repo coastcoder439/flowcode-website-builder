@@ -28,6 +28,16 @@
  * (extern). <style> wird NICHT uebernommen und als geflaggt notiert — beim
  * Stufe-C-light-Import geht Styling ehrlicherweise verloren.
  *
+ * WELLE 5a — Styles uebernehmen (docs/editor-vereinheitlichung.md §10/5a):
+ * Fuer eine EIGENE gebaute Seite (Next-`out/`) laesst sich das Standard-
+ * Verwerfen abschalten: mit opts.styleUebernehmen werden same-origin
+ * <link rel=stylesheet> (href, relativ/root-relativ) und <style>-Bloecke
+ * (Inhalt) NICHT geflaggt, sondern im Bericht gesammelt (stylesheets +
+ * inlineStyles). Der unreine Teil (CSS-Datei finden + kopieren) liegt wie bei
+ * den Bildern getrennt in lib/import/ordner-import.ts. <script> bleibt IMMER
+ * geflaggt. Cross-origin-Stylesheets bleiben ebenfalls geflaggt (aus einer
+ * fremden Herkunft laesst sich deterministisch nichts kopieren).
+ *
  * ASSETS bleiben hier unangetastet: BildBlock.src traegt die Original-Referenz
  * aus dem HTML. Die (asynchrone, unreine) Aufloesung gegen den gewaehlten
  * Ordner passiert getrennt (lib/import/ordner-import.ts) und schreibt die
@@ -93,9 +103,59 @@ export interface ImportBericht {
   data: Data;
   flags: ImportFlag[];
   statistik: ImportStatistik;
-  /** Jede erzeugte Bildquelle mit ihrer Baustein-id — Grundlage der
-   *  getrennten, asynchronen Asset-Aufloesung. */
-  bilder: { id: string; src: string }[];
+  /** Jede erzeugte Bildquelle mit ihrer Baustein-id und HERKUNFT — Grundlage
+   *  der getrennten, asynchronen Asset-Aufloesung.
+   *  quelle="bild": eigenstaendiger BildBlock → Rueckschrift ueber die id.
+   *  quelle="html": Bild-/Hintergrund-Referenz INNERHALB eines HtmlBlock-Markups
+   *  (Welle 5a) → Rueckschrift ueber String-Ersatz der Original-src (s.
+   *  ersetzeBildQuellen). So bleiben Bens Klassen/Layout im HtmlBlock erhalten
+   *  (nur HtmlBlock traegt die uebernommene CSS), die Bilder werden trotzdem
+   *  echte, existierende Quellen. */
+  bilder: { id: string; src: string; quelle: "bild" | "html" }[];
+  /** Welle 5a: same-origin Stylesheet-Referenzen (href), in Dokument-
+   *  Reihenfolge, dedupliziert. Nur gefuellt, wenn opts.styleUebernehmen —
+   *  sonst leer (die Stylesheets wurden dann als Flag verworfen). */
+  stylesheets: string[];
+  /** Welle 5a: Inhalte aller <style>-Bloecke, in Dokument-Reihenfolge,
+   *  dedupliziert. Nur gefuellt, wenn opts.styleUebernehmen. Der Aufrufer
+   *  fasst sie zu EINER Datei zusammen (§10/5a). */
+  inlineStyles: string[];
+}
+
+/** Welle 5a: Sammelbehaelter fuer uebernommene Styles. Wird durch den
+ *  Bau-Kontext gereicht (null = nicht uebernehmen → altes Verwerf-/Flag-
+ *  Verhalten). */
+interface StilSammler {
+  stylesheets: string[];
+  inlineStyles: string[];
+}
+
+/** Same-origin heißt hier: relativ oder root-relativ (kein absolutes
+ *  http(s):// und kein protokoll-relatives //host). Nur solche Referenzen kann
+ *  der Ordner-Import deterministisch im gewaehlten Ordner wiederfinden. */
+function istSelbeHerkunft(href: string): boolean {
+  return !/^(https?:)?\/\//i.test(href.trim());
+}
+
+/** Welle 5a: kopierbare, same-origin Bildquelle — ein relativer/root-relativer
+ *  ECHTER Pfad. KEIN data:/http(s):/blob:/protokoll-relativ/reiner Anker. Nur
+ *  solche Referenzen lassen sich deterministisch im Import-Ordner wiederfinden
+ *  (schaerfer als istSelbeHerkunft, das data: faelschlich als „selbe" wertete). */
+function istLokaleBildQuelle(src: string): boolean {
+  const s = src.trim();
+  if (!s) return false;
+  return !/^(data:|https?:|blob:|\/\/|#)/i.test(s);
+}
+
+/** Findet alle url(...)-Pfade in einem CSS-Text/Style-Attribut (Hintergrund-
+ *  bilder u.a.) und gibt die ROHEN Pfad-Zeichenketten zurueck — genau so, wie
+ *  sie im Markup stehen (Grundlage des spaeteren String-Ersatzes). */
+function urlPfade(css: string): string[] {
+  const out: string[] = [];
+  const re = /url\(\s*(['"]?)([^'")]+?)\1\s*\)/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(css)) !== null) out.push(m[2].trim());
+  return out;
 }
 
 /* ---- Konstanten ---- */
@@ -129,20 +189,36 @@ class IdZaehler {
 /* ------------------------------------------------------------------ */
 
 /** Entschaerft ein Element IN PLACE (Aufrufer uebergibt einen Klon) und sammelt
- *  Flags. Entfernt betriebsfremde Knoten, on*-Attribute und javascript:-URLs. */
-function entschaerfeElement(el: Element): ImportFlag[] {
+ *  Flags. Entfernt betriebsfremde Knoten, on*-Attribute und javascript:-URLs.
+ *
+ *  `stil` (Welle 5a): ist ein Sammler gesetzt, werden <style>-Inhalte und
+ *  same-origin <link rel=stylesheet> dort gesammelt statt geflaggt (und in
+ *  jedem Fall aus dem Markup entfernt — der Stil lebt danach in der eigenen
+ *  Styles-Datei, nicht mehr im HtmlBlock). Ohne Sammler (Default) gilt das
+ *  bisherige Verwerf-/Flag-Verhalten. */
+function entschaerfeElement(el: Element, stil: StilSammler | null = null): ImportFlag[] {
   const flags: ImportFlag[] = [];
 
   const flagge = (grund: string, detail: string) => flags.push({ grund, detail });
 
-  /* <style> gesondert: wird nicht uebernommen (Styling geht verloren). */
+  /* <style>: uebernehmen (sammeln) oder verwerfen (flaggen) — immer entfernen. */
   el.querySelectorAll("style").forEach((s) => {
-    flagge(FLAG_STYLE, `<style>-Block (${(s.textContent ?? "").trim().length} Zeichen) verworfen`);
+    const text = (s.textContent ?? "").trim();
+    if (stil) {
+      if (text) stil.inlineStyles.push(text);
+    } else {
+      flagge(FLAG_STYLE, `<style>-Block (${text.length} Zeichen) verworfen`);
+    }
     s.remove();
   });
-  /* Externe Stylesheets. */
+  /* <link rel=stylesheet>: same-origin uebernehmen (sammeln), sonst flaggen. */
   el.querySelectorAll('link[rel~="stylesheet"]').forEach((l) => {
-    flagge(FLAG_LINK, l.getAttribute("href") ?? "<link rel=stylesheet>");
+    const href = l.getAttribute("href") ?? "";
+    if (stil && href && istSelbeHerkunft(href)) {
+      stil.stylesheets.push(href);
+    } else {
+      flagge(FLAG_LINK, href || "<link rel=stylesheet>");
+    }
     l.remove();
   });
   /* Skripte / Rahmen / Objekte. */
@@ -194,7 +270,12 @@ interface BauKontext {
   ids: IdZaehler;
   flags: ImportFlag[];
   statistik: ImportStatistik;
-  bilder: { id: string; src: string }[];
+  bilder: { id: string; src: string; quelle: "bild" | "html" }[];
+  /** Welle 5a: gesetzt → Styles uebernehmen; null → verwerfen/flaggen. */
+  stil: StilSammler | null;
+  /** Welle 5a: bereits registrierte html-interne Bildquellen — dieselbe
+   *  /images/…-Datei wird ueber alle HtmlBloecke hinweg nur einmal aufgeloest. */
+  htmlBildSrcs: Set<string>;
 }
 
 /** Variante fuer eine Ueberschrift: h1->h1, h2->h2, h3..h6->h3. */
@@ -222,15 +303,43 @@ function bildBlock(ctx: BauKontext, img: HTMLImageElement): ComponentData {
     alt: img.getAttribute("alt") ?? "",
     breiteProzent: 100,
   };
-  if (src) ctx.bilder.push({ id, src });
+  if (src) ctx.bilder.push({ id, src, quelle: "bild" });
   return { type: "BildBlock", props };
+}
+
+/** Welle 5a: registriert die Bild- und Hintergrund-Referenzen INNERHALB eines
+ *  (bereits entschaerften) Markup-Elements als kopierbare Assets — dedupliziert
+ *  ueber ctx.htmlBildSrcs. Das Markup selbst bleibt hier unveraendert; die
+ *  Original-src wird erst nach der (unreinen) Aufloesung per String-Ersatz in
+ *  ersetzeBildQuellen umgebogen (s. dort). Ohne diese Registrierung blieben
+ *  Bens <img>/background-image-Pfade (/images/…, /curtain/…) im HtmlBlock roh
+ *  stehen und liefen auf dem Builder-Server ins 404. */
+function registriereHtmlBilder(ctx: BauKontext, el: Element): void {
+  const kandidaten: string[] = [];
+  /* <img src> irgendwo im Markup. */
+  el.querySelectorAll("img[src]").forEach((img) => kandidaten.push(img.getAttribute("src") ?? ""));
+  /* Inline-style url(...) (Hintergrundbilder u.a.) — Element selbst + Nachfahren. */
+  for (const knoten of [el, ...Array.from(el.querySelectorAll("[style]"))]) {
+    const style = knoten.getAttribute("style");
+    if (style) kandidaten.push(...urlPfade(style));
+  }
+  for (const src of kandidaten) {
+    if (!istLokaleBildQuelle(src)) continue;
+    if (ctx.htmlBildSrcs.has(src)) continue;
+    ctx.htmlBildSrcs.add(src);
+    ctx.statistik.bilder += 1;
+    ctx.bilder.push({ id: ctx.ids.naechste("himg"), src, quelle: "html" });
+  }
 }
 
 /** Erzeugt einen HtmlBlock aus beliebigem uebrigem Markup (entschaerft). */
 function htmlBlock(ctx: BauKontext, el: Element): ComponentData | null {
   const klon = el.cloneNode(true) as Element;
-  const flags = entschaerfeElement(klon);
+  const flags = entschaerfeElement(klon, ctx.stil);
   ctx.flags.push(...flags);
+  /* Welle 5a: Bilder im Markup fuer die Asset-Aufloesung anmelden (das Markup
+     bleibt roh — die Original-src wird erst nach der Aufloesung ersetzt). */
+  registriereHtmlBilder(ctx, klon);
   const markup = klon.outerHTML.trim();
   if (!markup) return null;
   ctx.statistik.htmlBloecke += 1;
@@ -252,15 +361,25 @@ function mappeKinder(ctx: BauKontext, knoten: NodeListOf<ChildNode> | ChildNode[
     const el = kind as Element;
     const tag = el.tagName;
     if (tag === "SCRIPT" || tag === "IFRAME" || tag === "OBJECT" || tag === "EMBED" || tag === "STYLE") {
-      /* Betriebsfremd — entfernen + flaggen, nichts erzeugen. */
+      /* Betriebsfremd — entfernen + flaggen, nichts erzeugen. <style> wird bei
+         styleUebernehmen stattdessen gesammelt (Welle 5a). */
       if (tag === "SCRIPT") ctx.flags.push({ grund: FLAG_SCRIPT, detail: el.getAttribute("src") ?? "<script>" });
       else if (tag === "IFRAME") ctx.flags.push({ grund: FLAG_IFRAME, detail: el.getAttribute("src") ?? "<iframe>" });
-      else if (tag === "STYLE") ctx.flags.push({ grund: FLAG_STYLE, detail: "<style>-Block verworfen" });
-      else ctx.flags.push({ grund: FLAG_OBJEKT, detail: `<${tag.toLowerCase()}>` });
+      else if (tag === "STYLE") {
+        const text = (el.textContent ?? "").trim();
+        if (ctx.stil) {
+          if (text) ctx.stil.inlineStyles.push(text);
+        } else {
+          ctx.flags.push({ grund: FLAG_STYLE, detail: "<style>-Block verworfen" });
+        }
+      } else ctx.flags.push({ grund: FLAG_OBJEKT, detail: `<${tag.toLowerCase()}>` });
       continue;
     }
     if (tag === "LINK" && /\bstylesheet\b/i.test(el.getAttribute("rel") ?? "")) {
-      ctx.flags.push({ grund: FLAG_LINK, detail: el.getAttribute("href") ?? "<link rel=stylesheet>" });
+      const href = el.getAttribute("href") ?? "";
+      /* Welle 5a: same-origin Stylesheet uebernehmen (sammeln), sonst flaggen. */
+      if (ctx.stil && href && istSelbeHerkunft(href)) ctx.stil.stylesheets.push(href);
+      else ctx.flags.push({ grund: FLAG_LINK, detail: href || "<link rel=stylesheet>" });
       continue;
     }
     if (UEBERSCHRIFT_TAGS.has(tag)) {
@@ -293,29 +412,66 @@ function sektionBlock(ctx: BauKontext, el: Element): ComponentData {
   return { type: "SektionBlock", props };
 }
 
+/** Ein „anonymer Wrapper" ist ein <div> ohne Klasse, id und Inline-Style — eine
+ *  reine Struktur-/Hydration-Huelle (z.B. Bens inert-Gate-Wrapper, der die ganze
+ *  Seite kapselt). Sein einziger Zweck ist Gruppierung; beim Import loesen wir
+ *  ihn auf, statt Kopf/Inhalt/Fuss in EINER bedeutungslosen Sektion zu vergraben.
+ *  Behavioral-Attribute (hidden/inert) zaehlen NICHT als Styling-/Identitaets-
+ *  Anker — nur class/id/style. */
+function istAnonymerWrapper(el: Element): boolean {
+  return (
+    el.tagName === "DIV" &&
+    !(el.getAttribute("class") ?? "").trim() &&
+    !(el.getAttribute("id") ?? "").trim() &&
+    !(el.getAttribute("style") ?? "").trim()
+  );
+}
+
+/** Eine Sektion ohne Kinder traegt keinen Inhalt — beim Import weggelassen
+ *  (z.B. versteckte, leere Hydration-Huellen). */
+function istLeereSektion(sektion: ComponentData): boolean {
+  const kinder = (sektion.props as { kinder?: unknown }).kinder;
+  return Array.isArray(kinder) && kinder.length === 0;
+}
+
 /**
  * HTML -> Puck-Data. Rein/deterministisch (nur DOMParser, kein Seiteneffekt).
  * `idPraefix` fliesst in die stabilen Baustein-ids ein (z.B. der Slug).
+ * `styleUebernehmen` (Welle 5a): sammelt same-origin Stylesheets + <style>-
+ * Bloecke im Bericht (stylesheets/inlineStyles), statt sie zu verwerfen.
  */
-export function htmlZuPuck(html: string, opts: { idPraefix?: string } = {}): ImportBericht {
+export function htmlZuPuck(
+  html: string,
+  opts: { idPraefix?: string; styleUebernehmen?: boolean } = {},
+): ImportBericht {
+  const stil: StilSammler | null = opts.styleUebernehmen ? { stylesheets: [], inlineStyles: [] } : null;
   const ctx: BauKontext = {
     ids: new IdZaehler(opts.idPraefix ? `${opts.idPraefix}-` : ""),
     flags: [],
     statistik: { sektionen: 0, texte: 0, bilder: 0, htmlBloecke: 0 },
     bilder: [],
+    stil,
+    htmlBildSrcs: new Set<string>(),
   };
 
   const doc = new DOMParser().parseFromString(html, "text/html");
   const content: ComponentData[] = [];
 
-  /* Kopf-Ebene: die eigentlichen Styling-Traeger (<style>, externe
-     Stylesheets) liegen meist im <head>. Ehrlich flaggen — sie gehen beim
-     Stufe-C-light-Import verloren (Dedup uebernimmt Wiederholungen). */
-  doc.head?.querySelectorAll("style").forEach(() => {
-    ctx.flags.push({ grund: FLAG_STYLE, detail: "<style> im <head> verworfen" });
+  /* Kopf-Ebene: die eigentlichen Styling-Traeger (<style>, Stylesheets) liegen
+     bei Next-Builds im <head>. Mit styleUebernehmen sammeln (§10/5a), sonst
+     ehrlich flaggen (Stufe-C-light verliert das Styling). */
+  doc.head?.querySelectorAll("style").forEach((s) => {
+    const text = (s.textContent ?? "").trim();
+    if (ctx.stil) {
+      if (text) ctx.stil.inlineStyles.push(text);
+    } else {
+      ctx.flags.push({ grund: FLAG_STYLE, detail: "<style> im <head> verworfen" });
+    }
   });
   doc.head?.querySelectorAll('link[rel~="stylesheet"]').forEach((l) => {
-    ctx.flags.push({ grund: FLAG_LINK, detail: l.getAttribute("href") ?? "<link rel=stylesheet>" });
+    const href = l.getAttribute("href") ?? "";
+    if (ctx.stil && href && istSelbeHerkunft(href)) ctx.stil.stylesheets.push(href);
+    else ctx.flags.push({ grund: FLAG_LINK, detail: href || "<link rel=stylesheet>" });
   });
 
   for (const kind of Array.from(doc.body.childNodes)) {
@@ -326,8 +482,20 @@ export function htmlZuPuck(html: string, opts: { idPraefix?: string } = {}): Imp
     }
     if (kind.nodeType !== 1) continue;
     const el = kind as Element;
-    if (CONTAINER_TAGS.has(el.tagName)) {
-      content.push(sektionBlock(ctx, el));
+    if (istAnonymerWrapper(el)) {
+      /* Welle 5a: Bens Next-Build kapselt die ganze Seite in einen anonymen
+         Wrapper-<div> (inert-Gate / Hydration-Root). Wuerde er zu EINER Sektion,
+         verschwaenden Kopf/Inhalt/Fuss in einem einzigen Block (content.length
+         waere winzig, alle Bilder in einem Riesen-HtmlBlock vergraben). Wir
+         loesen den Wrapper daher auf und heben seine Kinder auf die oberste
+         Ebene — header/main/footer bleiben ueber mappeKinder je EIN HtmlBlock
+         MIT ihren Klassen (die uebernommene CSS greift), die Bilder darin werden
+         ueber registriereHtmlBilder aufgeloest. */
+      content.push(...mappeKinder(ctx, el.childNodes));
+    } else if (CONTAINER_TAGS.has(el.tagName)) {
+      const sektion = sektionBlock(ctx, el);
+      /* Leere Sektionen (versteckte, inhaltslose Huellen) nicht mitnehmen. */
+      if (!istLeereSektion(sektion)) content.push(sektion);
     } else {
       /* Nicht-Container auf oberster Ebene: direkt abbilden (kann leer sein
          -> dann faellt nichts an). */
@@ -340,7 +508,21 @@ export function htmlZuPuck(html: string, opts: { idPraefix?: string } = {}): Imp
     flags: dedupliziereFlags(ctx.flags),
     statistik: ctx.statistik,
     bilder: ctx.bilder,
+    stylesheets: stil ? dedupliziereStrings(stil.stylesheets) : [],
+    inlineStyles: stil ? dedupliziereStrings(stil.inlineStyles) : [],
   };
+}
+
+/** Behaelt die erste Vorkommen-Reihenfolge, wirft exakte Duplikate raus. */
+function dedupliziereStrings(werte: string[]): string[] {
+  const gesehen = new Set<string>();
+  const out: string[] = [];
+  for (const w of werte) {
+    if (gesehen.has(w)) continue;
+    gesehen.add(w);
+    out.push(w);
+  }
+  return out;
 }
 
 /** Gleiche grund+detail-Kombination nur einmal im Bericht. */
@@ -396,15 +578,43 @@ function transformiereBaum(items: ComponentData[], je: (item: ComponentData) => 
   });
 }
 
+/** Maskiert RegExp-Sonderzeichen in einem Literal-Pfad (fuer die Alternation
+ *  im HtmlBlock-Ersatz). */
+function maskiereRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 /**
- * Ersetzt die `src` jedes BildBlock, dessen id in `ersatz` steht — rekursiv
- * ueber Slot-Kinder, rein/immutabel. Grundlage der Asset-Aufloesung.
+ * Ersetzt Bildquellen in der Puck-Data — rein/immutabel, rekursiv ueber Slots.
+ *   `ersatz`     : id -> neue src fuer eigenstaendige BildBloecke (quelle="bild").
+ *   `htmlErsatz` : Original-src -> neue src fuer Bild-/Hintergrund-Referenzen
+ *                  INNERHALB von HtmlBlock-Markup (Welle 5a, quelle="html"). Der
+ *                  Ersatz laeuft in EINEM Durchgang (Alternation, laengste
+ *                  Pfade zuerst), damit ein eingesetzter Wert (z.B. eine
+ *                  data-URL) nicht erneut getroffen wird. Leeres Objekt
+ *                  (Default) = alter Pfad, nur BildBloecke.
  */
-export function ersetzeBildQuellen(data: Data, ersatz: Record<string, string>): Data {
+export function ersetzeBildQuellen(
+  data: Data,
+  ersatz: Record<string, string>,
+  htmlErsatz: Record<string, string> = {},
+): Data {
+  const paare = Object.entries(htmlErsatz).sort((a, b) => b[0].length - a[0].length);
+  const htmlRegex =
+    paare.length > 0 ? new RegExp(paare.map(([orig]) => maskiereRegExp(orig)).join("|"), "g") : null;
+  const htmlMap = new Map(paare);
+
   const je = (item: ComponentData): ComponentData => {
     const id = (item.props as { id?: unknown }).id;
     if (item.type === "BildBlock" && typeof id === "string" && ersatz[id] !== undefined) {
       return { ...item, props: { ...item.props, src: ersatz[id] } };
+    }
+    if (item.type === "HtmlBlock" && htmlRegex) {
+      const html = (item.props as { html?: unknown }).html;
+      if (typeof html === "string" && html.length > 0) {
+        const neu = html.replace(htmlRegex, (treffer) => htmlMap.get(treffer) ?? treffer);
+        if (neu !== html) return { ...item, props: { ...item.props, html: neu } };
+      }
     }
     return item;
   };

@@ -22,11 +22,13 @@
  * /puck-import-Spike (localStorage) bleibt davon unberuehrt.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { config } from "../puck/puck.config";
 import { SeitenImport } from "./SeitenImport";
+import { SeitenVorschau } from "./SeitenVorschau";
+import { entferneAktiveSeite, setzeAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
 import "./seiten-bereich.css";
 
 /* ---- API-Vertraege (openapi.yaml / app/api/puck-seite/*) ---- */
@@ -43,6 +45,8 @@ interface LadeAntwort {
   gespeichert: string;
   version: number;
   data: Data;
+  /** Welle 5a: uebernommene Stylesheet-URLs (falls die Seite welche hat). */
+  styles?: string[];
 }
 interface SpeichereAntwort {
   name: string;
@@ -59,6 +63,45 @@ interface OffeneSeite {
   data: Data;
   /** Der beim Laden bekannte Stand — Konflikt-Guard beim Speichern. */
   erwartetGespeichert: string;
+  /** Welle 5a: uebernommene Stylesheet-URLs — via iframe-Override ins Puck-
+   *  Preview-Dokument gehaengt (leer = keine). */
+  styles: string[];
+}
+
+/** Welle 5a (§10/5a Punkt 3): Der Puck-Editor rendert die Vorschau in einem
+ *  iframe (0.22-Default) — der iframe ISOLIERT bereits, daher brauchen die
+ *  uebernommenen Seiten-Styles hier KEIN @scope: sie werden schlicht als
+ *  <link rel=stylesheet> ins iframe-Dokument gehaengt (Override-Slot `iframe`,
+ *  docs/puck-erweiterungsebene.md §2.2). So sieht der Autor die Seite im
+ *  Editor mit ihrem echten Look, ohne dass die CSS die Editor-Chrome erreicht. */
+function PuckIframeMitStyles({
+  children,
+  document: iframeDoc,
+  styles,
+}: {
+  children: ReactNode;
+  document?: Document;
+  styles: string[];
+}) {
+  const schluessel = styles.join("|");
+  useEffect(() => {
+    const kopf = iframeDoc?.head;
+    if (!kopf) return;
+    const eingefuegt: HTMLLinkElement[] = [];
+    for (const url of styles) {
+      const link = iframeDoc!.createElement("link");
+      link.rel = "stylesheet";
+      link.href = url;
+      link.setAttribute("data-fc-seiten-styles", "");
+      kopf.appendChild(link);
+      eingefuegt.push(link);
+    }
+    return () => {
+      for (const link of eingefuegt) link.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iframeDoc, schluessel]);
+  return <>{children}</>;
 }
 
 type SpeicherStatus = "bereit" | "speichern" | "gespeichert";
@@ -116,6 +159,42 @@ export function SeitenBereich() {
   /* Ordner-Import-Assistent (Welle 4b) */
   const [importOffen, setImportOffen] = useState(false);
 
+  /* Welle 5b: aktive Website (Default-Buehne des Animators) — hier zum
+     Markieren/Setzen je Seite. */
+  const aktiveSeite = useAktiveSeite();
+
+  /* Welle 5b: statische Vollbild-Vorschau. Reload-fest ueber den Query-Param
+     `?bereich=seiten&vorschau=<name>` (gleiches Muster wie der Bereichs-
+     Umschalter in page.tsx): beim Laden aus der URL gelesen, Vor/Zurueck via
+     pushState/popstate. */
+  const [vorschau, setVorschau] = useState<string | null>(null);
+
+  useEffect(() => {
+    const lese = () => {
+      const p = new URLSearchParams(window.location.search);
+      setVorschau(p.get("vorschau"));
+    };
+    lese();
+    window.addEventListener("popstate", lese);
+    return () => window.removeEventListener("popstate", lese);
+  }, []);
+
+  const oeffneVorschau = useCallback((name: string) => {
+    setVorschau(name);
+    const p = new URLSearchParams(window.location.search);
+    p.set("bereich", "seiten");
+    p.set("vorschau", name);
+    window.history.pushState(null, "", `?${p.toString()}`);
+  }, []);
+
+  const schliesseVorschau = useCallback(() => {
+    setVorschau(null);
+    const p = new URLSearchParams(window.location.search);
+    p.delete("vorschau");
+    const qs = p.toString();
+    window.history.pushState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, []);
+
   const ladeListe = useCallback(async () => {
     setListeFehler(null);
     try {
@@ -147,7 +226,12 @@ export function SeitenBereich() {
       return;
     }
     aktuelleDatenRef.current = r.json.data;
-    setOffeneSeite({ name: r.json.name, data: r.json.data, erwartetGespeichert: r.json.gespeichert });
+    setOffeneSeite({
+      name: r.json.name,
+      data: r.json.data,
+      erwartetGespeichert: r.json.gespeichert,
+      styles: Array.isArray(r.json.styles) ? r.json.styles : [],
+    });
     setSpeicherStatus("bereit");
     setPuckKey((k) => k + 1);
   }, []);
@@ -195,7 +279,12 @@ export function SeitenBereich() {
       return;
     }
     aktuelleDatenRef.current = r.json.data;
-    setOffeneSeite({ name: r.json.name, data: r.json.data, erwartetGespeichert: r.json.gespeichert });
+    setOffeneSeite({
+      name: r.json.name,
+      data: r.json.data,
+      erwartetGespeichert: r.json.gespeichert,
+      styles: Array.isArray(r.json.styles) ? r.json.styles : [],
+    });
     setKonfliktText(null);
     setSpeicherStatus("bereit");
     setPuckKey((k) => k + 1);
@@ -249,11 +338,19 @@ export function SeitenBereich() {
         setListeFehler((r.json as FehlerAntwort | null)?.fehler ?? "Loeschen fehlgeschlagen.");
         return;
       }
+      /* Welle 5b: war das die aktive Website, ist sie jetzt weg → vergessen. */
+      if (aktiveSeite === name) entferneAktiveSeite();
       if (offeneSeite?.name === name) schliesse();
       void ladeListe();
     },
-    [offeneSeite, schliesse, ladeListe],
+    [offeneSeite, schliesse, ladeListe, aktiveSeite],
   );
+
+  /* Welle 5b: statische Vollbild-Vorschau hat Vorrang (reload-fest via
+     Query-Param, portalt sich chrome-frei ueber alles). */
+  if (vorschau) {
+    return <SeitenVorschau name={vorschau} onZurueck={schliesseVorschau} />;
+  }
 
   /* Editor offen → Puck-Ansicht; sonst Verwaltungs-Ansicht. */
   if (offeneSeite) {
@@ -281,10 +378,16 @@ export function SeitenBereich() {
               className="seiten-btn seiten-btn--primaer"
               onClick={() => void speichere(aktuelleDatenRef.current ?? offeneSeite.data)}
               disabled={speicherStatus === "speichern"}
+              title={`Aktuellen Stand von „${offeneSeite.name}“ in die Seiten-Datei schreiben`}
             >
               Speichern
             </button>
-            <button type="button" className="seiten-btn" onClick={schliesse}>
+            <button
+              type="button"
+              className="seiten-btn"
+              onClick={schliesse}
+              title="Editor schliessen und zur Seiten-Liste zurueckkehren"
+            >
               Zurueck zur Liste
             </button>
           </span>
@@ -293,7 +396,12 @@ export function SeitenBereich() {
         {konfliktText && (
           <div className="seiten-konflikt" role="alert">
             <span>Konflikt: {konfliktText}</span>
-            <button type="button" className="seiten-btn" onClick={() => void neuLaden()}>
+            <button
+              type="button"
+              className="seiten-btn"
+              onClick={() => void neuLaden()}
+              title="Frischen Server-Stand holen und den Editor damit neu aufbauen (verwirft nichts auf dem Server)"
+            >
               Neu laden
             </button>
           </div>
@@ -309,6 +417,16 @@ export function SeitenBereich() {
             key={puckKey}
             config={config}
             data={offeneSeite.data}
+            overrides={{
+              /* Welle 5a: uebernommene Seiten-Styles ins iframe-Preview-Dokument
+                 haengen (iframe isoliert → kein @scope noetig, s.
+                 PuckIframeMitStyles). */
+              iframe: ({ children, document }) => (
+                <PuckIframeMitStyles document={document} styles={offeneSeite.styles}>
+                  {children}
+                </PuckIframeMitStyles>
+              ),
+            }}
             onChange={(d: Data) => {
               aktuelleDatenRef.current = d;
             }}
@@ -326,6 +444,9 @@ export function SeitenBereich() {
       <SeitenImport
         onFertig={async (frischerName) => {
           setImportOffen(false);
+          /* Welle 5b (§10/5b): die importierte Seite wird automatisch die
+             aktive Website (Default-Buehne des Animators). */
+          setzeAktiveSeite(frischerName);
           await ladeListe();
           await oeffne(frischerName);
         }}
@@ -346,6 +467,7 @@ export function SeitenBereich() {
             type="button"
             className="seiten-btn"
             onClick={() => setImportOffen(true)}
+            title="Einen Ordner mit einer fertigen Website einlesen und in Bausteine zerlegen"
           >
             Website importieren
           </button>
@@ -355,6 +477,7 @@ export function SeitenBereich() {
             aria-label="Hilfe zum Seiten-Bereich"
             aria-haspopup="dialog"
             onClick={() => setHilfeOffen(true)}
+            title="Kurzhilfe zum Seiten-Bereich oeffnen"
           >
             ?
           </button>
@@ -373,7 +496,12 @@ export function SeitenBereich() {
               aria-invalid={neuFehler ? true : undefined}
             />
           </div>
-          <button type="submit" className="seiten-btn seiten-btn--primaer" disabled={neuLauft}>
+          <button
+            type="submit"
+            className="seiten-btn seiten-btn--primaer"
+            disabled={neuLauft}
+            title="Leere Seite mit diesem Namen anlegen und direkt im Editor oeffnen"
+          >
             {neuLauft ? "Legt an …" : "Neu"}
           </button>
           {neuFehler && (
@@ -397,32 +525,65 @@ export function SeitenBereich() {
           </p>
         ) : (
           <ul className="seiten-liste" aria-labelledby="seiten-titel">
-            {seiten.map((s) => (
-              <li key={s.name}>
-                <span className="seiten-liste-name">{s.name}</span>
-                <span className="seiten-liste-meta">
-                  {s.contentAnzahl} {s.contentAnzahl === 1 ? "Baustein" : "Bausteine"} · zuletzt{" "}
-                  {formatiereZeit(s.gespeichert)}
-                </span>
-                <span className="seiten-liste-aktionen">
-                  <button
-                    type="button"
-                    className="seiten-btn"
-                    onClick={() => void oeffne(s.name)}
-                  >
-                    Oeffnen
-                  </button>
-                  <button
-                    type="button"
-                    className="seiten-btn seiten-btn--gefahr"
-                    onClick={() => void loesche(s.name)}
-                    aria-label={`Seite ${s.name} loeschen`}
-                  >
-                    Loeschen
-                  </button>
-                </span>
-              </li>
-            ))}
+            {seiten.map((s) => {
+              const istAktiv = s.name === aktiveSeite;
+              return (
+                <li key={s.name} className={istAktiv ? "seiten-liste-aktiv" : undefined}>
+                  <span className="seiten-liste-name">
+                    {s.name}
+                    {istAktiv && (
+                      <span
+                        className="seiten-aktiv-badge"
+                        title="Diese Seite ist die aktive Website — Default-Buehne des Animators"
+                      >
+                        ★ aktive Website
+                      </span>
+                    )}
+                  </span>
+                  <span className="seiten-liste-meta">
+                    {s.contentAnzahl} {s.contentAnzahl === 1 ? "Baustein" : "Bausteine"} · zuletzt{" "}
+                    {formatiereZeit(s.gespeichert)}
+                  </span>
+                  <span className="seiten-liste-aktionen">
+                    <button
+                      type="button"
+                      className="seiten-btn"
+                      onClick={() => oeffneVorschau(s.name)}
+                      title={`Statische Vollbild-Vorschau von „${s.name}“`}
+                    >
+                      Vorschau
+                    </button>
+                    <button
+                      type="button"
+                      className="seiten-btn"
+                      onClick={() => void oeffne(s.name)}
+                      title={`„${s.name}“ im Baukasten-Editor oeffnen`}
+                    >
+                      Oeffnen
+                    </button>
+                    {!istAktiv && (
+                      <button
+                        type="button"
+                        className="seiten-btn"
+                        onClick={() => setzeAktiveSeite(s.name)}
+                        title={`„${s.name}“ zur aktiven Website machen (Default-Buehne des Animators)`}
+                      >
+                        Als aktive Website setzen
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="seiten-btn seiten-btn--gefahr"
+                      onClick={() => void loesche(s.name)}
+                      aria-label={`Seite ${s.name} loeschen`}
+                      title={`Seite „${s.name}“ loeschen`}
+                    >
+                      Loeschen
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -477,6 +638,21 @@ function SeitenHilfeDialog({ onClose }: { onClose: () => void }) {
           „Neu" legt eine leere Seite an und oeffnet sie direkt. „Oeffnen" laedt eine bestehende
           Seite in den Editor. „Loeschen" entfernt die Datei (mit Rueckfrage, nicht umkehrbar).
         </p>
+        <h3>Aktive Website</h3>
+        <p>
+          Eine Seite ist die <strong>aktive Website</strong> — die echte Seite deines Projekts. Sie
+          ist mit <strong>★ aktive Website</strong> markiert und wird im <strong>Animator</strong>{" "}
+          automatisch als Bühne geladen (statt der eingebauten WEE-Demo-Landing). Mit „Als aktive
+          Website setzen" bestimmst du sie; eine <strong>importierte</strong> Website wird sofort
+          aktiv. So ist es dieselbe Seite in drei Sichten: hier in Puck bauen, per „Vorschau"
+          statisch ansehen, im Animator anklicken und animieren.
+        </p>
+        <h3>Vorschau</h3>
+        <p>
+          „Vorschau" zeigt die Seite als Vollbild — genau so, wie sie später aussieht, ganz ohne
+          Editor-Bedienelemente (nur ein „Zurück"-Knopf). Der Link ist teilbar und übersteht ein
+          Neuladen.
+        </p>
         <h3>Website importieren</h3>
         <p>
           „Website importieren" liest einen Ordner mit einer statischen Website (index.html +
@@ -493,7 +669,12 @@ function SeitenHilfeDialog({ onClose }: { onClose: () => void }) {
           dann den frischen Stand — damit ueberschreibst du keine fremden Aenderungen versehentlich.
         </p>
         <div className="seiten-hilfe-dialog-fuss">
-          <button type="button" className="seiten-btn seiten-btn--primaer" onClick={onClose}>
+          <button
+            type="button"
+            className="seiten-btn seiten-btn--primaer"
+            onClick={onClose}
+            title="Hilfe schliessen"
+          >
             Verstanden
           </button>
         </div>

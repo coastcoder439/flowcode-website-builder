@@ -12,6 +12,12 @@
  *
  * Guards wie /api/assets aktion=schreibe: Origin-Gate (CSRF), Pfad-Guards
  * (kein Ausbruch aus public/import/), Groessenlimit, Endungs-Whitelist.
+ *
+ * WELLE 5a (docs/editor-vereinheitlichung.md §10/5a): zusaetzlich zu Bildern
+ * duerfen jetzt auch .css-Dateien kopiert werden (Styles einer eigenen
+ * gebauten Seite uebernehmen). Die Endungs- UND die data-URL-MIME-Whitelist
+ * bleiben eng: .css nur mit data:text/css, Bilder nur mit image/video/
+ * application — nichts anderes wird geschrieben.
  */
 
 import { writeFile, mkdir } from "node:fs/promises";
@@ -26,6 +32,10 @@ const IMPORT_WURZEL = resolve(process.cwd(), "public", "import");
 const MAX_BODY_BYTES = 12_000_000;
 const MAX_SCHREIB_BYTES = 8_000_000;
 const BILD_ENDUNGEN = /\.(svg|png|apng|jpe?g|webp|gif|avif|ico)$/i;
+/** Welle 5a: uebernommene Stylesheets. */
+const CSS_ENDUNG = /\.css$/i;
+const BILD_MIME = /^data:(image|video|application)\/[\w+.-]+;base64,/;
+const CSS_MIME = /^data:text\/css;base64,/;
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,20 +45,29 @@ export async function POST(req: NextRequest) {
     /* slug + name reine Dateinamen-Bausteine (kein Pfad, kein "..", kein ":"). */
     const slug = saubererName(body.slug);
     const name = saubererName(body.name);
-    if (!BILD_ENDUNGEN.test(name)) {
-      throw new AnfrageFehler(400, "Nur Bild-Assets (svg/png/jpg/webp/gif/avif/ico)");
+    const istCss = CSS_ENDUNG.test(name);
+    if (!istCss && !BILD_ENDUNGEN.test(name)) {
+      throw new AnfrageFehler(400, "Nur Bild-Assets (svg/png/jpg/webp/gif/avif/ico) oder .css");
     }
 
     const dataUrl = typeof body.dataUrl === "string" ? body.dataUrl : "";
-    if (!/^data:(image|video|application)\/[\w+.-]+;base64,/.test(dataUrl)) {
-      throw new AnfrageFehler(400, "Ungültige Daten (data-URL erwartet)");
+    /* MIME muss zur Endung passen — .css nur mit text/css, Bilder nur mit
+       image/video/application. Verhindert, dass ueber die .css-Endung
+       beliebige Text-Inhalte oder ueber eine Bild-Endung CSS reingeschmuggelt
+       wird (enge Kopplung Endung↔MIME). */
+    if ((istCss && !CSS_MIME.test(dataUrl)) || (!istCss && !BILD_MIME.test(dataUrl))) {
+      throw new AnfrageFehler(400, "Ungültige Daten (data-URL passt nicht zur Endung)");
     }
     const daten = Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
     if (daten.length === 0 || daten.length > MAX_SCHREIB_BYTES) {
       throw new AnfrageFehler(400, "Datei leer oder zu groß");
     }
 
-    const zielOrdner = join(IMPORT_WURZEL, slug);
+    /* CSS liegt gebuendelt unter <slug>/css/ (§10/5a), Bilder direkt unter
+       <slug>/. saubererName hat Slashes bereits entfernt — den Unterordner
+       fuegen wir hier kontrolliert (fixer Literal) an, kein Nutzer-Pfad. */
+    const relOrdner = istCss ? `import/${slug}/css` : `import/${slug}`;
+    const zielOrdner = join(IMPORT_WURZEL, ...(istCss ? [slug, "css"] : [slug]));
     const ziel = join(zielOrdner, name);
     /* Guertel und Hosentraeger: nach dem Saeubern nochmal pruefen, dass Ziel
        wirklich unter public/import/ liegt. */
@@ -59,7 +78,7 @@ export async function POST(req: NextRequest) {
     await mkdir(zielOrdner, { recursive: true });
     await writeFile(ziel, daten);
 
-    const rel = `import/${slug}/${name}`;
+    const rel = `${relOrdner}/${name}`;
     return NextResponse.json({ slug, name, pfad: `public/${rel}`, url: `/${rel}` });
   } catch (e) {
     return fehlerAntwort(e, "import/asset");

@@ -35,7 +35,9 @@ import { FlussObjektProvider } from "@/components/river/FlussObjektContext";
 import { FlussHandlesEbene } from "@/components/river/FlussHandlesEbene";
 import "@/components/river/river-kurs-editor.css";
 import { Backdrop } from "@/components/backdrop/Backdrop";
+import type { Backdrop as BackdropDaten } from "@/components/backdrop/backdrop-types";
 import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { entferneAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
 import { SeitenBereich } from "./SeitenBereich";
 import "./seiten-bereich.css";
 
@@ -82,11 +84,62 @@ function vorhangLatchLoesen() {
  */
 function EditorInner() {
   const bctx = useBackdropCtx();
+  /* Welle 5b (§10/5b): die „aktive Website" ist die Default-Buehne des
+     Animators — statt der eingebauten WEE-Demo-Landing. */
+  const aktiveSeite = useAktiveSeite();
+  const [aktivExistiert, setAktivExistiert] = useState(false);
+
+  /* Existenz der aktiven Seite pruefen (§10/5b: „wenn ... gesetzt ist UND
+     existiert"). Nur bei einem definitiven „Liste geladen, Name fehlt" wird die
+     verwaiste aktive Seite vergessen (self-heal) — bei Server-Fehlern bleibt sie
+     gemerkt, wir zeigen diese Sitzung nur die Demo-Landing. */
+  useEffect(() => {
+    if (!aktiveSeite) {
+      setAktivExistiert(false);
+      return;
+    }
+    let tot = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/puck-seite/liste", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: "{}",
+        });
+        const json = (await res.json()) as { seiten?: { name: string }[] };
+        if (tot) return;
+        const listeOk = res.ok && Array.isArray(json.seiten);
+        const da = listeOk && json.seiten!.some((s) => s.name === aktiveSeite);
+        setAktivExistiert(da);
+        if (listeOk && !da) entferneAktiveSeite();
+      } catch {
+        if (!tot) setAktivExistiert(false);
+      }
+    })();
+    return () => {
+      tot = true;
+    };
+  }, [aktiveSeite]);
+
+  /* Effektive Buehne:
+     - Explizit gewaehlter Backdrop schlaegt alles (Backdrop-Persistenz bleibt
+       unangetastet, Inventar §4.1/Risiko 5). "demo-landing" ist der Sentinel
+       fuer „ausdruecklich die WEE-Landing" → kein Backdrop (echte Landing).
+     - Sonst (nichts gewaehlt): die aktive Website, falls gesetzt und vorhanden.
+     - Fallback: echte WEE-Landing (wie bisher). */
+  const effektiverBackdrop: BackdropDaten | null = bctx?.backdrop
+    ? bctx.backdrop.art === "demo-landing"
+      ? null
+      : bctx.backdrop
+    : aktiveSeite && aktivExistiert
+      ? { art: "puck-seite", quelle: aktiveSeite, name: aktiveSeite }
+      : null;
+
   return (
     <RiverKursProvider>
       <GrafikProvider>
         <FlussObjektProvider>
-          <HomePageContent backdrop={bctx?.backdrop ? <Backdrop backdrop={bctx.backdrop} /> : undefined} />
+          <HomePageContent backdrop={effektiverBackdrop ? <Backdrop backdrop={effektiverBackdrop} /> : undefined} />
           {/* Das EINE Panel (.gre-panel) — bringt sein eigenes Tutorial
               (localStorage-Latch "wee-grafik-tutorial-gesehen") und CSS mit.
               Enthält seit 2b-1 auch das Fluss-Objekt. */}

@@ -219,6 +219,134 @@
   background: #4d8546;
 }
 
+/* --- Produkt-Tutorial: gefuehrter Wizard (ProduktTutorial.tsx, Welle 5d) ---
+   Nutzt die bestehende .gre-tutorial-box; nur Fortschritts-Punkte, Schritt-
+   Text und die Zurueck/Weiter-Navigation sind additiv. */
+
+.gre-produkt-fortschritt {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.gre-produkt-punkt {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.gre-produkt-punkt--aktiv {
+  background: #9fd68a;
+}
+
+.gre-produkt-schritt {
+  min-height: 120px;
+}
+
+.gre-produkt-schritt .gre-tutorial-kuerzel-titel {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.gre-produkt-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.gre-produkt-text code {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font: 11px/1.3 ui-monospace, monospace;
+}
+
+.gre-produkt-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.gre-produkt-zaehler {
+  font-size: 11.5px;
+  color: #9fd68a;
+}
+
+.gre-produkt-nav-knoepfe {
+  display: flex;
+  gap: 8px;
+}
+
+.gre-produkt-nav button.gre-produkt-btn {
+  background: rgba(159, 214, 138, 0.18);
+  color: #eaf6e4;
+  border: 0;
+  border-radius: 7px;
+  padding: 8px 16px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gre-produkt-nav button.gre-produkt-btn:hover:not(:disabled),
+.gre-produkt-nav button.gre-produkt-btn:focus-visible {
+  background: #3f6e3a;
+  color: #fff;
+}
+
+.gre-produkt-nav button.gre-produkt-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.gre-produkt-nav button.gre-tutorial-los {
+  align-self: auto;
+}
+
+/* --- „?"-Kopf-Menue (HilfeMenue.tsx, Welle 5d): Auswahl Produkt/Animator --- */
+
+.gre-hilfe-menue-huelle {
+  position: relative;
+  display: inline-flex;
+}
+
+.gre-hilfe-menue {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 90; /* wie .gre-hilfe-popover — ueber Panel/Objektmenue */
+  min-width: 190px;
+  background: rgba(15, 24, 19, 0.98);
+  border: 1px solid #3f6e3a;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+}
+
+.gre-hilfe-menue button.gre-hilfe-menue-item {
+  background: transparent;
+  color: #f2efe7;
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 9px;
+  text-align: left;
+  font: 12px/1.3 system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gre-hilfe-menue button.gre-hilfe-menue-item:hover,
+.gre-hilfe-menue button.gre-hilfe-menue-item:focus-visible {
+  background: #3f6e3a;
+  color: #fff;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .gre-hilfe-popover,
   .gre-tutorial-hintergrund,

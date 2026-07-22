@@ -301,7 +301,10 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
       </div>
 
       <div className="gre-row">
-        <button onClick={() => setAnleitungOffen(true)}>{`? Anleitung`}</button>
+        <button
+          onClick={() => setAnleitungOffen(true)}
+          title="Schritt-für-Schritt-Anleitung zum Einbauen des Exports öffnen"
+        >{`? Anleitung`}</button>
       </div>
 
       <div className="gre-regler">
@@ -345,7 +348,11 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
       </div>
 
       <div className="gre-row">
-        <button onClick={() => void jsonExportieren()} disabled={laeuft}>
+        <button
+          onClick={() => void jsonExportieren()}
+          disabled={laeuft}
+          title="wee-anim.json herunterladen — die vollständige Config (Grafiken + Fluss + Farben)"
+        >
           {`JSON exportieren`}
         </button>
         <HilfeIcon
@@ -354,7 +361,11 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
         />
       </div>
       <div className="gre-row">
-        <button onClick={() => void htmlExportieren()} disabled={laeuft}>
+        <button
+          onClick={() => void htmlExportieren()}
+          disabled={laeuft}
+          title="wee-overlay.html herunterladen — fertiges Snippet mit eingebauter Config, vor </body> einfügen"
+        >
           {`HTML-Overlay exportieren`}
         </button>
         <HilfeIcon
@@ -363,7 +374,11 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
         />
       </div>
       <div className="gre-row">
-        <button onClick={() => void runtimeHerunterladen()} disabled={laeuft}>
+        <button
+          onClick={() => void runtimeHerunterladen()}
+          disabled={laeuft}
+          title="wee-embed.js herunterladen — das Script, das die Animation auf jeder Seite ausführt"
+        >
           {`Runtime-Script herunterladen`}
         </button>
         <HilfeIcon
@@ -402,7 +417,11 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
               ))}
             </select>
             <div className="gre-row">
-              <button onClick={() => void elementExportieren()} disabled={laeuft || !gewaehltesElement}>
+              <button
+                onClick={() => void elementExportieren()}
+                disabled={laeuft || !gewaehltesElement}
+                title="wee-element-<name>.html herunterladen — nur die gewählte Grafik als selbsttragendes Snippet"
+              >
                 {`Element-HTML exportieren`}
               </button>
               <HilfeIcon
@@ -415,7 +434,11 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId, seit
       </div>
 
       <div className="gre-row">
-        <button onClick={() => void seiteExportieren()} disabled={laeuft}>
+        <button
+          onClick={() => void seiteExportieren()}
+          disabled={laeuft}
+          title="wee-seite.html herunterladen — Overlay, Config und Runtime in einer Datei (im Puck-Seiten-Modus mit der Seite fusioniert)"
+        >
           {`Ganze Seite (HTML)`}
         </button>
         <HilfeIcon

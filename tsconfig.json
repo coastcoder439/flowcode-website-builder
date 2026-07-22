@@ -17,5 +17,6 @@
     "paths": { "@/*": ["./*"] }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "//exclude": "test-sites/ = fremde, eigenstaendige Projekte (eigenes tsconfig, eigenes @/-Alias) — gehoeren NICHT in unseren Typecheck. scripts/import-ben.mjs importiert den reinen Adapter zur Laufzeit, nicht via tsc.",
+  "exclude": ["node_modules", "test-sites"]
 }

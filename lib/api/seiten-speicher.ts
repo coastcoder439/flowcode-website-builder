@@ -51,6 +51,12 @@ export interface SeitenDatei {
   /** Optional (Welle 4c): das Animations-Abbild ueber dieser Seite. Aeltere
    *  Seiten ohne dieses Feld laden unveraendert. */
   anim?: SeitenAnim;
+  /** Optional (Welle 5a, docs/editor-vereinheitlichung.md §10/5a): uebernommene
+   *  Stylesheet-URLs einer eigenen gebauten Seite (public/import/<slug>/css/…,
+   *  Dokument-Reihenfolge, Inline-CSS zuletzt). Bühne/Puck-Render/Vorschau
+   *  laden diese Liste und injizieren sie gescoped auf den Bühnen-Container.
+   *  Aeltere Seiten ohne dieses Feld laden unveraendert. */
+  styles?: string[];
 }
 
 /** Strukturprueft ein anim-Feld (Welle 4c). Nutzt istGrafik aus der
@@ -73,6 +79,24 @@ export function pruefeAnim(v: unknown): SeitenAnim {
     grafiken: o.grafiken as Grafik[],
     ...(o.uebernommen !== undefined ? { uebernommen: o.uebernommen as string[] } : {}),
   };
+}
+
+/** Strukturprueft ein styles-Feld (Welle 5a): Array aus URL-Strings, die auf
+ *  unter public/import/ kopierte CSS-Dateien zeigen. Bewusst eng: nur
+ *  root-relative /import/…-Pfade (die der Import-Endpunkt selbst erzeugt) —
+ *  so kann eine Seiten-Datei keine fremden/absoluten Stylesheet-URLs
+ *  einschleusen, die die Bühne spaeter ungefragt laedt. */
+export function pruefeStyles(v: unknown): string[] {
+  if (!Array.isArray(v) || !v.every((x) => typeof x === "string")) {
+    throw new AnfrageFehler(400, "styles muss ein String-Array sein");
+  }
+  const strings = v as string[];
+  for (const s of strings) {
+    if (!s.startsWith("/import/") || s.includes("..")) {
+      throw new AnfrageFehler(400, `styles-URL ungültig (nur /import/…): ${s}`);
+    }
+  }
+  return strings;
 }
 
 const SEITEN_DOC =
@@ -221,6 +245,10 @@ export interface SpeichernOptionen {
    *  (undefined) → ein bereits an der Seite haengendes anim bleibt ERHALTEN
    *  (ein normaler Puck-Speichervorgang loescht die Animation also nicht). */
   anim?: SeitenAnim;
+  /** Uebernommene Stylesheet-URLs (Welle 5a). Gleiche Erhaltungs-Semantik wie
+   *  anim: GESETZT → wird geschrieben; undefined → bestehendes styles bleibt
+   *  erhalten (ein reiner Puck-Speichervorgang wirft die Styles nicht weg). */
+  styles?: string[];
 }
 
 export async function speichereSeite(name: string, data: Data, opts: SpeichernOptionen = {}): Promise<SeitenDatei> {
@@ -241,6 +269,8 @@ export async function speichereSeite(name: string, data: Data, opts: SpeichernOp
   /* anim: uebergebenes gewinnt; sonst das bestehende erhalten (nicht stumm
      wegwerfen, wenn ein reiner Daten-Speichervorgang kein anim mitschickt). */
   const animEffektiv = opts.anim !== undefined ? opts.anim : bestehend?.anim;
+  /* styles: gleiche Erhaltungs-Semantik wie anim (Welle 5a). */
+  const stylesEffektiv = opts.styles !== undefined ? opts.styles : bestehend?.styles;
   const datei: SeitenDatei = {
     $doc: SEITEN_DOC,
     version: SEITEN_VERSION,
@@ -248,6 +278,7 @@ export async function speichereSeite(name: string, data: Data, opts: SpeichernOp
     gespeichert: new Date().toISOString(),
     data,
     ...(animEffektiv ? { anim: animEffektiv } : {}),
+    ...(stylesEffektiv && stylesEffektiv.length > 0 ? { styles: stylesEffektiv } : {}),
   };
   await mkdir(SEITEN_ORDNER, { recursive: true });
   await writeFile(pfad, JSON.stringify(datei, null, 2), "utf-8");

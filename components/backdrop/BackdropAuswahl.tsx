@@ -19,21 +19,26 @@ import { alsDataUrl, alsText } from "./backdrop-store";
 import { useBackdropCtx } from "./BackdropContext";
 import { BackdropHilfeIcon } from "./BackdropHilfeIcon";
 import { ordnerApiDa, ordnerBereitstellen, ordnerHolen, ordnerWaehlen, type OrdnerHandle } from "./ordner-serve";
+import { useAktiveSeite } from "@/lib/aktive-seite";
 import "./backdrop.css";
 
 const HTML_ENDUNG = /\.html?$/i;
 
 const HILFE_TEXT =
-  "Legt eine FREMDE Website statt der echten Landing als Hintergrund unter den Editor — zum " +
+  "Bestimmt, worüber der Animator liegt. STANDARD ist die „aktive Website“ (die echte Seite " +
+  "des Projekts, s. Bereich „Seiten“) — sie wird ohne weiteres Zutun als Bühne geladen. Die " +
+  "eingebaute WEE-Landing ist nur noch ein Beispiel: „WEE Demo-Landing zeigen“ holt sie " +
+  "ausdrücklich als Bühne zurück. Zusätzlich kannst du eine FREMDE Website unterlegen — zum " +
   "Bäume setzen oder Fluss ziehen über einer fremden Seite (z.B. Bens Entwurf). Screenshot " +
   "(ganzseitiges Bild) funktioniert immer. HTML rendert nur zuverlässig, wenn die Datei " +
-  "self-contained ist (CSS/Bilder eingebettet, keine externen Pfade). „Ordner öffnen\" laedt " +
+  "self-contained ist (CSS/Bilder eingebettet, keine externen Pfade). „Ordner öffnen“ laedt " +
   "eine KOMPLETTE mehrdateiige Website (index.html + CSS + Bilder) direkt von der Festplatte — " +
   "dafuer einmal pro Sitzung den Ordner-Zugriff im Browser-Dialog erlauben (nur Chrome/Edge). " +
   "Nach einem Neuladen der Seite merkt sich der Editor den Ordner, fragt aber ggf. erneut nach " +
-  "der Freigabe (eigener Knopf erscheint dann). Nach einem Wechsel auf einen neuen Hintergrund " +
-  "musst du Grafiken bzw. den Fluss neu positionieren — die alten Positionen galten für eine " +
-  "andere Seite.";
+  "der Freigabe (eigener Knopf erscheint dann). „Zurück“ entfernt einen gewählten Hintergrund " +
+  "wieder und stellt die aktive Website als Bühne her. Nach einem Wechsel auf einen neuen " +
+  "Hintergrund musst du Grafiken bzw. den Fluss neu positionieren — die alten Positionen galten " +
+  "für eine andere Seite.";
 
 /** Ein Eintrag der Seiten-Liste (Teilform von SeitenInfo, /api/puck-seite/liste). */
 interface SeiteKurz {
@@ -50,6 +55,9 @@ export function BackdropAuswahl() {
      Fehlschlag → leere Liste (Abschnitt zeigt dann nur den Leer-Hinweis). */
   const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
   const [seitenGeladen, setSeitenGeladen] = useState(false);
+  /* Welle 5b: die aktive Website (Default-Buehne) — hier nur zur Anzeige/
+     Beschriftung; das Setzen passiert im Seiten-Bereich. */
+  const aktiveSeite = useAktiveSeite();
   const bildRef = useRef<HTMLInputElement>(null);
   const htmlRef = useRef<HTMLInputElement>(null);
 
@@ -109,9 +117,20 @@ export function BackdropAuswahl() {
   if (!ctx) return null;
   const { backdrop, setBackdrop, laedt } = ctx;
 
+  /* Ist die aktive Website eine wirklich existierende Seite? (Nur dann ist sie
+     die Default-Buehne; sonst faellt der Animator auf die Demo-Landing zurueck.) */
+  const aktiveExistiert = aktiveSeite ? seiten.some((s) => s.name === aktiveSeite) : false;
+
   const seiteWaehlen = (name: string) => {
     setBackdrop({ art: "puck-seite", quelle: name, name });
     setStatus(`Seite „${name}“ als Buehne gesetzt — Animator liegt jetzt darueber`);
+  };
+
+  /* Welle 5b: die eingebaute WEE-Demo-Landing ausdruecklich als Buehne holen
+     (Sentinel-Backdrop; EditorInner bildet ihn auf die echte Landing ab). */
+  const demoLandingWaehlen = () => {
+    setBackdrop({ art: "demo-landing", quelle: "", name: "Demo-Landing (WEE)" });
+    setStatus("Demo-Landing (WEE) als Buehne gesetzt");
   };
 
   const bildGewaehlt = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -197,7 +216,11 @@ export function BackdropAuswahl() {
 
   const zurueck = () => {
     setBackdrop(null);
-    setStatus("Zurück zur echten Seite");
+    setStatus(
+      aktiveSeite && aktiveExistiert
+        ? `Zurück zur aktiven Website „${aktiveSeite}“`
+        : "Zurück zur Demo-Landing (keine aktive Website gesetzt)",
+    );
   };
 
   return (
@@ -216,18 +239,27 @@ export function BackdropAuswahl() {
         <div className="hg-leer">Lade gemerkten Hintergrund…</div>
       ) : backdrop ? (
         <div className="hg-aktuell">
-          Aktuell: <b>{backdrop.name}</b> (
-          {backdrop.art === "bild"
-            ? "Screenshot"
-            : backdrop.art === "html"
-              ? "HTML"
-              : backdrop.art === "puck-seite"
-                ? "Eigene Seite"
-                : "Ordner"}
-          )
+          Aktuell: <b>{backdrop.name}</b>
+          {backdrop.art === "demo-landing" ? null : (
+            <>
+              {" ("}
+              {backdrop.art === "bild"
+                ? "Screenshot"
+                : backdrop.art === "html"
+                  ? "HTML"
+                  : backdrop.art === "puck-seite"
+                    ? "Eigene Seite"
+                    : "Ordner"}
+              {")"}
+            </>
+          )}
+        </div>
+      ) : aktiveSeite && aktiveExistiert ? (
+        <div className="hg-aktuell">
+          Aktuell: <b>{aktiveSeite}</b> (aktive Website)
         </div>
       ) : (
-        <div className="hg-leer">Kein Hintergrund gewählt — echte Seite aktiv.</div>
+        <div className="hg-leer">Keine aktive Website — Demo-Landing (WEE) aktiv.</div>
       )}
 
       {backdrop?.art === "ordner" && ordnerWartet && (
@@ -287,13 +319,31 @@ export function BackdropAuswahl() {
                 type="button"
                 className={backdrop?.art === "puck-seite" && backdrop.quelle === s.name ? "hg-seite-aktiv" : undefined}
                 onClick={() => seiteWaehlen(s.name)}
-                title={`seiten/${s.name}.json als Animator-Buehne laden`}
+                title={
+                  s.name === aktiveSeite
+                    ? `seiten/${s.name}.json (aktive Website) als Animator-Buehne laden`
+                    : `seiten/${s.name}.json als Animator-Buehne laden`
+                }
               >
                 {s.name} ({s.contentAnzahl})
+                {s.name === aktiveSeite ? " · aktive Website" : ""}
               </button>
             ))}
           </div>
         )}
+      </div>
+
+      {/* Welle 5b: die eingebaute WEE-Demo-Landing als bewusst waehlbare Buehne
+          (sie ist nicht mehr der Default — das ist die aktive Website). */}
+      <div className="hg-row">
+        <button
+          type="button"
+          className={backdrop?.art === "demo-landing" ? "hg-seite-aktiv" : undefined}
+          onClick={demoLandingWaehlen}
+          title="Die eingebaute WEE-Beispiel-Landing als Buehne zeigen"
+        >
+          WEE Demo-Landing zeigen
+        </button>
       </div>
 
       <div className="hg-row">
@@ -301,9 +351,13 @@ export function BackdropAuswahl() {
           type="button"
           onClick={zurueck}
           disabled={!backdrop}
-          title="Hintergrund entfernen, echte Landing zeigen"
+          title={
+            aktiveSeite && aktiveExistiert
+              ? "Hintergrund entfernen, zurück zur aktiven Website"
+              : "Hintergrund entfernen, Demo-Landing zeigen"
+          }
         >
-          ← Zurück zur echten Seite
+          {aktiveSeite && aktiveExistiert ? "← Zurück zur aktiven Website" : "← Zurück zur echten Seite"}
         </button>
       </div>
 

@@ -158,9 +158,12 @@ export async function aufloeseBilderAusOrdner(
   slug: string,
 ): Promise<{ data: Data; flags: ImportFlag[] }> {
   const ersatz: Record<string, string> = {};
+  /** Welle 5a: Original-src -> neue URL fuer Bilder INNERHALB von HtmlBloecken
+   *  (Rueckschrift per String-Ersatz, s. ersetzeBildQuellen). */
+  const htmlErsatz: Record<string, string> = {};
   const flags: ImportFlag[] = [];
 
-  for (const { id, src } of bericht.bilder) {
+  for (const { id, src, quelle } of bericht.bilder) {
     if (/^(data:|https?:)/i.test(src)) {
       flags.push({ grund: FLAG_BILD_EXTERN, detail: src });
       continue; // externe Quelle: nichts zu kopieren
@@ -171,15 +174,89 @@ export async function aufloeseBilderAusOrdner(
       continue;
     }
     const name = (normalisiereSrc(src).split("/").pop() ?? "bild").trim() || "bild";
-    if (datei.size < DATAURL_MAX) {
+    /* html-interne Bilder IMMER kopieren: das Markup bleibt schlank (Pfad statt
+       Riesen-data-URL) und die Datei landet real unter public/import/<slug>/.
+       Eigenstaendige BildBloecke wie bisher: klein -> data-URL, gross -> Upload. */
+    if (quelle === "html") {
+      const url = await ladeAssetHoch(slug, name, await alsDataUrl(datei));
+      if (url) htmlErsatz[src] = url;
+      else flags.push({ grund: FLAG_BILD_UPLOAD, detail: src });
+    } else if (datei.size < DATAURL_MAX) {
       ersatz[id] = await alsDataUrl(datei);
     } else {
-      const dataUrl = await alsDataUrl(datei);
-      const url = await ladeAssetHoch(slug, name, dataUrl);
+      const url = await ladeAssetHoch(slug, name, await alsDataUrl(datei));
       if (url) ersatz[id] = url;
       else flags.push({ grund: FLAG_BILD_UPLOAD, detail: src });
     }
   }
 
-  return { data: ersetzeBildQuellen(bericht.data, ersatz), flags };
+  return { data: ersetzeBildQuellen(bericht.data, ersatz, htmlErsatz), flags };
+}
+
+/* ------------------------------------------------------------------ */
+/* Styles uebernehmen (Welle 5a)                                        */
+/* ------------------------------------------------------------------ */
+
+const FLAG_CSS_FEHLT = "Stylesheet nicht gefunden";
+const FLAG_CSS_UPLOAD = "Stylesheet-Upload fehlgeschlagen";
+const FLAG_CSS_URL = "CSS-Verweise auf nicht-kopierte Assets bleiben unaufgeloest";
+
+/** Kodiert CSS-Text als `data:text/css;base64,…` (UTF-8-sicher, auch fuer
+ *  Nicht-ASCII wie „ä" in Kommentaren/content:). Passt exakt auf die
+ *  CSS_MIME-Whitelist von /api/import/asset. */
+function textAlsCssDataUrl(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binaer = "";
+  for (const b of bytes) binaer += String.fromCharCode(b);
+  return `data:text/css;base64,${btoa(binaer)}`;
+}
+
+/**
+ * Uebernimmt die im Bericht gesammelten Styles (Welle 5a, §10/5a): kopiert jede
+ * same-origin CSS-Datei nach public/import/<slug>/css/ und fasst alle Inline-
+ * <style>-Bloecke zu EINER Datei zusammen. Gibt die Liste der neuen URLs (in
+ * Dokument-Reihenfolge: erst die verlinkten Stylesheets, dann die Inline-Datei
+ * zuletzt — so gewinnt Inline-CSS wie im Original) plus Flags zurueck.
+ *
+ * EHRLICHE GRENZE (als Flag benannt): url()-Verweise IN den CSS-Dateien (Fonts,
+ * Hintergrundbilder, z.B. /_next/static/media/…) werden NICHT mitkopiert — sie
+ * zeigen nach dem Import auf unsere Origin und laufen dort ggf. ins Leere. Die
+ * Kern-Regeln (Layout/Farben/Abstaende) greifen, mediengebundene Details evtl.
+ * nicht.
+ */
+export async function uebernimmStyles(
+  bericht: ImportBericht,
+  map: Map<string, File>,
+  slug: string,
+): Promise<{ styles: string[]; flags: ImportFlag[] }> {
+  const styles: string[] = [];
+  const flags: ImportFlag[] = [];
+
+  for (const href of bericht.stylesheets) {
+    const datei = findeDatei(map, href);
+    if (!datei) {
+      flags.push({ grund: FLAG_CSS_FEHLT, detail: href });
+      continue;
+    }
+    const text = await datei.text();
+    const name = (normalisiereSrc(href).split("/").pop() ?? "stil.css").trim() || "stil.css";
+    const url = await ladeAssetHoch(slug, name, textAlsCssDataUrl(text));
+    if (url) styles.push(url);
+    else flags.push({ grund: FLAG_CSS_UPLOAD, detail: href });
+  }
+
+  if (bericht.inlineStyles.length > 0) {
+    const zusammengefasst = bericht.inlineStyles.join("\n\n");
+    const url = await ladeAssetHoch(slug, `${slug}-inline.css`, textAlsCssDataUrl(zusammengefasst));
+    if (url) styles.push(url);
+    else flags.push({ grund: FLAG_CSS_UPLOAD, detail: "Inline-<style>-Sammeldatei" });
+  }
+
+  /* Grenze nur dann ehrlich anzeigen, wenn ueberhaupt Styles uebernommen
+     wurden (sonst waere der Hinweis irrefuehrend). */
+  if (styles.length > 0) {
+    flags.push({ grund: FLAG_CSS_URL, detail: `${styles.length} CSS-Datei(en) übernommen` });
+  }
+
+  return { styles, flags };
 }

@@ -22,6 +22,9 @@ export async function POST(req: NextRequest) {
       /* Welle 4c: das Animations-Abbild mitliefern (falls vorhanden), damit der
          Animator es beim Laden der Seite als Buehne uebernehmen kann. */
       ...(datei.anim ? { anim: datei.anim } : {}),
+      /* Welle 5a: uebernommene Styles mitliefern (falls vorhanden) — Bühne/
+         Puck-Render/Vorschau injizieren sie gescoped. */
+      ...(datei.styles ? { styles: datei.styles } : {}),
     });
   } catch (e) {
     return fehlerAntwort(e, "puck-seite/lade");

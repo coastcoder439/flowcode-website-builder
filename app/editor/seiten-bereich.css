@@ -229,6 +229,27 @@
 .seiten-liste-name {
   font-weight: var(--fw-semibold, 600);
   color: var(--text-strong, #16201a);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Welle 5b: aktive Website — Markierung in der Liste */
+.seiten-liste-aktiv {
+  border-color: var(--accent-500, #ea8914);
+  box-shadow: inset 3px 0 0 var(--accent-500, #ea8914);
+}
+
+.seiten-aktiv-badge {
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--accent-600, #c47210);
+  background: color-mix(in srgb, #ea8914 14%, transparent);
+  border: 1px solid color-mix(in srgb, #ea8914 40%, transparent);
+  border-radius: var(--radius-pill, 999px);
+  padding: 2px 8px;
+  white-space: nowrap;
 }
 
 .seiten-liste-meta {
@@ -511,4 +532,74 @@
   display: flex;
   gap: 8px;
   margin-top: 4px;
+}
+
+/* Welle 5a: „Styles der Seite übernehmen"-Schalter */
+.seiten-import-style-schalter {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--surface-2, #f4f1ea);
+  border: 1px solid var(--border, #ddd6ca);
+  border-radius: 8px;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text, #2c352e);
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.seiten-import-style-schalter input {
+  margin-top: 3px;
+  flex: 0 0 auto;
+}
+
+/* ---- Welle 5b: statische Vollbild-Vorschau (SeitenVorschau.tsx) ----
+   Portalt auf <body> und deckt (z-index 1200) den Bereichs-Umschalter (1000)
+   sowie den Hilfe-Dialog (1100) ab — bewusst chrome-frei bis auf den
+   Zurueck-Knopf. */
+.seiten-vorschau {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  overflow: auto;
+  background: var(--bg-page, #f5efe3);
+}
+
+.seiten-vorschau-zurueck {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1201;
+  appearance: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border-strong, rgba(46, 58, 51, 0.38));
+  background: rgba(20, 30, 24, 0.92);
+  color: #f2efe7;
+  font: var(--fw-semibold, 600) var(--text-sm, 0.875rem) / 1
+    var(--font-body, system-ui, sans-serif);
+  box-shadow: var(--shadow-md, 0 8px 22px -8px rgba(20, 48, 33, 0.28));
+}
+
+.seiten-vorschau-zurueck:hover {
+  border-color: var(--accent-500, #ea8914);
+}
+
+.seiten-vorschau-zurueck:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 2px;
+}
+
+.seiten-vorschau-buehne {
+  min-height: 100vh;
+}
+
+.seiten-vorschau-hinweis {
+  padding: 80px 24px 24px;
+  text-align: center;
+  color: var(--text-muted, #5a6960);
+  font-family: var(--font-body, system-ui, sans-serif);
 }
