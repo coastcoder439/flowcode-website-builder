@@ -210,7 +210,7 @@ function useCountUp(target: number, active: boolean): number {
 /* Feuert den Count-up einmalig beim Einscrollen, kein Reset beim Verlassen. */
 const STATS_TRIGGER_THRESHOLD = 0.4;
 
-function StatTile({ stat }: { stat: StatItem }) {
+function StatTile({ stat, index }: { stat: StatItem; index: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false);
 
@@ -234,7 +234,7 @@ function StatTile({ stat }: { stat: StatItem }) {
   const finalText = `${stat.value.toLocaleString("de-DE")}${stat.suffix ?? ""}`;
 
   return (
-    <div className="stat-tile" ref={ref}>
+    <div className="stat-tile" ref={ref} data-og-id={`stats:kachel:${index}`} data-og-typ="text">
       {/* Ghost/Live-Zwilling (Bens echte Stats.tsx-Technik): der unsichtbare
           Ghost-Text reserviert von Anfang an die Endbreite, damit das
           Hochzählen keine Breiten-Neuverteilung der Nachbar-Kacheln
@@ -301,16 +301,22 @@ export function HomePageContent({ backdrop }: HomePageProps) {
         }
         uebernommen={uebernommen}
       >
-        <section className="hero">
+        <section className="hero" data-og-id="hero:sektion:0" data-og-typ="sektion">
           <div
             className="hero__bg"
             style={{ backgroundImage: "url(/images/hero-fields-aerial.jpg)" }}
+            data-og-id="hero:hintergrund:0"
+            data-og-typ="hintergrund"
           />
-          <div className="hero__overlay" />
+          <div className="hero__overlay" data-og-id="hero:overlay:0" data-og-typ="deko" />
           <div className="hero__inner">
-            <p className="hero__kicker">World Eden Era</p>
-            <h1 className="hero__title">Back to the Nature – but smarter.</h1>
-            <p className="hero__lead">
+            <p className="hero__kicker" data-og-id="hero:kicker:0" data-og-typ="text">
+              World Eden Era
+            </p>
+            <h1 className="hero__title" data-og-id="hero:titel:0" data-og-typ="text">
+              Back to the Nature – but smarter.
+            </h1>
+            <p className="hero__lead" data-og-id="hero:lead:0" data-og-typ="text">
               Gemeinsam Ernährung sichern. Global. Nachhaltige und resiliente
               Ernährungssysteme – für eine Welt im Wandel.
             </p>
@@ -334,35 +340,65 @@ export function HomePageContent({ backdrop }: HomePageProps) {
           frei, Text links bzw. rechts), Bausteine als diagonale Treppe
           statt Bens Standard-Grid, Projekte unverändert als Bens Paar. */}
       <RiverFlow>
-        <section className="section block-prose" id="mission">
-          <TextureField variant="light" />
+        <section
+          className="section block-prose"
+          id="mission"
+          data-og-id="mission:sektion:0"
+          data-og-typ="sektion"
+        >
+          <TextureField variant="light" ogId="mission:textur:0" ogTyp="deko" />
           <div className="container block-prose__inner block-prose__inner--text-only">
             <div className="block-prose__text">
-              <p className="kicker">Unsere Mission</p>
-              <h2>Unsere Mission</h2>
-              <p>{MISSION_PARAGRAPH}</p>
+              <p className="kicker" data-og-id="mission:kicker:0" data-og-typ="text">
+                Unsere Mission
+              </p>
+              <h2 data-og-id="mission:titel:0" data-og-typ="text">Unsere Mission</h2>
+              <p data-og-id="mission:text:0" data-og-typ="text">{MISSION_PARAGRAPH}</p>
             </div>
           </div>
         </section>
 
-        <section className="section block-statement" id="haltung">
-          <TextureField variant="dark" />
+        <section
+          className="section block-statement"
+          id="haltung"
+          data-og-id="haltung:sektion:0"
+          data-og-typ="sektion"
+        >
+          <TextureField variant="dark" ogId="haltung:textur:0" ogTyp="deko" />
           <div className="container block-statement__inner">
-            <ShapeAccent variant="arc" color="green" position="bottom-right" size={260} />
-            <p className="eyebrow">Unsere Haltung</p>
-            <p className="block-statement__text">{HALTUNG_TEXT}</p>
+            <ShapeAccent
+              variant="arc"
+              color="green"
+              position="bottom-right"
+              size={260}
+              ogId="haltung:akzent:0"
+              ogTyp="deko"
+            />
+            <p className="eyebrow" data-og-id="haltung:kicker:0" data-og-typ="text">
+              Unsere Haltung
+            </p>
+            <p className="block-statement__text" data-og-id="haltung:text:0" data-og-typ="text">
+              {HALTUNG_TEXT}
+            </p>
             <div className="cta-row">
               <CtaLink label="Lerne uns kennen" href="/organisation/" variant="outline" />
             </div>
           </div>
         </section>
 
-        <section className="section block-prose" id="oasis-prose">
-          <TextureField variant="light" />
+        <section
+          className="section block-prose"
+          id="oasis-prose"
+          data-og-id="oasis:sektion:0"
+          data-og-typ="sektion"
+        >
+          <TextureField variant="light" ogId="oasis:textur:0" ogTyp="deko" />
           <div className="container block-prose__inner block-prose__inner--text-only">
             <div className="block-prose__text">
-              <h2>Project Oasis, Back to the Nature</h2>
-              <p>{OASIS_PROSE_PARAGRAPH}</p>
+              <h2 data-og-id="oasis:titel:0" data-og-typ="text">
+                Project Oasis, Back to the Nature
+              </h2>
+              <p data-og-id="oasis:text:0" data-og-typ="text">{OASIS_PROSE_PARAGRAPH}</p>
               <div className="cta-row">
                 <CtaLink label="Wie verändert Project Oasis?" href="/project-oasis/" />
               </div>
@@ -370,17 +406,33 @@ export function HomePageContent({ backdrop }: HomePageProps) {
           </div>
         </section>
 
-        <section className="section block-features block-features--cycle" id="bausteine">
+        <section
+          className="section block-features block-features--cycle"
+          id="bausteine"
+          data-og-id="bausteine:sektion:0"
+          data-og-typ="sektion"
+        >
           <div className="container">
-            <p className="kicker">Project Oasis</p>
-            <h2>Project Oasis</h2>
+            <p className="kicker" data-og-id="bausteine:kicker:0" data-og-typ="text">
+              Project Oasis
+            </p>
+            <h2 data-og-id="bausteine:titel:0" data-og-typ="text">Project Oasis</h2>
             <div className="features-cycle">
-              <ShapeAccent variant="blob-b" color="green" position="top-left" size={180} />
+              <ShapeAccent
+                variant="blob-b"
+                color="green"
+                position="top-left"
+                size={180}
+                ogId="bausteine:akzent:0"
+                ogTyp="deko"
+              />
               <svg
                 className="features-cycle__loop"
                 viewBox="0 0 100 100"
                 preserveAspectRatio="none"
                 aria-hidden="true"
+                data-og-id="bausteine:schleife:0"
+                data-og-typ="deko"
               >
                 <rect
                   x="4"
@@ -397,19 +449,37 @@ export function HomePageContent({ backdrop }: HomePageProps) {
               <div className="features-cycle__grid features-cycle__grid--diagonal">
                 <div className="features-cycle__row features-cycle__row--top">
                   {BAUSTEINE.slice(0, 2).map((item, i) => (
-                    <article className="features-cycle__item" key={item.title}>
+                    <article
+                      className="features-cycle__item"
+                      key={item.title}
+                      data-og-id={`bausteine:baustein:${i}`}
+                      data-og-typ="sektion"
+                    >
                       <span className="features-cycle__no">{i + 1}</span>
-                      <h3>{item.title}</h3>
-                      <p>{item.text}</p>
+                      <h3 data-og-id={`bausteine:baustein-titel:${i}`} data-og-typ="text">
+                        {item.title}
+                      </h3>
+                      <p data-og-id={`bausteine:baustein-text:${i}`} data-og-typ="text">
+                        {item.text}
+                      </p>
                     </article>
                   ))}
                 </div>
                 <div className="features-cycle__row features-cycle__row--bottom">
                   {BAUSTEINE.slice(2, 4).map((item, i) => (
-                    <article className="features-cycle__item" key={item.title}>
+                    <article
+                      className="features-cycle__item"
+                      key={item.title}
+                      data-og-id={`bausteine:baustein:${i + 2}`}
+                      data-og-typ="sektion"
+                    >
                       <span className="features-cycle__no">{i + 3}</span>
-                      <h3>{item.title}</h3>
-                      <p>{item.text}</p>
+                      <h3 data-og-id={`bausteine:baustein-titel:${i + 2}`} data-og-typ="text">
+                        {item.title}
+                      </h3>
+                      <p data-og-id={`bausteine:baustein-text:${i + 2}`} data-og-typ="text">
+                        {item.text}
+                      </p>
                     </article>
                   ))}
                 </div>
@@ -418,13 +488,28 @@ export function HomePageContent({ backdrop }: HomePageProps) {
           </div>
         </section>
 
-        <section className="section block-cards" id="projekte">
+        <section
+          className="section block-cards"
+          id="projekte"
+          data-og-id="projekte:sektion:0"
+          data-og-typ="sektion"
+        >
           <div className="container">
-            <h2>Projekte</h2>
+            <h2 data-og-id="projekte:titel:0" data-og-typ="text">Projekte</h2>
             <div className="grid grid--2">
               {PROJEKTE.map((item, i) => (
-                <div className="block-cards__item" key={item.title}>
-                  <ShapeAccent {...CARD_ACCENTS[i % CARD_ACCENTS.length]} size={180} />
+                <div
+                  className="block-cards__item"
+                  key={item.title}
+                  data-og-id={`projekte:karte:${i}`}
+                  data-og-typ="sektion"
+                >
+                  <ShapeAccent
+                    {...CARD_ACCENTS[i % CARD_ACCENTS.length]}
+                    size={180}
+                    ogId={`projekte:akzent:${i}`}
+                    ogTyp="deko"
+                  />
                   <article className="card card--media">
                     <img
                       src={item.image.src}
@@ -432,9 +517,13 @@ export function HomePageContent({ backdrop }: HomePageProps) {
                       width={item.image.width}
                       height={item.image.height}
                       loading="lazy"
+                      data-og-id={`projekte:bild:${i}`}
+                      data-og-typ="bild"
                     />
-                    <h3>{item.title}</h3>
-                    <p>{item.text}</p>
+                    <h3 data-og-id={`projekte:titel-karte:${i}`} data-og-typ="text">
+                      {item.title}
+                    </h3>
+                    <p data-og-id={`projekte:text:${i}`} data-og-typ="text">{item.text}</p>
                     {item.cta && (
                       <div className="cta-row">
                         <CtaLink {...item.cta} />
@@ -447,43 +536,73 @@ export function HomePageContent({ backdrop }: HomePageProps) {
           </div>
         </section>
 
-        <section className="section block-stats" id="stats">
-          <TextureField variant="dark" />
-          <ShapeAccent variant="blob-a" color="green" position="bottom-right" size={220} />
+        <section
+          className="section block-stats"
+          id="stats"
+          data-og-id="stats:sektion:0"
+          data-og-typ="sektion"
+        >
+          <TextureField variant="dark" ogId="stats:textur:0" ogTyp="deko" />
+          <ShapeAccent
+            variant="blob-a"
+            color="green"
+            position="bottom-right"
+            size={220}
+            ogId="stats:akzent:0"
+            ogTyp="deko"
+          />
           <div className="container">
-            <p className="eyebrow eyebrow--on-dark">WEE in Zahlen</p>
-            <h2>Vom Konzept zur Wirkung</h2>
+            <p className="eyebrow eyebrow--on-dark" data-og-id="stats:kicker:0" data-og-typ="text">
+              WEE in Zahlen
+            </p>
+            <h2 data-og-id="stats:titel:0" data-og-typ="text">Vom Konzept zur Wirkung</h2>
             <div className="stats-grid">
-              {STATS.map((stat) => (
-                <StatTile stat={stat} key={stat.label} />
+              {STATS.map((stat, i) => (
+                <StatTile stat={stat} index={i} key={stat.label} />
               ))}
             </div>
           </div>
         </section>
 
-        <section className="section section--tal" id="tal">
+        <section
+          className="section section--tal"
+          id="tal"
+          data-og-id="tal:sektion:0"
+          data-og-typ="sektion"
+        >
           {/* Layout-Platzhalter: Felswand/Wasserfall/See sind in F1a
               stillgelegt und kommen in F2/F3 neu (river.config.json:
               disabledWaypointTypes) – der dunkle Boden + CTA bleiben. Der
               Rest der Sektion (Ben's block-ctaband) ist v3-eigene
               Erweiterung fürs Fluss-Finale, existiert auf Bens echter Seite
               so nicht (dort ist ctaBand ein normaler heller Block). */}
-          <div className="tal-cliff" aria-hidden="true" />
+          <div className="tal-cliff" aria-hidden="true" data-og-id="tal:deko:0" data-og-typ="deko" />
           <div className="tal-floor block-ctaband cta-band">
             <div className="container">
-              <h2>Werde selbst aktiv</h2>
-              <p className="block-intro">{CTA_BAND_INTRO}</p>
+              <h2 data-og-id="tal:titel:0" data-og-typ="text">Werde selbst aktiv</h2>
+              <p className="block-intro" data-og-id="tal:intro:0" data-og-typ="text">
+                {CTA_BAND_INTRO}
+              </p>
               <div className="grid grid--3 block-ctaband__grid">
                 {ASKS.map((ask, i) => (
                   <article
                     className={i === 0 ? "card card--accent" : "card"}
                     key={ask.title}
+                    data-og-id={`tal:ask:${i}`}
+                    data-og-typ="sektion"
                   >
                     {i === 0 && (
-                      <ShapeAccent variant="blob-c" color="accent" position="bottom-right" size={200} />
+                      <ShapeAccent
+                        variant="blob-c"
+                        color="accent"
+                        position="bottom-right"
+                        size={200}
+                        ogId="tal:ask-akzent:0"
+                        ogTyp="deko"
+                      />
                     )}
-                    <h3>{ask.title}</h3>
-                    <p>{ask.text}</p>
+                    <h3 data-og-id={`tal:ask-titel:${i}`} data-og-typ="text">{ask.title}</h3>
+                    <p data-og-id={`tal:ask-text:${i}`} data-og-typ="text">{ask.text}</p>
                     {ask.cta && (
                       <div className="cta-row">
                         <CtaLink {...ask.cta} />

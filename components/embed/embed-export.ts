@@ -63,8 +63,11 @@ async function alsDataUrlOderUnveraendert(src: string): Promise<string> {
 /** Eine Grafik samt Keyframes fürs Inlining aufbereiten – auch
  *  `srcOverride` je Keyframe zählt als Bildquelle (s. GrafikKeyframe in
  *  grafik-types.ts) und muss denselben Weg gehen, sonst wäre ein
- *  Keyframe-Bildtausch nach dem Export plötzlich kaputt. */
-async function verarbeiteGrafik(g: Grafik, bilderInline: boolean): Promise<Grafik> {
+ *  Keyframe-Bildtausch nach dem Export plötzlich kaputt.
+ *
+ *  Exportiert, damit der Element-Export (element-html-export.ts) dieselbe
+ *  Inlining-Regel nutzt statt sie zu duplizieren (Welle 3c). */
+export async function verarbeiteGrafik(g: Grafik, bilderInline: boolean): Promise<Grafik> {
   if (!bilderInline) {
     return { ...g, keyframes: g.keyframes.map((k) => ({ ...k })) };
   }
@@ -145,22 +148,87 @@ function escapeFuerInlineScript(json: string): string {
   return json.replace(/</g, "\\u003c");
 }
 
+/** Mount-Div + inline Config als die ZWEI gemeinsamen Zeilen von Overlay-
+ *  und Ganze-Seite-Export (Welle 3c) – an EINER Stelle, damit die beiden Wege
+ *  nicht auseinanderlaufen. Reihenfolge/Wortlaut sind bewusst unverändert
+ *  (Overlay-Export bleibt byte-identisch). */
+function baueMountUndConfig(config: EmbedConfig): string[] {
+  const configJson = escapeFuerInlineScript(JSON.stringify(config));
+  return [
+    `<div data-wee-anim></div>`,
+    `<script type="application/json" data-wee-config>${configJson}</script>`,
+  ];
+}
+
+/** Kommentar-Kopf (aus baueReadme) als HTML-Kommentarzeilen – geteilt von
+ *  Overlay- und Seiten-Export. */
+function baueKommentarKopf(config: EmbedConfig, optionen: BaueReadmeOptionen): string[] {
+  const kommentarZeilen = baueReadme(config, optionen)
+    .split("\n")
+    .map((zeile) => (zeile ? ` ${zeile}` : ""));
+  return [`<!--`, ...kommentarZeilen, `-->`];
+}
+
 /** Baut ein vollständiges, drop-in HTML-Snippet: Kommentar-Kopf (aus
  *  baueReadme, s.o.), Mount-Div, inline Config und der Runtime-Script-Tag –
  *  exakt das Muster aus public/embed-demo.html, nur mit der Config des
  *  aktuellen Editor-Stands statt der festen Demo-Fixture. */
 export function baueOverlayHtml(config: EmbedConfig, optionen: BaueOverlayHtmlOptionen): string {
-  const configJson = escapeFuerInlineScript(JSON.stringify(config));
-  const kommentarZeilen = baueReadme(config, optionen)
-    .split("\n")
-    .map((zeile) => (zeile ? ` ${zeile}` : ""));
   return [
-    `<!--`,
-    ...kommentarZeilen,
-    `-->`,
-    `<div data-wee-anim></div>`,
-    `<script type="application/json" data-wee-config>${configJson}</script>`,
+    ...baueKommentarKopf(config, optionen),
+    ...baueMountUndConfig(config),
     `<script src="${optionen.embedUrl}"></script>`,
+    ``,
+  ].join("\n");
+}
+
+/** Maskiert `</script` im Runtime-Bundle, damit ein solcher Substring (z.B. in
+ *  einem String-Literal) das umgebende inline <script> nicht vorzeitig beendet.
+ *  `<\/script` ist in JS gleichbedeutend (Backslash vor `/` ist folgenlos). */
+function escapeRuntimeFuerInline(js: string): string {
+  return js.replace(/<\/script/gi, "<\\/script");
+}
+
+export interface BaueSeiteHtmlOptionen {
+  /** Der komplette Inhalt von `wee-embed.js` (vom Aufrufer per fetch geladen –
+   *  diese Datei bleibt DOM-/netzwerkfrei, s. Kopfkommentar). Wird INLINE ins
+   *  Dokument gebündelt, damit die Datei ohne separaten Runtime-Upload läuft. */
+  runtimeJs: string;
+  /** s. BaueReadmeOptionen.embedUrl – nur für den Anleitungs-Kommentar; im
+   *  Seiten-Export gibt es kein externes <script src>, die Runtime steckt inline. */
+  embedUrl: string;
+}
+
+/** Baut ein VOLLSTÄNDIGES, eigenständiges HTML-Dokument (Welle 3c, Spec §8/3c
+ *  „ganze Seite"): Gerüst + Overlay-Mount + inline Config + inline Runtime in
+ *  EINEM Dokument. Datei aufmachen = die Animation läuft auf einer leeren Seite;
+ *  eigenen Inhalt legt man später darunter (s. Anleitung). Nutzt dieselben
+ *  Bausteine wie der Overlay-Export (Kommentar-Kopf, Mount+Config) – nur die
+ *  Runtime kommt inline statt als externes <script src>. */
+export function baueSeiteHtml(config: EmbedConfig, optionen: BaueSeiteHtmlOptionen): string {
+  return [
+    `<!doctype html>`,
+    `<html lang="de">`,
+    `<head>`,
+    `<meta charset="utf-8" />`,
+    `<meta name="viewport" content="width=device-width, initial-scale=1" />`,
+    `<title>WEE-Animation</title>`,
+    `<style>`,
+    `  html, body { margin: 0; padding: 0; }`,
+    `  /* Scroll-Raum, damit die Scroll-Animation auf der noch leeren Seite`,
+    `     überhaupt eine Strecke hat. Eigenen Inhalt einfach hier im <body>`,
+    `     ergänzen – die Animations-Ebene liegt klick-durchlässig darüber. */`,
+    `  body { min-height: 300vh; background: #ffffff; }`,
+    `</style>`,
+    `</head>`,
+    `<body>`,
+    ...baueKommentarKopf(config, { embedUrl: optionen.embedUrl }),
+    ...baueMountUndConfig(config),
+    `<script>`,
+    escapeRuntimeFuerInline(optionen.runtimeJs),
+    `</script>`,
+    `</body>`,
+    `</html>`,
     ``,
   ].join("\n");
 }

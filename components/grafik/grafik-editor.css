@@ -782,3 +782,124 @@
 .gre-preset-lade .gre-preset-meta {
   flex: 0 0 auto;
 }
+
+/* --- Website (Ist-Stand) — AP-D, Welle 3a (s. WebsiteOg.tsx) ------------
+   Getaggte Original-Elemente als eigene Ebenen-Gruppe. Äußere Gruppe erbt die
+   .gre-pool-gruppe-Aufklapper-Optik; die Sektions-Unterlisten und Einträge
+   bekommen hier ihre eigene, dezente Form. */
+.gre-panel details.gre-og-sektion {
+  margin-top: 6px;
+}
+
+.gre-panel details.gre-og-sektion > summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  list-style: none;
+  padding: 2px 0;
+}
+
+.gre-panel details.gre-og-sektion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.gre-og-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+/* Einträge: linksbündige Zeile Icon · Name · Typ-Label — eigene Optik statt
+   .gre-lade (dessen flex:1 würde die Zeilen in der Spalte vertikal dehnen). */
+.gre-panel button.gre-og-eintrag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 4px 7px;
+}
+
+.gre-panel button.gre-og-eintrag:hover {
+  background: #16302a;
+}
+
+.gre-og-typ {
+  flex: 0 0 auto;
+  width: 16px;
+  text-align: center;
+  color: #9fd68a;
+}
+
+.gre-og-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gre-og-typlabel {
+  flex: 0 0 auto;
+  font-size: 9.5px;
+  font-family: monospace;
+  opacity: 0.5;
+}
+
+/* Objekt-Reiter bei OG-Auswahl: Basis-Infos als schlichte Label/Wert-Zeilen. */
+.gre-og-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 7px;
+  padding: 7px 9px;
+}
+
+.gre-og-info-zeile {
+  display: flex;
+  gap: 8px;
+  font-size: 11.5px;
+}
+
+.gre-og-info-label {
+  flex: 0 0 78px;
+  opacity: 0.6;
+}
+
+.gre-og-quelle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #9fd68a;
+  font-family: monospace;
+  font-size: 10.5px;
+}
+
+.gre-panel button.gre-og-holen {
+  width: 100%;
+  background: #3f6e3a;
+  font-weight: 600;
+}
+
+.gre-panel button.gre-og-holen:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Bühnen-Overlay: Rahmen um das ausgewählte Original-Element. Eigene Ebene,
+   pointer-events:none, z-index UNTER dem Panel (60) — stört weder Panel-Klicks
+   noch das Alt+Klick-Auswählen. Position setzt WebsiteOgOverlay pro Frame. */
+.gre-og-overlay {
+  position: fixed;
+  z-index: 52;
+  pointer-events: none;
+  border: 2px solid #e8b400;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  background: rgba(232, 180, 0, 0.1);
+}

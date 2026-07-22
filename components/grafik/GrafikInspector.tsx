@@ -65,6 +65,13 @@ export interface GrafikInspectorProps extends Omit<GrafikObjektMenueProps, "onHi
   kannFreistellen: boolean;
   freistellenLaeuft: boolean;
   onFreistellen: () => void;
+  /** Element-ID-Anker (Welle 3b) des AKTUELLEN Keyframes (nächster zur
+   *  Scrollposition, s. GrafikEditor.aktivKfIndex) — die `data-og-id`, an der
+   *  dieser Keyframe hängt. null = frei positioniert (kein Anker). */
+  ankerId?: string | null;
+  /** Anker des aktuellen Keyframes lösen („frei positionieren"): entfernt die
+   *  Anker-Felder, Undo-Commit (s. GrafikEditor.tsx). */
+  onAnkerLoesen?: () => void;
 }
 
 const ART_LABEL: Record<MedienArt, string> = {
@@ -101,6 +108,8 @@ export function GrafikInspector({
   kannFreistellen,
   freistellenLaeuft,
   onFreistellen,
+  ankerId,
+  onAnkerLoesen,
 }: GrafikInspectorProps) {
   const zustand = zustandBei(grafik, scrollY);
   /* Rein lokale UI-Sichtbarkeit (kein Undo-relevanter Zustand) — deshalb
@@ -159,6 +168,29 @@ export function GrafikInspector({
             Deckkraft {Math.round(zustand.opacity * 100)}% · Drehung {Math.round(zustand.rotation)}°
           </span>
         </div>
+        {/* Element-ID-Anker (Welle 3b): zeigt, ob der aktuelle Keyframe an einem
+            getaggten Original-Element hängt (drift-fest) oder frei positioniert
+            ist. „frei positionieren" löst den Anker (s. onAnkerLoesen). */}
+        {ankerId ? (
+          <div className="gre-inspector-anker">
+            <span className="gre-inspector-anker-text">
+              ⚓ Verankert an <code title={ankerId}>{ankerId}</code>
+            </span>
+            <button
+              type="button"
+              className="gre-inspector-anker-loesen"
+              onClick={onAnkerLoesen}
+              title="Anker lösen — dieser Keyframe wird wieder rein absolut positioniert."
+            >
+              frei positionieren
+            </button>
+          </div>
+        ) : (
+          <div className="gre-inspector-anker gre-inspector-anker--frei">
+            ⚓ Frei positioniert (kein Anker) — „Hier locken" verankert den
+            Keyframe am nächsten Original-Element.
+          </div>
+        )}
       </div>
 
       {/* Spiegeln + Zuschneiden: reine Bildbearbeitung an der PLATZIERTEN

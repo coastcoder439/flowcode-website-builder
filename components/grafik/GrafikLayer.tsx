@@ -20,9 +20,10 @@ import { useGrafiken } from "./GrafikContext";
 import { GrafikMedium, type MediumHandle } from "./GrafikMedium";
 import {
   effektiveQuelle,
+  grafikenFuerRendering,
   scrubFortschritt,
-  skaliereGrafikenFuerHoehe,
   zustandBei,
+  type AnkerAufloeser,
   type Grafik,
 } from "./grafik-types";
 import "./grafik-layer.css";
@@ -64,6 +65,50 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
   const quellenRef = useRef<Record<string, string>>({});
   quellenRef.current = quellen;
 
+  /* Element-ID-Anker (Welle 3b, s. grafik-types.grafikenFuerRendering): die
+     aktuelle Dokument-Oberkante jedes getaggten `[data-og-id]`-Elements EINMAL
+     pro Layout-Epoche in eine Map legen — verankerte Keyframes lösen sich daraus
+     auf, OHNE pro Frame das DOM abzufragen (Spec §8/3b). Neu gebaut bei Mount,
+     Fenster-Resize und jeder Layout-Reflow (ResizeObserver auf <body> — deckt
+     Backdrop-Wechsel und späte Hydration der Landing mit ab). `ankerVersion`
+     stößt den Render-Effekt unten an, wenn sich die Map geändert hat. */
+  const ankerMapRef = useRef<Map<string, number>>(new Map());
+  const [ankerVersion, setAnkerVersion] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    const bauen = () => {
+      const map = new Map<string, number>();
+      const sy = window.scrollY;
+      document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+        const id = el.getAttribute("data-og-id");
+        if (!id || map.has(id)) return;
+        const r = el.getBoundingClientRect();
+        map.set(id, r.top + sy);
+      });
+      ankerMapRef.current = map;
+      setAnkerVersion((v) => v + 1);
+    };
+    /* rAF-gedrosselt: mehrere Reflow-Events in einem Frame lösen nur EINEN
+       Neubau aus. bauen() liest nur Layout (kein Schreiben) → keine Reflow-
+       Rückkopplung über den ResizeObserver. */
+    const anstossen = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        bauen();
+      });
+    };
+    bauen();
+    window.addEventListener("resize", anstossen);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(anstossen) : null;
+    if (ro && document.body) ro.observe(document.body);
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      window.removeEventListener("resize", anstossen);
+      ro?.disconnect();
+    };
+  }, []);
+
   /* Stabile Callback-Fabrik: sonst bekaeme GrafikMedium bei jedem Render
      eine neue Funktion und wuerde seine Lottie-Instanz neu aufbauen. */
   const machHandleRef = useCallback(
@@ -96,7 +141,13 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
       const aktuelleDocH = document.documentElement.scrollHeight;
       if (Number.isFinite(aktuelleDocH) && aktuelleDocH > 0) faktor = aktuelleDocH / authoredDocH;
     }
-    const listeSkaliert = skaliereGrafikenFuerHoehe(liste, faktor);
+    /* Höhen-Normalisierung UND Element-ID-Anker in EINEM Schritt (die beiden
+       schließen sich pro Keyframe aus, s. grafikenFuerRendering): verankerte
+       Keyframes lösen sich aus der gecachten Anker-Map auf, alle anderen laufen
+       den bisherigen faktor-Pfad. EINMAL pro Effekt-Lauf gebacken (nicht pro
+       Frame), genau wie zuvor listeSkaliert. */
+    const aufloeser: AnkerAufloeser = (id) => ankerMapRef.current.get(id);
+    const listeSkaliert = grafikenFuerRendering(liste, faktor, aufloeser);
 
     const schreibe = (scrollY: number) => {
       /* Nur bei tatsaechlicher Aenderung neu setzen (setState triggert
@@ -164,7 +215,10 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
     schreibe(window.scrollY);
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [liste, reduced, ctx, authoredDocH]);
+    /* ankerVersion: bei Layout-Reflow wurde die Anker-Map neu gebaut → hier
+       neu backen, damit verankerte Grafiken an ihre aktualisierte Anker-
+       Oberkante nachrücken. */
+  }, [liste, reduced, ctx, authoredDocH, ankerVersion]);
 
   if (liste.length === 0) return null;
 

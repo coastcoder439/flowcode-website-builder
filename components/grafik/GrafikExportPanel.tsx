@@ -24,7 +24,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { HilfeIcon } from "./GrafikHilfe";
 import { GrafikExportAnleitung } from "./GrafikExportAnleitung";
-import { baueEmbedConfig, baueOverlayHtml } from "../embed/embed-export";
+import {
+  baueEmbedConfig,
+  baueOverlayHtml,
+  baueSeiteHtml,
+  verarbeiteGrafik,
+} from "../embed/embed-export";
+import { baueElementHtml, elementSlug } from "../embed/element-html-export";
 import type { Grafik } from "./grafik-types";
 import type { FlussVerlauf } from "../river/riverSnapshot";
 
@@ -84,15 +90,22 @@ interface GrafikExportPanelProps {
    *  Geometrie/Farben nicht bereit sind. Fehlt der Geber (kein Context, alte
    *  Route), bleibt localStorage die einzige Fluss-Quelle. */
   flussVerlaufGeber?: () => FlussVerlauf | null;
+  /** Aktuell im Editor ausgewählte Grafik (ctx.auswahl) – nur zum VORWÄHLEN im
+   *  Einzelelement-Export (Welle 3c). Optional/additiv: fehlt sie, wird die
+   *  erste platzierte Grafik vorgewählt. */
+  auswahlId?: string;
 }
 
-export function GrafikExportPanel({ grafiken, flussVerlaufGeber }: GrafikExportPanelProps) {
+export function GrafikExportPanel({ grafiken, flussVerlaufGeber, auswahlId }: GrafikExportPanelProps) {
   const [verlaeufe, setVerlaeufe] = useState<Record<string, FlussVerlauf>>({});
   const [gewaehlterFluss, setGewaehlterFluss] = useState(KEIN_FLUSS);
   const [bilderInline, setBilderInline] = useState(true);
   const [laeuft, setLaeuft] = useState(false);
   const [status, setStatus] = useState("");
   const [anleitungOffen, setAnleitungOffen] = useState(false);
+  /** Welche platzierte Grafik der Einzelelement-Export ausgibt. Leerer String =
+   *  noch keine gewählt (Auflösung erst im useMemo/Effekt unten). */
+  const [gewaehltesElement, setGewaehltesElement] = useState("");
 
   /* Beim Öffnen des Reiters einmal einlesen + den zuletzt gespeicherten
      Verlauf vorauswählen – Ben will im Regelfall GENAU seinen aktuellen
@@ -119,6 +132,18 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber }: GrafikExportP
   }, []);
 
   const flussNamen = useMemo(() => Object.keys(verlaeufe).sort(), [verlaeufe]);
+
+  /* Einzelelement-Vorwahl (Welle 3c): die aktuell im Editor ausgewählte Grafik,
+     sonst die erste platzierte. Bleibt die bisherige Wahl gültig (Grafik noch
+     da), wird sie NICHT überschrieben – sonst spränge der <select> bei jeder
+     Auswahländerung auf der Bühne weg. Grafiken können sich zwischenzeitlich
+     ändern (löschen), darum in einem Effekt statt fix beim Mount. */
+  useEffect(() => {
+    const nochGueltig = grafiken.some((g) => g.id === gewaehltesElement);
+    if (nochGueltig) return;
+    const vorwahl = (auswahlId && grafiken.some((g) => g.id === auswahlId) ? auswahlId : grafiken[0]?.id) ?? "";
+    setGewaehltesElement(vorwahl);
+  }, [grafiken, auswahlId, gewaehltesElement]);
 
   /** Löst die aktuell im <select> gewählte Fluss-Quelle zu einem Verlauf auf:
    *  Live-Context (Risiko 3), gespeichertes Profil (localStorage) oder null.
@@ -194,6 +219,60 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber }: GrafikExportP
       setStatus(`wee-embed.js heruntergeladen (${formatKb(blob.size)})`);
     } catch (error) {
       setStatus(`Runtime-Download fehlgeschlagen (${fehlerText(error)})`);
+    } finally {
+      setLaeuft(false);
+    }
+  };
+
+  const elementExportieren = async () => {
+    const g = grafiken.find((x) => x.id === gewaehltesElement);
+    if (!g) {
+      setStatus("Keine Grafik gewählt — links platzieren und erneut.");
+      return;
+    }
+    setLaeuft(true);
+    setStatus("Baue Element-HTML…");
+    try {
+      /* Bilder-Inlining über DIESELBE Regel wie der große Export (nicht
+         dupliziert) – dann ist das Snippet selbsttragend bzw. behält den
+         Projektpfad, je nach Checkbox. */
+      const aufbereitet = await verarbeiteGrafik(g, bilderInline);
+      const html = baueElementHtml(aufbereitet, { name: g.name });
+      downloadeBlob(new Blob([html], { type: "text/html" }), `wee-element-${elementSlug(g.name)}.html`);
+      setStatus(`Element-HTML ${formatKb(new Blob([html]).size)} · „${g.name}" (${g.keyframes.length} KF)`);
+    } catch (error) {
+      setStatus(`Export fehlgeschlagen (${fehlerText(error)})`);
+    } finally {
+      setLaeuft(false);
+    }
+  };
+
+  const seiteExportieren = async () => {
+    const flussVerlauf = holeFlussVerlauf();
+    if (gewaehlterFluss === AKTUELLER_FLUSS && !flussVerlauf) {
+      setStatus("Fluss-Geometrie noch nicht bereit — kurz auf der Seite scrollen und erneut.");
+      return;
+    }
+    setLaeuft(true);
+    setStatus("Baue ganze Seite…");
+    try {
+      const config = await baueEmbedConfig(grafiken, flussVerlauf, {
+        bilderInline,
+        docH: document.documentElement.scrollHeight,
+      });
+      /* Runtime laden und INS Dokument bündeln – so läuft die Datei ohne
+         separaten wee-embed.js-Upload (dieselbe Quelle wie „Runtime-Script
+         herunterladen"). */
+      const res = await fetch(EMBED_URL);
+      if (!res.ok) throw new Error(`Runtime HTTP ${res.status}`);
+      const runtimeJs = await res.text();
+      const html = baueSeiteHtml(config, { runtimeJs, embedUrl: EMBED_URL });
+      downloadeBlob(new Blob([html], { type: "text/html" }), "wee-seite.html");
+      setStatus(
+        `Ganze Seite ${formatKb(new Blob([html]).size)} · ${config.grafiken.length} Grafik(en)${flussStatusteil(config)}`,
+      );
+    } catch (error) {
+      setStatus(`Export fehlgeschlagen (${fehlerText(error)})`);
     } finally {
       setLaeuft(false);
     }
@@ -281,6 +360,58 @@ export function GrafikExportPanel({ grafiken, flussVerlaufGeber }: GrafikExportP
         <HilfeIcon
           label="Runtime-Script herunterladen"
           text={`Lädt wee-embed.js herunter – das Script, das die Animation auf JEDER Seite zum Leben erweckt. Einmal auf Bens Server hochladen, mehrere Konfigurationen können es sich teilen.`}
+        />
+      </div>
+
+      {/* --- Welle 3c: HTML-Export (ganze Seite ODER einzelnes Element) ---
+          Zwei zusätzliche Wege UNTER den drei bestehenden. Beide erzeugen
+          fertiges HTML, das ohne die restliche Kette (JSON + Runtime getrennt)
+          auskommt. */}
+      <div className="gre-regler">
+        <div className="gre-regler-kopf">
+          <span>{`Einzelnes Element`}</span>
+          <HilfeIcon
+            label="Einzelnes Element"
+            text={`Exportiert NUR die gewählte platzierte Grafik als eigenständiges HTML-Snippet mit ihrer Scroll-Animation – ohne Runtime, ohne Config-Datei. Ideal, um ein einzelnes bewegtes Element in eine bestehende Seite zu setzen.`}
+          />
+        </div>
+        {grafiken.length === 0 ? (
+          <div className="gre-leer">
+            {`Noch keine Grafik platziert – links im Editor eine Grafik einfügen.`}
+          </div>
+        ) : (
+          <>
+            <select
+              value={gewaehltesElement}
+              onChange={(e) => setGewaehltesElement(e.target.value)}
+              aria-label="Grafik für den Element-Export"
+            >
+              {grafiken.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {`${g.name} (${g.keyframes.length} KF)`}
+                </option>
+              ))}
+            </select>
+            <div className="gre-row">
+              <button onClick={() => void elementExportieren()} disabled={laeuft || !gewaehltesElement}>
+                {`Element-HTML exportieren`}
+              </button>
+              <HilfeIcon
+                label="Element-HTML exportieren"
+                text={`Lädt wee-element-<name>.html herunter – ein selbsttragendes <div> mit der Grafik und ihrer Bewegung als CSS-Scroll-Animation (plus JS-Fallback für ältere Browser). Direkt in den <body> deiner Seite einfügen. "Bilder einbetten" bettet das Bild als Data-URL ein.`}
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="gre-row">
+        <button onClick={() => void seiteExportieren()} disabled={laeuft}>
+          {`Ganze Seite (HTML)`}
+        </button>
+        <HilfeIcon
+          label="Ganze Seite (HTML)"
+          text={`Lädt wee-seite.html herunter – ein komplettes HTML-Dokument, das Overlay, Config und Runtime in EINER Datei bündelt. Datei einfach im Browser öffnen = die Animation läuft auf leerer Seite. Eigenen Inhalt legt man später darunter (s. Anleitung).`}
         />
       </div>
 

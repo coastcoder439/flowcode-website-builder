@@ -69,11 +69,18 @@ export function ShapeAccent({
   color = "accent",
   position = "top-right",
   size = 220,
+  ogId,
+  ogTyp,
 }: {
   variant: ShapeVariant;
   color?: ShapeColor;
   position?: ShapePosition;
   size?: number;
+  /** Website-OG-Tagging (AP-D, Welle 3a) — reine Attribute, kein Verhalten/
+   *  keine Optik. Fehlen sie (z.B. auf /pilot-projekt), setzt React die
+   *  data-Attribute schlicht nicht. */
+  ogId?: string;
+  ogTyp?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
@@ -86,6 +93,8 @@ export function ShapeAccent({
       className={`shape-accent shape-accent--${variant} ${POSITION_CLASS[position]}`}
       style={{ y, width: size, height: size }}
       aria-hidden="true"
+      data-og-id={ogId}
+      data-og-typ={ogTyp}
     >
       <ShapeSvg variant={variant} color={COLOR_VAR[color]} />
     </motion.div>

@@ -103,6 +103,8 @@ const KUERZEL: readonly Kuerzel[] = [
   },
   { tasten: "Entf (Fluss)", wirkung: "eingeloggten Fluss-Knoten löschen (mind. 2 bleiben)" },
   { tasten: "Esc (Fluss)", wirkung: "eingeloggten Knoten ausloggen" },
+  // Website-Ist-Stand (AP-D, Welle 3a) — direkt ein Original-Element greifen.
+  { tasten: "Alt+Klick", wirkung: "Element der Original-Website auswählen (Ebenen → Ist-Stand)" },
 ];
 
 /** Einstiegs-Tutorial: erscheint automatisch beim ersten Öffnen (s.

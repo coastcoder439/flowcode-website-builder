@@ -32,6 +32,15 @@ import { useFlussObjekt } from "@/components/river/FlussObjektContext";
 import { FlussObjektBild } from "@/components/river/FlussObjektBild";
 import { ProfileSektion } from "@/components/river/sektionen/ProfileSektion";
 import { BackdropAuswahl } from "@/components/backdrop/BackdropAuswahl";
+import { useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import {
+  WebsiteOgEbene,
+  WebsiteOgObjekt,
+  WebsiteOgOverlay,
+  ogScannen,
+  ogAlsGrafikErzeugen,
+  type OgEintrag,
+} from "./WebsiteOg";
 import { EasingKurve } from "./EasingKurve";
 import { EASING_DEFAULT } from "./easing";
 import {
@@ -170,6 +179,69 @@ function naechsterKfIndex(g: Grafik, scrollY: number): number {
   return best;
 }
 
+/* --- Element-ID-Anker (Welle 3b, s. docs/editor-vereinheitlichung.md §8/3b) --
+ * Setz-Seite des Ankers: das nächstliegende getaggte `[data-og-id]`-Element als
+ * drift-feste Referenz eines Keyframes ermitteln. Die Auflösungs-/Render-Seite
+ * steckt in grafik-types.grafikenFuerRendering + GrafikLayer.
+ */
+
+/** Vertikale Suchreichweite für den Element-ID-Anker: liegt kein getaggtes
+ *  Element näher als 1,5 Bildschirmhöhen am Keyframe, bleibt der Keyframe ohne
+ *  Anker (rein absolut) — sonst würde ein weit entferntes Element als „Anker"
+ *  gewählt, dessen Bewegung mit dem Keyframe nichts zu tun hat. */
+const ANKER_MAX_ABSTAND_VH = 1.5;
+
+/** Anker-Felder „leeren": jede Positions-/Zeit-Änderung AUSSER „Hier locken"
+ *  und Drag-Ende löst einen bestehenden Anker, damit die geänderten Absolut-
+ *  werte NICHT vom (nun veralteten) Anker überschrieben werden — sonst „klebt"
+ *  der Keyframe an seiner alten Stelle (grafikenFuerRendering lässt den Anker
+ *  gewinnen). Neu-Ankern passiert bewusst nur an den beiden benannten
+ *  Setz-Punkten (Spec §8/3b Punkt 2). Flach in den Keyframe gemischt
+ *  ({ ...k, ...ANKER_LEER }) verschwinden die drei Felder sauber. */
+const ANKER_LEER: Pick<GrafikKeyframe, "ankerId" | "ankerDy" | "ankerScrollDy"> = {
+  ankerId: undefined,
+  ankerDy: undefined,
+  ankerScrollDy: undefined,
+};
+
+/** Ermittelt den drift-festen Anker für einen Keyframe an Dokument-y (`yDoc`)
+ *  und Trigger-Scrollhöhe (`scrollYDoc`): das vertikal nächstliegende
+ *  `[data-og-id]`-Element (Abstand yDoc ↔ Element-Dokument-Oberkante), sofern
+ *  innerhalb `ANKER_MAX_ABSTAND_VH` · Bildschirmhöhe. Liefert die drei
+ *  Anker-Felder ODER — wenn kein Element nah genug ist — `ANKER_LEER` (explizit
+ *  „kein Anker", damit der Aufrufer sie flach mischen und einen ALTEN Anker
+ *  sauber überschreiben kann). Reine Nutzer-Geste (Hier-locken/Drag-Ende): ein
+ *  querySelectorAll ist hier unkritisch (NICHT pro Frame, anders als der
+ *  Render-Pfad in GrafikLayer). */
+function ankerFelderFuer(
+  yDoc: number,
+  scrollYDoc: number,
+): Pick<GrafikKeyframe, "ankerId" | "ankerDy" | "ankerScrollDy"> {
+  if (typeof document === "undefined") return ANKER_LEER;
+  const sy = window.scrollY;
+  const grenze = window.innerHeight * ANKER_MAX_ABSTAND_VH;
+  let besteId: string | null = null;
+  let besterTop = 0;
+  let bestAbstand = Infinity;
+  const gesehen = new Set<string>();
+  document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+    const id = el.getAttribute("data-og-id");
+    if (!id || gesehen.has(id)) return;
+    gesehen.add(id);
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return;
+    const top = r.top + sy;
+    const abstand = Math.abs(top - yDoc);
+    if (abstand < bestAbstand) {
+      bestAbstand = abstand;
+      besteId = id;
+      besterTop = top;
+    }
+  });
+  if (besteId === null || bestAbstand > grenze) return ANKER_LEER;
+  return { ankerId: besteId, ankerDy: yDoc - besterTop, ankerScrollDy: scrollYDoc - besterTop };
+}
+
 /** Höhen-Normalisierungsfaktor beim Laden eines Setups (Robustheits-Fix):
  *  aktuelle Dokumenthöhe ÷ die Höhe, gegen die die Keyframes autoriert
  *  wurden (meta.docH, s. lokalSpeichern/speichern unten — dort NUR zur
@@ -296,6 +368,21 @@ export function GrafikEditor() {
      alten Route (Redirect) fehlt der Provider → null → alle Fluss-Zweige
      unten sind No-Ops, der Grafik-Editor bleibt exakt wie zuvor. */
   const flussObjekt = useFlussObjekt();
+  /* Stabiler Zugriff auf das Fluss-Objekt aus dem Fenster-Pointer-Effekt
+     (Alt+Klick, s.u.) — ohne flussObjekt in dessen Abhängigkeiten aufzunehmen
+     (das würde die Pointer-Listener bei jedem Context-Wechsel neu an-/abmelden). */
+  const flussObjektRef = useRef(flussObjekt);
+  flussObjektRef.current = flussObjekt;
+  /* Backdrop-Zustand (nur auf /editor vorhanden) — bei Wechsel wird die
+     Ist-Stand-Liste neu gescannt (die getaggten Landing-Elemente werden dann
+     durch die fremde Seite ersetzt bzw. kommen zurück). Null-tolerant. */
+  const backdropCtx = useBackdropCtx();
+  /* Website-OG (AP-D, Welle 3a, s. WebsiteOg.tsx): getaggte Landing-Elemente
+     als eigene „Ist-Stand"-Ebene. Lokaler Oberflächenzustand wie auswahl/
+     tauschQuelle — kein Verlauf, keine Projektdaten. */
+  const [ogListe, setOgListe] = useState<OgEintrag[]>([]);
+  const [ogAuswahl, setOgAuswahl] = useState<string | null>(null);
+  const [ogStatus, setOgStatus] = useState("");
   const [reiter, setReiter] = useState<Reiter>("bibliothek");
   const [setups, setSetups] = useState<Record<string, GrafikSetup>>({});
   /** Abbilder, die wirklich auf der Platte liegen (abbilder/*.json via
@@ -538,6 +625,10 @@ export function GrafikEditor() {
 
   const grafiken = ctx?.grafiken ?? [];
   const aktiv = grafiken.find((g) => g.id === ctx?.auswahl) ?? null;
+  /* Aktuell ausgewähltes OG-Element (Website-Ist-Stand) — steuert den
+     Objekt-Reiter + das Bühnen-Overlay. Durch den Ausschluss-Effekt nie
+     zeitgleich mit einer Grafik-Auswahl/Fluss-Fokus gesetzt. */
+  const ogAktiv = ogAuswahl ? ogListe.find((o) => o.id === ogAuswahl) ?? null : null;
 
   const setzeGrafiken = useCallback(
     (neu: Grafik[]) => {
@@ -561,6 +652,94 @@ export function GrafikEditor() {
       );
     },
     [grafiken, setzeGrafiken],
+  );
+
+  /* --- Website-OG (AP-D, Welle 3a) ------------------------------------- */
+
+  /* Ist-Stand-Liste beim Start UND bei Backdrop-Wechsel neu aus dem DOM lesen.
+     Per rAF, damit die Landing (bzw. der neue Backdrop) erst gerendert ist.
+     Findet der erste Frame noch nichts (dev-Hydration hängt die Landing-Sektionen
+     minimal später ein), wird ein paar Frames lang nachgefasst — im
+     Backdrop-Modus (dort gibt es legitim keine getaggten Elemente) läuft das
+     einfach ins Leere aus. */
+  useEffect(() => {
+    let abbruch = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = performance.now();
+    /* Letzter gesetzter Umfang — der Zustand wird nur bei ECHTER Änderung
+       geschrieben, damit der Poll im Backdrop-Modus (dauerhaft 0 getaggte
+       Elemente) keine sinnlosen Re-Renders auslöst. */
+    let gesetzt = -1;
+    const scan = () => {
+      if (abbruch) return;
+      const liste = ogScannen();
+      if (liste.length !== gesetzt) {
+        gesetzt = liste.length;
+        setOgListe(liste);
+      }
+      /* Solange noch nichts gefunden wurde, kurz nachfassen — die Landing hängt
+         sich per Hydration/Vorhang-Umschaltung minimal später ein. Deckel bei
+         4 s (danach ist entweder alles da oder es ist Backdrop-Modus). */
+      if (liste.length === 0 && performance.now() - start < 4000) {
+        timer = setTimeout(scan, 150);
+      }
+    };
+    timer = setTimeout(scan, 0);
+    return () => {
+      abbruch = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [backdropCtx?.backdrop]);
+
+  /* Gegenseitige Ausschließlichkeit (Spec §8/3a): sobald eine Grafik
+     ausgewählt ODER der Fluss fokussiert ist, verliert die OG-Auswahl. Der
+     umgekehrte Weg (OG wählen leert Grafik/Fluss) steht in ogWaehlen unten. */
+  useEffect(() => {
+    if (ctx?.auswahl || flussObjekt?.fokus) setOgAuswahl(null);
+  }, [ctx?.auswahl, flussObjekt?.fokus]);
+
+  /** OG-Element auswählen: Grafik-Auswahl + Fluss-Fokus räumen (Ausschluss),
+   *  dann markieren; `scroll` zeigt es auf der Bühne (Liste ja, Alt+Klick
+   *  nein — es liegt schon unter dem Zeiger). */
+  const ogWaehlen = useCallback(
+    (id: string, scroll: boolean) => {
+      ctx?.setAuswahl(null);
+      ctx?.setAuswahlMehr([]);
+      ctx?.setGelockt(false);
+      flussObjekt?.setFokus(false);
+      setOgStatus("");
+      setOgAuswahl(id);
+      if (scroll) {
+        document
+          .querySelector<HTMLElement>(`[data-og-id="${id}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    },
+    [ctx, flussObjekt],
+  );
+
+  /** „In den Builder holen" (nur bild|svg): erzeugt die Kopie über dem
+   *  Original (s. ogAlsGrafikErzeugen) und wählt sie als normale Grafik aus —
+   *  wodurch die OG-Auswahl über den Ausschluss-Effekt oben automatisch endet. */
+  const ogInBuilder = useCallback(
+    (eintrag: OgEintrag) => {
+      if (!ctx) return;
+      const id = `og:${eintrag.id}`;
+      if (grafiken.some((g) => g.id === id)) {
+        setOgStatus(`„${eintrag.element || eintrag.id}" ist bereits im Builder.`);
+        return;
+      }
+      const ergebnis = ogAlsGrafikErzeugen(eintrag, grafiken.length + 1);
+      if ("fehler" in ergebnis) {
+        setOgStatus(ergebnis.fehler);
+        return;
+      }
+      ctx.commit("Website-Element übernommen");
+      ctx.setGrafiken([...grafiken, ergebnis.grafik]);
+      ctx.setAuswahl(ergebnis.grafik.id);
+      setStatus(`Kopie liegt über dem Original — im Reiter „Ebenen"/„Keyframes" weiterbearbeiten.`);
+    },
+    [ctx, grafiken],
   );
 
   /* Eingeloggte Grafik: Scrollrad skaliert (Seiten-Scroll blockiert). */
@@ -601,6 +780,27 @@ export function GrafikEditor() {
     if (!ctx) return;
 
     const onDown = (e: PointerEvent) => {
+      /* Alt+Klick: Element der Original-Website auswählen (Ist-Stand, Spec
+         §8/3a). Die Grafik-Ebene ist pointer-events:none, also IST e.target
+         schon das getroffene Seiten-Element (elementFromPoint-Kette); closest
+         läuft zum nächsten getaggten Vorfahren hoch. Nur außerhalb der
+         Editor-Chrome; trifft es, wird NUR ausgewählt, kein Zug gestartet. */
+      if (e.altKey) {
+        if (istEditorChrome(e.target)) return;
+        const ogId = (e.target as Element | null)
+          ?.closest?.("[data-og-id]")
+          ?.getAttribute("data-og-id");
+        if (ogId) {
+          e.preventDefault();
+          ctx.setAuswahl(null);
+          ctx.setAuswahlMehr([]);
+          ctx.setGelockt(false);
+          flussObjektRef.current?.setFokus(false);
+          setOgStatus("");
+          setOgAuswahl(ogId);
+        }
+        return;
+      }
       const el = (e.target as HTMLElement | null)?.closest?.("[data-grafik-id]");
       if (!el) {
         /* Leerer Canvas: außerhalb der Editor-Chrome (Panel, Objektmenü,
@@ -760,7 +960,9 @@ export function GrafikEditor() {
             return {
               ...g,
               keyframes: g.keyframes.map((k, i) =>
-                i === m.kfIndex ? { ...k, x: m.ausgangX + dx, y: m.ausgangY + dy } : k,
+                /* Anker während des Ziehens lösen (s. Einzel-Zug oben) — je
+                   Mitglied am Zug-Ende neu verankert. */
+                i === m.kfIndex ? { ...k, x: m.ausgangX + dx, y: m.ausgangY + dy, ...ANKER_LEER } : k,
               ),
             };
           }),
@@ -783,7 +985,10 @@ export function GrafikEditor() {
       } else {
         setSnapLinien(null);
       }
-      patchKf(d.id, d.kfIndex, { x: endX, y: endY });
+      /* Anker (Welle 3b) während des Ziehens lösen: die Live-Position soll dem
+         Cursor folgen, nicht am alten Anker kleben. Am Zug-Ende (onUp) wird neu
+         verankert. */
+      patchKf(d.id, d.kfIndex, { x: endX, y: endY, ...ANKER_LEER });
     };
 
     const onUp = () => {
@@ -799,6 +1004,21 @@ export function GrafikEditor() {
       if (gd) {
         if (gd.bewegt) {
           setSnapLinien(null);
+          /* Anker (Welle 3b) je verschobenem Mitglied am Zug-Ende neu
+             bestimmen — nächstliegendes getaggtes Element als drift-feste
+             Referenz (während des Ziehens war der Anker gelöst, s. onMove). */
+          setzeGrafiken(
+            grafiken.map((g) => {
+              const m = gd.mitglieder.find((x) => x.id === g.id);
+              const k = m ? g.keyframes[m.kfIndex] : undefined;
+              if (!m || !k) return g;
+              const anker = ankerFelderFuer(k.y, k.scrollY);
+              return {
+                ...g,
+                keyframes: g.keyframes.map((kk, i) => (i === m.kfIndex ? { ...kk, ...anker } : kk)),
+              };
+            }),
+          );
           ctx.commit("Gruppe verschoben", undefined, {
             grafiken: gd.vorZugGrafiken,
             uebernommen: gd.vorZugUebernommen,
@@ -816,6 +1036,27 @@ export function GrafikEditor() {
          Dutzende Schritte fuer einen einzigen Zug). */
       if (d && d.bewegt) {
         setSnapLinien(null);
+        /* Anker (Welle 3b) am Zug-Ende neu bestimmen: der Keyframe liegt jetzt
+           woanders (während des Ziehens war der Anker gelöst, s. onMove). Basiert
+           auf dem live gezogenen Stand (grafiken) — dieselbe Ein-Zug-Rebase wie
+           kfZeitleisteZugEnde, nur zusätzlich mit den Anker-Feldern. */
+        const gz = grafiken.find((x) => x.id === d.id);
+        const kz = gz?.keyframes[d.kfIndex];
+        if (kz) {
+          const anker = ankerFelderFuer(kz.y, kz.scrollY);
+          setzeGrafiken(
+            grafiken.map((x) =>
+              x.id === d.id
+                ? {
+                    ...x,
+                    keyframes: x.keyframes.map((kk, i) =>
+                      i === d.kfIndex ? { ...kk, ...anker } : kk,
+                    ),
+                  }
+                : x,
+            ),
+          );
+        }
         ctx.commit("Verschoben", undefined, {
           grafiken: d.vorZugGrafiken,
           uebernommen: d.vorZugUebernommen,
@@ -1449,7 +1690,12 @@ export function GrafikEditor() {
         const kfIndex = naechsterKfIndex(g, window.scrollY);
         return {
           ...g,
-          keyframes: g.keyframes.map((k, i) => (i === kfIndex ? { ...k, x: k.x + dx, y: k.y + dy } : k)),
+          /* Nudge löst einen bestehenden Anker (Welle 3b): nur „Hier locken"
+             und Drag-Ende ankern neu (s. ANKER_LEER) — sonst würde die
+             genudgte Position vom alten Anker überschrieben. */
+          keyframes: g.keyframes.map((k, i) =>
+            i === kfIndex ? { ...k, x: k.x + dx, y: k.y + dy, ...ANKER_LEER } : k,
+          ),
         };
       }),
     );
@@ -1588,7 +1834,11 @@ export function GrafikEditor() {
     const y = window.scrollY;
     const z = zustandBei(aktiv, y);
     const treffer = aktiv.keyframes.findIndex((k) => Math.abs(k.scrollY - y) <= KF_SNAP_PX);
-    const neu: GrafikKeyframe = { ...z, scrollY: y };
+    /* Element-ID-Anker (Welle 3b): das nächstliegende getaggte Element als
+       drift-feste Referenz ZUSÄTZLICH zu den Absolutwerten festhalten. Bei
+       Überschreiben eines vorhandenen Keyframes ersetzt der neue Anker den
+       alten (neu deckt die Anker-Felder vollständig, s. ankerFelderFuer). */
+    const neu: GrafikKeyframe = { ...z, scrollY: y, ...ankerFelderFuer(z.y, y) };
     const kfs =
       treffer >= 0
         ? aktiv.keyframes.map((k, i) => (i === treffer ? neu : k))
@@ -1621,7 +1871,10 @@ export function GrafikEditor() {
     const quelle = aktiv.keyframes[i];
     const y = window.scrollY;
     const treffer = aktiv.keyframes.findIndex((k) => Math.abs(k.scrollY - y) <= KF_SNAP_PX);
-    const kopie: GrafikKeyframe = { ...quelle, scrollY: y };
+    /* Kopie an neuer Scroll-/Position: ein evtl. Anker (Welle 3b) der Quelle
+       passt hier nicht mehr (andere scrollY) → lösen. Neu ankern per Drag-Ende/
+       „Hier locken". easing/srcOverride der Quelle bleiben dagegen erhalten. */
+    const kopie: GrafikKeyframe = { ...quelle, scrollY: y, ...ANKER_LEER };
     const kfs =
       treffer >= 0
         ? aktiv.keyframes.map((k, idx) => (idx === treffer ? kopie : k))
@@ -1646,7 +1899,10 @@ export function GrafikEditor() {
   const kfZeitleisteZugBewegung = useCallback(
     (kfIndex: number, neuY: number) => {
       if (!aktiv) return;
-      patchKf(aktiv.id, kfIndex, { scrollY: neuY });
+      /* Marker verschiebt die Trigger-Scrollhöhe → ankerScrollDy wäre veraltet:
+         Anker (Welle 3b) lösen, sonst „springt" der Keyframe im Render an seine
+         alte scrollY zurück. */
+      patchKf(aktiv.id, kfIndex, { scrollY: neuY, ...ANKER_LEER });
     },
     [aktiv, patchKf],
   );
@@ -1657,7 +1913,9 @@ export function GrafikEditor() {
       const vor = zeitleisteVorZugRef.current;
       zeitleisteVorZugRef.current = null;
       const sortiert = [...aktiv.keyframes]
-        .map((k, i) => (i === kfIndex ? { ...k, scrollY: neuY } : k))
+        /* Anker (Welle 3b) lösen (s. kfZeitleisteZugBewegung) — die neue scrollY
+           gilt jetzt absolut. */
+        .map((k, i) => (i === kfIndex ? { ...k, scrollY: neuY, ...ANKER_LEER } : k))
         .sort((a, b) => a.scrollY - b.scrollY);
       ctx?.commit(
         "Keyframe verschoben",
@@ -2426,6 +2684,10 @@ export function GrafikEditor() {
             einloggen (gelb) → Scrollrad skaliert · ESC = ausloggen
             <br />
             <b>⇄</b> tauscht zwei Ebenen (Positionen bleiben) · <b>📄</b> ersetzt nur die Datei
+            <br />
+            Unten unter <b>Website (Ist-Stand)</b> stehen die Elemente, die schon auf der
+            Original-Seite sind. Klick markiert eines · <b>Alt+Klick</b> direkt auf der Seite wählt
+            das getroffene Element aus.
           </div>
           {tauschQuelle && (
             <div className="gre-tausch-hinweis">
@@ -2555,6 +2817,16 @@ export function GrafikEditor() {
                 </div>
               ))}
           </div>
+          {/* „Website (Ist-Stand)" (AP-D, Welle 3a): die getaggten Elemente der
+              Original-Seite als eigene, eingeklappte Ebenen-Gruppe. Auswahl
+              hier = OG-Auswahl (schließt Grafik-/Fluss-Auswahl aus, s.
+              ogWaehlen). Reine Anzeige/Auswahl — die Seite selbst bleibt
+              unberührt. */}
+          <WebsiteOgEbene
+            liste={ogListe}
+            auswahl={ogAuswahl}
+            onWaehlen={(id) => ogWaehlen(id, true)}
+          />
         </>
       )}
 
@@ -2566,7 +2838,21 @@ export function GrafikEditor() {
           hier (der frühere Knopf in der Ebenen-Liste wurde entfernt, er
           gehörte dort logisch nicht hin). */}
       {reiter === "bild" &&
-        (flussObjekt?.fokus && flussObjekt.steuerung ? (
+        (ogAktiv ? (
+          /* OG-Auswahl (Website-Ist-Stand): der „Bild"-Reiter zeigt die
+             Basis-Infos des getaggten Original-Elements + „In den Builder
+             holen" (nur bild|svg). Vorrang, weil OG-Auswahl den Grafik-/
+             Fluss-Fokus ausschließt (s. ogWaehlen). */
+          <WebsiteOgObjekt
+            eintrag={ogAktiv}
+            status={ogStatus}
+            onInBuilder={
+              ogAktiv.typ === "bild" || ogAktiv.typ === "svg"
+                ? () => ogInBuilder(ogAktiv)
+                : undefined
+            }
+          />
+        ) : flussObjekt?.fokus && flussObjekt.steuerung ? (
           /* Fluss-Fokus (nur /editor): der „Bild"-Reiter ist kontextuell und
              zeigt die Fluss-Eigenschaften (Bauvorlage §2) statt des
              Grafik-Inspectors. */
@@ -2627,6 +2913,28 @@ export function GrafikEditor() {
               kannFreistellen={kannFreistellen}
               freistellenLaeuft={freistellenLaeuft}
               onFreistellen={() => void freistellen(aktiv)}
+              ankerId={aktivKfIndex >= 0 ? aktiv.keyframes[aktivKfIndex]?.ankerId ?? null : null}
+              onAnkerLoesen={() => {
+                if (aktivKfIndex < 0) return;
+                /* „frei positionieren" (Welle 3b, Spec §8/3b Punkt 4): Anker-
+                   Felder des aktuellen Keyframes entfernen, EIN Undo-Commit. Die
+                   Absolutwerte x/y/scrollY bleiben — die Grafik bleibt an Ort und
+                   Stelle, nur nicht mehr an das Element gekoppelt. */
+                ctx?.commit("Anker gelöst");
+                setzeGrafiken(
+                  grafiken.map((g) =>
+                    g.id === aktiv.id
+                      ? {
+                          ...g,
+                          keyframes: g.keyframes.map((k, i) =>
+                            i === aktivKfIndex ? { ...k, ...ANKER_LEER } : k,
+                          ),
+                        }
+                      : g,
+                  ),
+                );
+                setStatus("Anker gelöst — frei positioniert");
+              }}
             />
           )}
         </>
@@ -2849,9 +3157,16 @@ export function GrafikEditor() {
               <div className="gre-liste">
                 {aktiv.keyframes.map((k, i) => (
                   <div key={i} className={`gre-row${i === aktivKfIndex ? " gre-row--aktiv" : ""}`}>
-                    <button className="gre-lade" onClick={() => springeZu(k.scrollY)}>
+                    <button
+                      className="gre-lade"
+                      onClick={() => springeZu(k.scrollY)}
+                      title={k.ankerId ? `Verankert an ${k.ankerId} (Welle 3b)` : undefined}
+                    >
                       KF {i + 1} · y{Math.round(k.scrollY)} · {k.scale.toFixed(2)}×
                       {k.srcOverride ? " · 🖼" : ""}
+                      {/* Element-ID-Anker (Welle 3b): kleines Symbol markiert
+                          verankerte Keyframes. */}
+                      {k.ankerId ? " · ⚓" : ""}
                     </button>
                     <button
                       onClick={() => kfDuplizieren(i)}
@@ -3034,6 +3349,8 @@ export function GrafikEditor() {
               ? () => flussObjekt.steuerung?.baueAktuellenVerlauf() ?? null
               : undefined
           }
+          /* Welle 3c: aktuelle Auswahl nur zum Vorwählen im Einzelelement-Export. */
+          auswahlId={ctx.auswahl ?? undefined}
         />
       )}
       </div>
@@ -3111,6 +3428,10 @@ export function GrafikEditor() {
         ))}
       </div>
     )}
+    {/* Outline-Overlay des ausgewählten Website-Ist-Stand-Elements — eigene
+        Ebene, pointer-events:none, z-index unter dem Panel (s. WebsiteOg.tsx /
+        grafik-editor.css). Nur bei OG-Auswahl. */}
+    {ogAuswahl && <WebsiteOgOverlay ogId={ogAuswahl} />}
     <GrafikTutorial offen={tutorialOffen} onSchliessen={tutorialSchliessen} />
     </>
   );

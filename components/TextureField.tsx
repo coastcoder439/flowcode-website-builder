@@ -11,7 +11,17 @@ import { motion, useScroll, useTransform, useReducedMotion } from "motion/react"
  * als Kind) – der direkt folgende `.container` bekommt darüber automatisch
  * z-index:1, damit Inhalt über der Textur bleibt.
  */
-export function TextureField({ variant = "dark" }: { variant?: "dark" | "light" }) {
+export function TextureField({
+  variant = "dark",
+  ogId,
+  ogTyp,
+}: {
+  variant?: "dark" | "light";
+  /** Website-OG-Tagging (AP-D, Welle 3a) — reine Attribute, kein Verhalten/
+   *  keine Optik (fehlen sie, setzt React nichts). */
+  ogId?: string;
+  ogTyp?: string;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const reduced = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
@@ -23,6 +33,8 @@ export function TextureField({ variant = "dark" }: { variant?: "dark" | "light" 
       className={`section-texture section-texture--${variant}`}
       style={{ y }}
       aria-hidden="true"
+      data-og-id={ogId}
+      data-og-typ={ogTyp}
     />
   );
 }

@@ -77,6 +77,47 @@
   opacity: 0.65;
 }
 
+/* Element-ID-Anker-Zeile (GrafikInspector.tsx, Welle 3b): zeigt die
+   Verankerung des aktuellen Keyframes an ein Original-Element + „frei
+   positionieren". Gelber Akzent (#e8b400) wie sonst „aktiv/gekoppelt" im
+   Panel. */
+.gre-inspector-anker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  line-height: 1.4;
+  padding: 5px 7px;
+  border-radius: 5px;
+  background: rgba(232, 180, 0, 0.12);
+  border: 1px solid rgba(232, 180, 0, 0.35);
+}
+
+.gre-inspector-anker--frei {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.12);
+  opacity: 0.7;
+}
+
+.gre-inspector-anker-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.gre-inspector-anker-text code {
+  font-family: monospace;
+  font-size: 10.5px;
+  color: #e8b400;
+  word-break: break-all;
+}
+
+.gre-panel button.gre-inspector-anker-loesen {
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
 .gre-panel button.gre-inspector-vektor-knopf {
   width: 100%;
   justify-content: center;

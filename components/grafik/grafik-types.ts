@@ -39,6 +39,28 @@ export interface GrafikKeyframe {
    *  GrafikLayer/GrafikMedium). Harte Umschaltung an der Keyframe-Grenze,
    *  kein Crossfade. */
   srcOverride?: string;
+  /** --- Element-ID-Anker (Welle 3b, drift-feste Position) ----------------
+   *  Optional + vollständig rückwärtskompatibel: Altdaten ohne diese Felder
+   *  laden unverändert (reiner Absolut-Pfad, s. grafikenFuerRendering).
+   *
+   *  ankerId       = die `data-og-id` des getaggten Landing-Elements, an dem
+   *                  dieser Keyframe hängt (nächstliegendes Element zum
+   *                  Zeitpunkt des Setzens, s. GrafikEditor.ankerFelderFuer).
+   *  ankerDy       = Versatz der Keyframe-y-Position zur Dokument-OBERKANTE
+   *                  des Anker-Elements, in Dokument-px (y = AnkerTop + ankerDy).
+   *  ankerScrollDy = Versatz der Trigger-Scrollhöhe (scrollY) zur selben
+   *                  Anker-Oberkante (scrollY = AnkerTop + ankerScrollDy).
+   *
+   *  Beim Rendern (grafikenFuerRendering) gewinnt der Anker, SOFERN das Element
+   *  existiert — dann überlebt die Position Verschiebungen mitten in der Seite.
+   *  Existiert es nicht (fremder Backdrop/Host), greift der bestehende
+   *  Absolut-Pfad inkl. Höhen-Normalisierung. Beide schließen sich aus (nie
+   *  doppelt anwenden — Invariante feature-inventar §4.4). Die Absolutwerte
+   *  x/y/scrollY bleiben ZUSÄTZLICH erhalten (Fallback + Export-Runtime, die
+   *  den Anker ignorieren darf). */
+  ankerId?: string;
+  ankerDy?: number;
+  ankerScrollDy?: number;
 }
 
 /** Eine platzierte Grafik (animiertes SVG oder Bild). */
@@ -265,6 +287,61 @@ export function skaliereGrafikenFuerHoehe(grafiken: Grafik[], faktor: number): G
   return grafiken.map((g) => ({
     ...g,
     keyframes: g.keyframes.map((k) => ({ ...k, scrollY: k.scrollY * faktor, y: k.y * faktor })),
+  }));
+}
+
+/* --- Element-ID-Anker: Auflösung fürs Rendern (Welle 3b) --------------
+ * s. docs/editor-vereinheitlichung.md §8/3b + GrafikKeyframe.ankerId oben.
+ */
+
+/** Auflöser für Element-ID-Anker: liefert die AKTUELLE Dokument-Oberkante
+ *  (getBoundingClientRect().top + scrollY) eines `[data-og-id]`-Elements, oder
+ *  `undefined`, wenn es gerade nicht existiert. Der Aufrufer (GrafikLayer) baut
+ *  ihn EINMAL pro Layout-Epoche aus einer gecachten Map — NIE pro Frame
+ *  (Spec §8/3b: „nicht pro Frame querySelector"). */
+export type AnkerAufloeser = (ankerId: string) => number | undefined;
+
+/** Bereitet die Keyframes für die Darstellung auf — vereint zwei drift-Fixes,
+ *  die einander AUSSCHLIESSEN (Invariante feature-inventar §4.4: „Anker-Pfad
+ *  und Höhen-Normalisierung nie doppelt anwenden"):
+ *
+ *  1. Element-ID-Anker (Welle 3b): Hat ein Keyframe eine `ankerId` UND liefert
+ *     der `aufloeser` dafür eine Oberkante (Element existiert), wird die
+ *     Position RELATIV dazu rekonstruiert: y = top + ankerDy, scrollY = top +
+ *     ankerScrollDy. So überlebt der Keyframe Verschiebungen mitten in der
+ *     Seite. Ein so verankerter Keyframe wird BEWUSST NICHT zusätzlich
+ *     höhen-normalisiert — die Anker-Oberkante liegt bereits in der aktuellen
+ *     Layout-Dokumenthöhe; ein `faktor` obendrauf wäre die verbotene
+ *     Doppel-Skalierung.
+ *
+ *  2. Höhen-Normalisierung (bestehend): Keyframes OHNE (auflösbaren) Anker
+ *     laufen exakt den alten Absolut-Pfad — scrollY·faktor / y·faktor (identisch
+ *     zu skaliereGrafikenFuerHoehe).
+ *
+ *  `faktor===1` UND kein auflösbarer Anker ⇒ die Liste wird unverändert (gleiche
+ *  Referenz, keine neuen Objekte) zurückgegeben — der Normalfall (Altdaten ohne
+ *  Anker, Autoren- = Zielhöhe) bleibt bit-für-bit wie bisher. */
+export function grafikenFuerRendering(
+  grafiken: Grafik[],
+  faktor: number,
+  aufloeser: AnkerAufloeser | null,
+): Grafik[] {
+  const ankerMoeglich =
+    aufloeser !== null && grafiken.some((g) => g.keyframes.some((k) => k.ankerId != null));
+  if (faktor === 1 && !ankerMoeglich) return grafiken;
+  return grafiken.map((g) => ({
+    ...g,
+    keyframes: g.keyframes.map((k) => {
+      if (aufloeser && k.ankerId != null) {
+        const top = aufloeser(k.ankerId);
+        if (top != null && Number.isFinite(top)) {
+          /* Anker gewinnt — KEINE zusätzliche Höhen-Normalisierung (s.o.). */
+          return { ...k, y: top + (k.ankerDy ?? 0), scrollY: top + (k.ankerScrollDy ?? 0) };
+        }
+      }
+      /* Kein (auflösbarer) Anker: bestehender Absolut-Pfad inkl. Höhen-Norm. */
+      return faktor === 1 ? k : { ...k, scrollY: k.scrollY * faktor, y: k.y * faktor };
+    }),
   }));
 }
 
