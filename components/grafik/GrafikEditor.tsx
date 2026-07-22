@@ -28,6 +28,9 @@ import { GrafikKeyframeTimeline } from "./GrafikKeyframeTimeline";
 import { SeiteTab } from "./GrafikSeiteTab";
 import { GrafikTutorial, HilfeIcon, tutorialAlsGesehenMerken, tutorialNochNichtGesehen } from "./GrafikHilfe";
 import { GrafikExportPanel } from "./GrafikExportPanel";
+import { useFlussObjekt } from "@/components/river/FlussObjektContext";
+import { FlussObjektBild } from "@/components/river/FlussObjektBild";
+import { ProfileSektion } from "@/components/river/sektionen/ProfileSektion";
 import { BackdropAuswahl } from "@/components/backdrop/BackdropAuswahl";
 import { EasingKurve } from "./EasingKurve";
 import { EASING_DEFAULT } from "./easing";
@@ -93,14 +96,22 @@ type Reiter =
   | "hintergrund"
   | "export";
 
+/* Reiter-Reihenfolge folgt der User-Reise (Bauvorlage §2, Welle 2b-2):
+   Einrichten/Einfügen → Anordnen → Bearbeiten → Animieren → Seite → Hintergrund
+   → Sichern → Veröffentlichen. Die internen `id`-Werte bleiben bewusst stabil
+   („bild"/„keyframes"/„setups") — nur die sichtbaren Labels und die Reihenfolge
+   ändern sich, damit die vielen `reiter === "…"`-Zweige unangetastet bleiben
+   (additiv, kein Umbenennen im ganzen File). Zuordnung Label ↔ id:
+     Objekt = id „bild" (kontextuell Grafik-Inspector ODER Fluss-Sektionen),
+     Animation = id „keyframes", Speichern = id „setups". */
 const REITER: { id: Reiter; label: string }[] = [
   { id: "bibliothek", label: "Bibliothek" },
   { id: "ebenen", label: "Ebenen" },
-  { id: "bild", label: "Bild" },
-  { id: "keyframes", label: "Keyframes" },
-  { id: "setups", label: "Setups" },
+  { id: "bild", label: "Objekt" },
+  { id: "keyframes", label: "Animation" },
   { id: "seite", label: "Seite" },
   { id: "hintergrund", label: "Hintergrund" },
+  { id: "setups", label: "Speichern" },
   /* Letzter Reiter = letzter Schritt der Kette (Phase 3): erst wenn Grafiken
      + Fluss stehen, ergibt ein Export überhaupt Sinn. */
   { id: "export", label: "Export" },
@@ -276,6 +287,10 @@ interface AbbildStandardAntwort {
 
 export function GrafikEditor() {
   const ctx = useGrafiken();
+  /* /editor (Welle 2b-1): der Fluss ist ein Objekt in DIESEM Panel. Auf der
+     alten Route (Redirect) fehlt der Provider → null → alle Fluss-Zweige
+     unten sind No-Ops, der Grafik-Editor bleibt exakt wie zuvor. */
+  const flussObjekt = useFlussObjekt();
   const [reiter, setReiter] = useState<Reiter>("bibliothek");
   const [setups, setSetups] = useState<Record<string, GrafikSetup>>({});
   /** Abbilder, die wirklich auf der Platte liegen (abbilder/*.json via
@@ -1888,6 +1903,18 @@ export function GrafikEditor() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [ctx, loeschen, loescheMehrere, verschiebeAuswahlUmPixel, rueckgaengigMachen, wiederholenMachen]);
 
+  /* /editor: Grafik-Auswahl und Fluss-Fokus schließen sich gegenseitig aus
+     (Bauvorlage §1: „Grafik-Auswahl hebt Fluss-Fokus auf und umgekehrt").
+     Diese Richtung: sobald eine Grafik ausgewählt ist, verliert der Fluss den
+     Fokus. Die Gegenrichtung (Fluss wählen → Grafik-Auswahl leeren) passiert
+     imperativ im Klick-Handler des Fluss-Ebenen-Eintrags. Ohne
+     FlussObjekt-Provider (alte Route) ist flussObjekt null → No-Op. */
+  const flussSetFokus = flussObjekt?.setFokus;
+  const flussHatFokus = flussObjekt?.fokus;
+  useEffect(() => {
+    if (ctx?.auswahl && flussHatFokus && flussSetFokus) flussSetFokus(false);
+  }, [ctx?.auswahl, flussHatFokus, flussSetFokus]);
+
   if (!ctx) return null;
 
   const aktivKfIndex = aktiv ? naechsterKfIndex(aktiv, scrollY) : -1;
@@ -1985,20 +2012,33 @@ export function GrafikEditor() {
     <div className="gre-panel">
       <div className="gre-kopf">
         <strong>Grafik-Editor</strong>
+        {/* Undo/Redo wirken auf den GRAFIK-Verlauf. Bei Fluss-Fokus sind sie
+            bewusst gesperrt (mit Title-Hinweis) — ein eigener, gleichgebauter
+            Fluss-Verlauf kommt erst in Welle 2c (Bauvorlage §3). Ohne Sperre
+            würde Strg+Z am Fluss stillschweigend die zuletzt gewählte Grafik
+            zurücknehmen — verwirrend. */}
         <div className="gre-verlauf">
           <button
             className="gre-verlauf-btn"
             onClick={rueckgaengigMachen}
-            disabled={!ctx.canUndo}
-            title="Rückgängig (Strg+Z)"
+            disabled={!ctx.canUndo || !!flussHatFokus}
+            title={
+              flussHatFokus
+                ? "Rückgängig für den Fluss folgt in einem späteren Schritt (Welle 2c)"
+                : "Rückgängig (Strg+Z)"
+            }
           >
             ↶
           </button>
           <button
             className="gre-verlauf-btn"
             onClick={wiederholenMachen}
-            disabled={!ctx.canRedo}
-            title="Wiederholen (Strg+Umschalt+Z / Strg+Y)"
+            disabled={!ctx.canRedo || !!flussHatFokus}
+            title={
+              flussHatFokus
+                ? "Wiederholen für den Fluss folgt in einem späteren Schritt (Welle 2c)"
+                : "Wiederholen (Strg+Umschalt+Z / Strg+Y)"
+            }
           >
             ↷
           </button>
@@ -2031,10 +2071,51 @@ export function GrafikEditor() {
         />
       </div>
 
-      <div className="gre-tabs">
+      {/* Echte Tab-Semantik (Bauvorlage §2c / a11y): role=tablist/tab + ein
+          gemeinsames role=tabpanel darunter. aria-selected markiert den aktiven
+          Reiter (behebt den 2a-Befund „Tabs ohne active-Attribut"); alle Tabs
+          steuern DASSELBE Panel („gre-tab-panel"), das per aria-labelledby auf
+          den gerade aktiven Tab zeigt — so bleibt aria-controls immer auflösbar,
+          obwohl stets nur der aktive Panel-Inhalt im DOM steht. */}
+      {/* Roving-Tabindex (APG-Tablist, Welle 2b-2 / a11y): nur der aktive Reiter
+          ist im Tab-Stop (tabIndex 0), die übrigen -1. Pfeiltasten wechseln den
+          Reiter und ziehen den Fokus mit; Home/End springen an die Enden — der
+          zuvor fehlende „ArrowLeft/ArrowRight nicht verdrahtet"-Befund. */}
+      <div
+        className="gre-tabs"
+        role="tablist"
+        aria-label="Editor-Bereiche"
+        onKeyDown={(e) => {
+          const idx = REITER.findIndex((r) => r.id === reiter);
+          if (idx < 0) return;
+          let ziel = idx;
+          if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+            ziel = (idx + 1) % REITER.length;
+          } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            ziel = (idx - 1 + REITER.length) % REITER.length;
+          } else if (e.key === "Home") {
+            ziel = 0;
+          } else if (e.key === "End") {
+            ziel = REITER.length - 1;
+          } else {
+            return;
+          }
+          e.preventDefault();
+          const zielId = REITER[ziel].id;
+          setReiter(zielId);
+          // Die Tab-Buttons bleiben alle gemountet (key=r.id), der Ziel-Knopf
+          // existiert also schon — Fokus direkt nachziehen.
+          document.getElementById(`gre-tab-${zielId}`)?.focus();
+        }}
+      >
         {REITER.map((r) => (
           <button
             key={r.id}
+            id={`gre-tab-${r.id}`}
+            role="tab"
+            aria-selected={reiter === r.id}
+            aria-controls="gre-tab-panel"
+            tabIndex={reiter === r.id ? 0 : -1}
             className={`gre-tab${reiter === r.id ? " gre-tab--aktiv" : ""}`}
             onClick={() => setReiter(r.id)}
           >
@@ -2057,6 +2138,17 @@ export function GrafikEditor() {
         hidden
       />
 
+      {/* Gemeinsames Tab-Panel: hält immer nur den Inhalt des aktiven Reiters.
+          Eigene Flex-Spalte (gre-tab-panel), damit der 8px-Abstand der
+          Panel-Kinder erhalten bleibt, obwohl jetzt ein Wrapper dazwischenliegt.
+          aria-labelledby zeigt auf den aktiven Tab (s. Kommentar an der
+          Tab-Leiste). */}
+      <div
+        className="gre-tab-panel"
+        role="tabpanel"
+        id="gre-tab-panel"
+        aria-labelledby={`gre-tab-${reiter}`}
+      >
       {reiter === "bibliothek" && (
         <>
           <div className="gre-reiter-kopf">
@@ -2178,6 +2270,27 @@ export function GrafikEditor() {
             </div>
           )}
           <div className="gre-liste">
+            {/* Fluss als OBJEKT zuoberst (Bauvorlage §1/§2, nur auf /editor):
+                Auswahl = Fluss-Fokus. Setzt den Fokus und leert zugleich die
+                Grafik-Auswahl (gegenseitiger Ausschluss). Ohne Provider (alte
+                Route) fehlt der Eintrag ganz. */}
+            {flussObjekt && (
+              <button
+                type="button"
+                className={`gre-asset gre-fluss-eintrag${flussObjekt.fokus ? " gre-asset--aktiv" : ""}`}
+                aria-pressed={flussObjekt.fokus}
+                onClick={() => {
+                  flussObjekt.setFokus(true);
+                  ctx.setAuswahl(null);
+                  ctx.setAuswahlMehr([]);
+                  ctx.setGelockt(false);
+                }}
+                title="Fluss auswählen — Knoten auf der Seite bearbeiten; Wasser, Front, Nebel und Profile im Reiter Bild"
+              >
+                <span className="gre-fluss-eintrag-name">🌊 Fluss</span>
+                <span className="gre-meta">{flussObjekt.steuerung?.nodes?.length ?? 0} Knoten</span>
+              </button>
+            )}
             {[...grafiken]
               .sort((a, b) => b.z - a.z)
               .map((g) => (
@@ -2272,7 +2385,13 @@ export function GrafikEditor() {
           bildet das direkter ab. „In SVG umwandeln" lebt AUSSCHLIESSLICH
           hier (der frühere Knopf in der Ebenen-Liste wurde entfernt, er
           gehörte dort logisch nicht hin). */}
-      {reiter === "bild" && (
+      {reiter === "bild" &&
+        (flussObjekt?.fokus && flussObjekt.steuerung ? (
+          /* Fluss-Fokus (nur /editor): der „Bild"-Reiter ist kontextuell und
+             zeigt die Fluss-Eigenschaften (Bauvorlage §2) statt des
+             Grafik-Inspectors. */
+          <FlussObjektBild steuerung={flussObjekt.steuerung} />
+        ) : (
         <>
           <div className="gre-reiter-kopf">
             <span>Bild</span>
@@ -2331,7 +2450,7 @@ export function GrafikEditor() {
             />
           )}
         </>
-      )}
+        ))}
 
       {reiter === "keyframes" && (
         <>
@@ -2574,71 +2693,103 @@ export function GrafikEditor() {
       {reiter === "setups" && (
         <>
           <div className="gre-reiter-kopf">
-            <span>Setups</span>
+            <span>Speichern</span>
             <HilfeIcon
-              label="Setups"
-              text="Ein Setup ist ein gespeichertes Abbild deiner Arbeit — alle platzierten Grafiken plus deine Bibliothek. Du kannst mehrere Abbilder anlegen und jederzeit zwischen ihnen wechseln. Erst wenn du eins als Standard setzt, sieht die echte Website es auch."
+              label="Speichern"
+              text="Zwei getrennte Speicher — bewusst nicht vermischt: die Grafik-Setups (Abbilder deiner platzierten Grafiken + Bibliothek, server-first) und die Fluss-Profile (gespeicherte Fluss-Stände, nur im Browser). Jedes hat sein eigenes Speicher-Modell; beide bleiben nebeneinander erreichbar."
             />
           </div>
-          <div className="gre-hilfe">
-            Gespeichert werden alle Grafiken samt Keyframes und die Bibliothek — als Datei unter{" "}
-            <code>abbilder/</code>. Ohne Verbindung zur Route: nur im Browser (Notlösung, deutlich
-            markiert).
+
+          {/* Block 1 — Grafik-Setups (Server-first, /api/abbild; localStorage
+              nur Notlösung). Inhalt unverändert aus dem früheren „Setups"-Reiter
+              (Inventar §1.F), nur in einen beschrifteten Block gefasst. */}
+          <div className="gre-speichern-block">
+            <div className="gre-block-titel">Grafik-Setups (Server)</div>
+            <div className="gre-hilfe">
+              Gespeichert werden alle Grafiken samt Keyframes und die Bibliothek — als Datei unter{" "}
+              <code>abbilder/</code>. Ohne Verbindung zur Route: nur im Browser (Notlösung, deutlich
+              markiert).
+            </div>
+            <div className="gre-row">
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Setup-Name" />
+              <button onClick={() => void speichern()}>Speichern</button>
+            </div>
+            <div className="gre-liste">
+              {serverAbbilder.length === 0 && lokaleSetupNamen.length === 0 && (
+                <div className="gre-leer">Noch keine Setups gespeichert.</div>
+              )}
+              {serverAbbilder.map((a) => (
+                <div key={`platte:${a.name}`} className="gre-row">
+                  <button
+                    className="gre-lade"
+                    onClick={() => void laden(a.name, "platte")}
+                    title={`abbilder/${a.name}.json`}
+                  >
+                    {a.name} ({a.grafikenAnzahl})
+                  </button>
+                  <span className="gre-meta">Platte</span>
+                  <button onClick={() => void loescheVonPlatte(a.name)} title="Von der Platte löschen (fragt nach)">
+                    ✕
+                  </button>
+                </div>
+              ))}
+              {lokaleSetupNamen.map((n) => (
+                <div key={`browser:${n}`} className="gre-row">
+                  <button
+                    className="gre-lade"
+                    onClick={() => void laden(n, "browser")}
+                    title="Nur im Browser gespeichert (Notlösung)"
+                  >
+                    {n} ({setups[n].grafiken.length})
+                  </button>
+                  <span className="gre-meta">Browser</span>
+                  <button onClick={() => setupLoeschen(n)} title="Aus dem Browserspeicher löschen (fragt nach)">
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="gre-row">
+              <button
+                onClick={() => void alsStandardSetzen()}
+                title="Schreibt den aktuellen Stand nach grafik.config.json — das zeigt die echte Landing (fragt nach)"
+              >
+                Als Standard setzen
+              </button>
+              <HilfeIcon
+                label="Als Standard setzen"
+                text="Schreibt den aktuellen Stand fest in die echte Website — der einzige Knopf hier, der die LIVE-Seite verändert (fragt vorher nach). Alles andere im Editor bleibt erst mal nur ein Entwurf, den nur du siehst."
+              />
+            </div>
+            <div className="gre-row">
+              <button onClick={exportieren}>Export JSON (Browser-Setups)</button>
+            </div>
           </div>
-          <div className="gre-row">
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Setup-Name" />
-            <button onClick={() => void speichern()}>Speichern</button>
-          </div>
-          <div className="gre-liste">
-            {serverAbbilder.length === 0 && lokaleSetupNamen.length === 0 && (
-              <div className="gre-leer">Noch keine Setups gespeichert.</div>
-            )}
-            {serverAbbilder.map((a) => (
-              <div key={`platte:${a.name}`} className="gre-row">
-                <button
-                  className="gre-lade"
-                  onClick={() => void laden(a.name, "platte")}
-                  title={`abbilder/${a.name}.json`}
-                >
-                  {a.name} ({a.grafikenAnzahl})
-                </button>
-                <span className="gre-meta">Platte</span>
-                <button onClick={() => void loescheVonPlatte(a.name)} title="Von der Platte löschen (fragt nach)">
-                  ✕
-                </button>
-              </div>
-            ))}
-            {lokaleSetupNamen.map((n) => (
-              <div key={`browser:${n}`} className="gre-row">
-                <button
-                  className="gre-lade"
-                  onClick={() => void laden(n, "browser")}
-                  title="Nur im Browser gespeichert (Notlösung)"
-                >
-                  {n} ({setups[n].grafiken.length})
-                </button>
-                <span className="gre-meta">Browser</span>
-                <button onClick={() => setupLoeschen(n)} title="Aus dem Browserspeicher löschen (fragt nach)">
-                  ✕
-                </button>
-              </div>
-            ))}
-          </div>
-          <div className="gre-row">
-            <button
-              onClick={() => void alsStandardSetzen()}
-              title="Schreibt den aktuellen Stand nach grafik.config.json — das zeigt die echte Landing (fragt nach)"
-            >
-              Als Standard setzen
-            </button>
-            <HilfeIcon
-              label="Als Standard setzen"
-              text="Schreibt den aktuellen Stand fest in die echte Website — der einzige Knopf hier, der die LIVE-Seite verändert (fragt vorher nach). Alles andere im Editor bleibt erst mal nur ein Entwurf, den nur du siehst."
-            />
-          </div>
-          <div className="gre-row">
-            <button onClick={exportieren}>Export JSON (Browser-Setups)</button>
-          </div>
+
+          {/* Block 2 — Fluss-Profile (localStorage-only, eigenes Speicher-Modell
+              — Inventar §4.2: bewusst NICHT auf das Server-Modell umgestellt).
+              Dieselbe ProfileSektion wie im früheren Fluss-Reiter (§1.R), hier
+              zentral im Speichern-Reiter zusammengeführt. Nur auf /editor
+              vorhanden (dort liegt der FlussObjekt-Provider); auf der alten
+              Route ist flussObjekt null → Block entfällt. Die rke-* Styles
+              kommen aus river-kurs-editor.css (auf /editor global geladen). */}
+          {flussObjekt?.steuerung && (
+            <div className="gre-speichern-block">
+              <div className="gre-block-titel">Fluss-Profile (lokal)</div>
+              <ProfileSektion
+                name={flussObjekt.steuerung.name}
+                setName={flussObjekt.steuerung.setName}
+                verlaeufe={flussObjekt.steuerung.verlaeufe}
+                importRef={flussObjekt.steuerung.importRef}
+                speichern={flussObjekt.steuerung.speichern}
+                laden={flussObjekt.steuerung.laden}
+                verlaufLoeschen={flussObjekt.steuerung.verlaufLoeschen}
+                exportieren={flussObjekt.steuerung.exportieren}
+                dateiImportiert={flussObjekt.steuerung.dateiImportiert}
+                alsSvgExportieren={flussObjekt.steuerung.alsSvgExportieren}
+              />
+            </div>
+          )}
         </>
       )}
 
@@ -2657,7 +2808,25 @@ export function GrafikEditor() {
 
       {reiter === "hintergrund" && <BackdropAuswahl />}
 
-      {reiter === "export" && <GrafikExportPanel grafiken={grafiken} />}
+      {reiter === "export" && (
+        <GrafikExportPanel
+          grafiken={grafiken}
+          /* Risiko 3: der Fluss kommt DIREKT aus dem Context (aktueller Stand)
+             — kein stiller Verlust über die localStorage-Brücke. Nur wenn ein
+             Fluss-Objekt vorhanden ist (auf /editor); sonst bleibt localStorage
+             die einzige Quelle (Fallback im Panel). Der Geber baut den Verlauf
+             erst beim Export-Klick (aktueller Live-Stand). */
+          flussVerlaufGeber={
+            flussObjekt?.steuerung
+              ? () => flussObjekt.steuerung?.baueAktuellenVerlauf() ?? null
+              : undefined
+          }
+        />
+      )}
+      </div>
+      {/* Ende role=tabpanel — die folgenden Overlays/Indikatoren gehören zu
+          KEINEM Reiter (sie zeigen den globalen Editor-Zustand) und stehen
+          deshalb bewusst außerhalb des Tab-Panels. */}
 
       {ctx.gelockt && aktiv && <div className="gre-lock">🔒 eingeloggt — Scrollrad skaliert</div>}
       {dropAktiv && <div className="gre-drop">Loslassen = hier ablegen</div>}

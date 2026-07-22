@@ -30,7 +30,8 @@ import { HomePageContent } from "@/components/HomePageContent";
 import { GrafikProvider } from "@/components/grafik/GrafikContext";
 import { GrafikEditor } from "@/components/grafik/GrafikEditor";
 import { RiverKursProvider } from "@/components/river/RiverKursContext";
-import { RiverKursEditor } from "@/components/river/RiverKursEditor";
+import { FlussObjektProvider } from "@/components/river/FlussObjektContext";
+import { FlussHandlesEbene } from "@/components/river/FlussHandlesEbene";
 import "@/components/river/river-kurs-editor.css";
 import { Backdrop } from "@/components/backdrop/Backdrop";
 import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
@@ -62,21 +63,34 @@ function vorhangLatchLoesen() {
  *  <BackdropProvider>, der Export selbst rendert den Provider erst.
  *
  *  Die Bühne (RiverFlow + GrafikLayer) steckt IN der HomePageContent — hier
- *  kommen nur die beiden Provider (Editor-Zustand schlägt die Config) und die
- *  beiden Overlay-Panels dazu. Jeweils genau EIN Panel je Editor, damit sich
- *  nichts überlagert. */
+ *  kommen die drei Provider (Editor-Zustand schlägt die Config) und das EINE
+ *  Grafik-Panel dazu.
+ *
+ *  Welle 2b-1: Der Fluss ist jetzt ein OBJEKT im Grafik-Panel, kein eigenes
+ *  Panel mehr. Deshalb wird das frühere .rke-Panel (RiverKursEditor) hier
+ *  NICHT mehr gemountet. Stattdessen:
+ *    - FlussObjektProvider hält den Fluss-Fokus + die Fluss-Maschinerie
+ *      (INNEN, damit GrafikEditor beide Contexts sieht und die gegenseitige
+ *      Auswahl-Ausschließlichkeit Grafik ↔ Fluss verdrahten kann),
+ *    - GrafikEditor zeigt den Fluss als Ebenen-Eintrag + im „Bild"-Reiter,
+ *    - FlussHandlesEbene rendert die Knoten-Handles NUR bei Fluss-Fokus.
+ *  river-kurs-editor.css (oben importiert) liefert weiterhin die Styles für
+ *  die Handle-Ebene (.rke-layer/.rke-knoten) und die Fluss-Sektionen (.rke-*).
+ */
 function EditorInner() {
   const bctx = useBackdropCtx();
   return (
     <RiverKursProvider>
       <GrafikProvider>
-        <HomePageContent backdrop={bctx?.backdrop ? <Backdrop backdrop={bctx.backdrop} /> : undefined} />
-        {/* Grafik-Panel links (.gre-panel) — bringt sein eigenes Tutorial
-            (localStorage-Latch "wee-grafik-tutorial-gesehen") und CSS mit. */}
-        <GrafikEditor />
-        {/* Fluss-Panel oben rechts (.rke-panel) — CSS wird oben in dieser
-            Datei importiert (die Komponente selbst importiert es nicht). */}
-        <RiverKursEditor />
+        <FlussObjektProvider>
+          <HomePageContent backdrop={bctx?.backdrop ? <Backdrop backdrop={bctx.backdrop} /> : undefined} />
+          {/* Das EINE Panel (.gre-panel) — bringt sein eigenes Tutorial
+              (localStorage-Latch "wee-grafik-tutorial-gesehen") und CSS mit.
+              Enthält seit 2b-1 auch das Fluss-Objekt. */}
+          <GrafikEditor />
+          {/* Knoten-Handles über der Bühne — nur aktiv bei Fluss-Fokus. */}
+          <FlussHandlesEbene />
+        </FlussObjektProvider>
       </GrafikProvider>
     </RiverKursProvider>
   );

@@ -80,7 +80,7 @@ export const ANIM_DEFAULTS: AnimEinstellungen = {
   mistBlurPx: 7,
 };
 
-interface RiverKursCtx {
+export interface RiverKursCtx {
   nodes: RiverNode[] | null;
   setNodes: (n: RiverNode[] | null) => void;
   live: RiverNode[] | null;

@@ -38,6 +38,10 @@ const EMBED_URL = "/wee-embed.js";
 /** Sentinel-Wert für "kein Fluss" im <select> – kein echter Verlaufsname
  *  (Verlaufsnamen kommen aus Leon/Bens freier Eingabe im Fluss-Editor). */
 const KEIN_FLUSS = "__kein-fluss__";
+/** Sentinel für "der aktuelle Live-Stand aus dem Editor-Context" (Risiko 3) –
+ *  nur verfügbar, wenn ein flussVerlaufGeber übergeben wurde (auf /editor).
+ *  Der Verlauf wird dann erst beim Export-Klick aus dem Context gebaut. */
+const AKTUELLER_FLUSS = "__aktueller-fluss__";
 
 function ladeFlussVerlaeufe(): Record<string, FlussVerlauf> {
   try {
@@ -74,9 +78,15 @@ interface GrafikExportPanelProps {
    *  Prop statt eigenem Context-Zugriff, damit dieser Reiter unabhängig vom
    *  restlichen Editor-Zustand bleibt. */
   grafiken: Grafik[];
+  /** Liefert den AKTUELLEN Fluss-Stand aus dem RiverKurs-Context (Risiko 3) –
+   *  gesetzt auf /editor, wo der Fluss ein Objekt im selben Panel ist. Wird
+   *  erst beim Export-Klick aufgerufen (Live-Stand), liefert null, solange
+   *  Geometrie/Farben nicht bereit sind. Fehlt der Geber (kein Context, alte
+   *  Route), bleibt localStorage die einzige Fluss-Quelle. */
+  flussVerlaufGeber?: () => FlussVerlauf | null;
 }
 
-export function GrafikExportPanel({ grafiken }: GrafikExportPanelProps) {
+export function GrafikExportPanel({ grafiken, flussVerlaufGeber }: GrafikExportPanelProps) {
   const [verlaeufe, setVerlaeufe] = useState<Record<string, FlussVerlauf>>({});
   const [gewaehlterFluss, setGewaehlterFluss] = useState(KEIN_FLUSS);
   const [bilderInline, setBilderInline] = useState(true);
@@ -91,21 +101,44 @@ export function GrafikExportPanel({ grafiken }: GrafikExportPanelProps) {
   useEffect(() => {
     const alle = ladeFlussVerlaeufe();
     setVerlaeufe(alle);
+    /* Auf /editor (Geber vorhanden) ist der Live-Stand aus dem Context die
+       primäre Quelle (Risiko 3): direkt vorwählen. localStorage-Profile
+       bleiben als zusätzliche Auswahl erhalten. Die Geber-Präsenz ist pro
+       Route stabil, deshalb genügt die Auswertung beim Mount. */
+    if (flussVerlaufGeber) {
+      setGewaehlterFluss(AKTUELLER_FLUSS);
+      return;
+    }
     const namen = Object.keys(alle);
     if (namen.length === 0) return;
     const letzter = namen
       .map((n) => alle[n])
       .sort((a, b) => (a.gespeichert < b.gespeichert ? 1 : -1))[0];
     if (letzter) setGewaehlterFluss(letzter.name);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const flussNamen = useMemo(() => Object.keys(verlaeufe).sort(), [verlaeufe]);
-  const flussVerlauf = gewaehlterFluss === KEIN_FLUSS ? null : (verlaeufe[gewaehlterFluss] ?? null);
+
+  /** Löst die aktuell im <select> gewählte Fluss-Quelle zu einem Verlauf auf:
+   *  Live-Context (Risiko 3), gespeichertes Profil (localStorage) oder null.
+   *  Bewusst eine Funktion (nicht ein Render-Wert), damit der Live-Stand erst
+   *  im Moment des Export-Klicks aus dem Context gebaut wird. */
+  const holeFlussVerlauf = (): FlussVerlauf | null => {
+    if (gewaehlterFluss === AKTUELLER_FLUSS) return flussVerlaufGeber ? flussVerlaufGeber() : null;
+    if (gewaehlterFluss === KEIN_FLUSS) return null;
+    return verlaeufe[gewaehlterFluss] ?? null;
+  };
 
   const flussStatusteil = (config: { fluss?: { name: string } }) =>
     config.fluss ? ` · Fluss: ${config.fluss.name}` : " · kein Fluss";
 
   const jsonExportieren = async () => {
+    const flussVerlauf = holeFlussVerlauf();
+    if (gewaehlterFluss === AKTUELLER_FLUSS && !flussVerlauf) {
+      setStatus("Fluss-Geometrie noch nicht bereit — kurz auf der Seite scrollen und erneut.");
+      return;
+    }
     setLaeuft(true);
     setStatus("Baue Config…");
     try {
@@ -126,6 +159,11 @@ export function GrafikExportPanel({ grafiken }: GrafikExportPanelProps) {
   };
 
   const htmlExportieren = async () => {
+    const flussVerlauf = holeFlussVerlauf();
+    if (gewaehlterFluss === AKTUELLER_FLUSS && !flussVerlauf) {
+      setStatus("Fluss-Geometrie noch nicht bereit — kurz auf der Seite scrollen und erneut.");
+      return;
+    }
     setLaeuft(true);
     setStatus("Baue Overlay-HTML…");
     try {
@@ -187,6 +225,9 @@ export function GrafikExportPanel({ grafiken }: GrafikExportPanelProps) {
           />
         </div>
         <select value={gewaehlterFluss} onChange={(e) => setGewaehlterFluss(e.target.value)}>
+          {flussVerlaufGeber && (
+            <option value={AKTUELLER_FLUSS}>{`Aktueller Fluss (Editor)`}</option>
+          )}
           <option value={KEIN_FLUSS}>{`kein Fluss`}</option>
           {flussNamen.map((n) => (
             <option key={n} value={n}>
@@ -194,7 +235,7 @@ export function GrafikExportPanel({ grafiken }: GrafikExportPanelProps) {
             </option>
           ))}
         </select>
-        {flussNamen.length === 0 && (
+        {flussNamen.length === 0 && !flussVerlaufGeber && (
           <div className="gre-leer">
             {`Noch kein Fluss-Profil gespeichert – im Fluss-Editor unter "Profile" speichern.`}
           </div>

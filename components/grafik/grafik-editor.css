@@ -67,8 +67,14 @@
   color: #fff;
 }
 
+/* Reiterleiste: 8 Reiter passen nicht nebeneinander in das feste 290px-Panel
+   (sie bräuchten ~430px). Ohne flex-wrap wurden „Speichern"/„Export" aus dem
+   sichtbaren Bereich gedrängt und waren für Maus-Nutzer praktisch unauffindbar
+   (Welle-2b-2-Befund). Deshalb: umbrechen lassen → alle 8 Reiter stehen in zwei
+   Zeilen sichtbar, kein Horizontal-Scroll nötig. */
 .gre-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
   background: rgba(0, 0, 0, 0.25);
   border-radius: 7px;
@@ -87,7 +93,10 @@
 }
 
 .gre-panel button.gre-tab {
-  flex: 1;
+  /* flex-basis ~21% ⇒ vier Reiter je Zeile passen in die 290px-Spalte, danach
+     bricht die Leiste um (2×4). flex-grow füllt jede Zeile bündig aus. */
+  flex: 1 1 21%;
+  min-width: 0;
   background: transparent;
   padding: 5px 4px;
   font-size: 11.5px;
@@ -99,6 +108,46 @@
   background: #3f6e3a;
   opacity: 1;
   font-weight: 600;
+}
+
+/* Das gemeinsame role=tabpanel (Welle 2b-2): eigene Flex-Spalte mit demselben
+   8px-Abstand wie .gre-panel, damit der Wrapper das bisherige Kind-Spacing
+   nicht schluckt. */
+.gre-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Speichern-Reiter: zwei klar getrennte Speicher-Blöcke (Grafik-Setups /
+   Fluss-Profile). Dezente Trennlinie + eigener Titel, damit die zwei bewusst
+   getrennten Speicher-Philosophien (Inventar §4.2) auch optisch getrennt sind. */
+.gre-speichern-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.gre-block-titel {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+
+/* Sichtbarer Tastatur-Fokus auf allen Panel-Bedienelementen (a11y): ohne das
+   fiele bei Tab-Navigation nicht auf, wo man steht. Nur :focus-visible, damit
+   Maus-Klicks keinen Ring hinterlassen. */
+.gre-panel button:focus-visible,
+.gre-panel [role="tab"]:focus-visible,
+.gre-panel input:focus-visible,
+.gre-panel summary:focus-visible {
+  outline: 2px solid #9ecb98;
+  outline-offset: 1px;
 }
 
 .gre-hilfe {
@@ -247,10 +296,17 @@
   background: #8a2b2b;
   font-size: 10px;
   line-height: 1;
-  opacity: 0;
+  /* Risiko 1: NICHT mehr opacity:0 (unsichtbar → unauffindbar). Dauerhaft
+     dezent sichtbar, voll bei Hover/Tastatur-Fokus. So bleibt die Aktion
+     entdeckbar UND per Tastatur erreichbar (a11y), ohne das Raster zu
+     überladen. */
+  opacity: 0.4;
+  transition: opacity 120ms ease;
 }
 
-.gre-pool-item-wrap:hover .gre-pool-weg {
+.gre-pool-item-wrap:hover .gre-pool-weg,
+.gre-pool-item-wrap:focus-within .gre-pool-weg,
+.gre-panel button.gre-pool-weg:focus-visible {
   opacity: 1;
 }
 
@@ -464,10 +520,15 @@
   background: #3f6e3a;
   font-size: 10px;
   line-height: 1;
-  opacity: 0;
+  /* Risiko 1: wie .gre-pool-weg — dauerhaft dezent sichtbar statt opacity:0,
+     voll bei Hover/Tastatur-Fokus. */
+  opacity: 0.4;
+  transition: opacity 120ms ease;
 }
 
-.gre-pool-item-wrap:hover .gre-pool-vektor {
+.gre-pool-item-wrap:hover .gre-pool-vektor,
+.gre-pool-item-wrap:focus-within .gre-pool-vektor,
+.gre-panel button.gre-pool-vektor:focus-visible {
   opacity: 1;
 }
 
@@ -599,4 +660,63 @@
   left: 0;
   height: 1px;
   width: 100vw;
+}
+
+/* --- Fluss als Objekt im Grafik-Panel (Welle 2b-1) --- */
+
+/* Ebenen-Eintrag „🌊 Fluss" zuoberst — voller Breite, klar als eigenes Objekt
+   erkennbar (Wasser-Akzent statt Grün), links Name / rechts Knoten-Zahl. */
+.gre-panel button.gre-fluss-eintrag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  text-align: left;
+  background: rgba(20, 60, 90, 0.55);
+  border: 1px solid rgba(120, 190, 230, 0.4);
+  margin-bottom: 4px;
+}
+
+.gre-panel button.gre-fluss-eintrag.gre-asset--aktiv {
+  background: rgba(30, 90, 130, 0.85);
+  outline: 1px solid #e8b400;
+}
+
+.gre-fluss-eintrag-name {
+  font-weight: 600;
+}
+
+/* „Bild"-Reiter bei Fluss-Fokus: Sektionen als aufklappbare <details>. */
+.gre-fluss-objekt {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gre-fluss-sektion {
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  padding-top: 6px;
+}
+
+.gre-fluss-sektion > summary {
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 12px;
+  padding: 2px 0;
+  list-style: revert;
+}
+
+.gre-fluss-sektion[open] > summary {
+  margin-bottom: 6px;
+}
+
+/* Die Sektionen selbst nutzen die .rke-*-Layout-Klassen (Rows/Regler/Liste),
+   die river-kurs-editor.css auf /editor global bereitstellt; Buttons/Inputs
+   erben die Panel-Optik von .gre-panel. Nur der Abstand innerhalb einer
+   geöffneten Sektion wird hier vereinheitlicht. */
+.gre-fluss-sektion .rke-row,
+.gre-fluss-sektion .rke-regler,
+.gre-fluss-sektion .rke-hilfe,
+.gre-fluss-sektion .rke-liste {
+  margin-top: 4px;
 }
