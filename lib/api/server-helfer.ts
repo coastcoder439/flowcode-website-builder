@@ -37,16 +37,33 @@ export function fehlerAntwort(e: unknown, kontext: string): NextResponse {
   return NextResponse.json({ fehler: "Interner Fehler" }, { status: 500 });
 }
 
-/* Der Dev-Server ist per package.json auf -p 3113 -H 127.0.0.1 festgelegt;
-   beide Schreibweisen des eigenen Ursprungs sind erlaubt. */
-const ERLAUBTE_ORIGINS = new Set(["http://localhost:3113", "http://127.0.0.1:3113"]);
+/* localhost / 127.0.0.1 / [::1] sind dieselbe lokale Maschine — fuer das Gate
+   aequivalent, damit der Browser-Zugriff ueber beide Schreibweisen geht. */
+function normalisiereLoopbackHost(host: string): string {
+  return host.replace(/^(localhost|127\.0\.0\.1|\[::1\])(?=:|$)/, "loopback");
+}
 
-/** CSRF-Gate (s. Kopfkommentar): fremder Origin -> 403, fehlender Origin ok. */
+/** CSRF-Gate (s. Kopfkommentar): fremder Origin -> 403, fehlender Origin ok.
+ *  Same-Origin wird DYNAMISCH gegen den Host-Header des Requests geprueft
+ *  statt gegen eine hartkodierte Port-Liste — sonst bricht der Editor, sobald
+ *  der Dev-Server auf einem anderen Port laeuft (Welle-3-Verify-Befund:
+ *  Ausweich-Port 3118 lief in 403). Browser senden bei Cross-Origin-POSTs
+ *  immer den fremden Origin, waehrend der Host-Header der unsere bleibt —
+ *  der Vergleich trennt die Faelle sauber. */
 export function pruefeUrsprung(req: NextRequest): void {
   const origin = req.headers.get("origin");
-  if (origin && !ERLAUBTE_ORIGINS.has(origin)) {
-    throw new AnfrageFehler(403, "Fremder Ursprung");
+  if (!origin) return; // CLI/Agenten ohne Origin — gewollt erlaubt
+  const host = req.headers.get("host") ?? "";
+  try {
+    const o = new URL(origin);
+    const passt =
+      (o.protocol === "http:" || o.protocol === "https:") &&
+      normalisiereLoopbackHost(o.host) === normalisiereLoopbackHost(host);
+    if (passt) return;
+  } catch {
+    /* unparsebarer Origin -> ablehnen */
   }
+  throw new AnfrageFehler(403, "Fremder Ursprung");
 }
 
 /** Request-Body mit Groessenlimit lesen und als JSON-Objekt parsen. */
