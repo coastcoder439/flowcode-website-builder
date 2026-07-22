@@ -135,6 +135,45 @@ Objekt-Reiter-Hinweis zeigt den erkannten Anker; Abwählbar („frei positionier
 Verify je Stufe im Browser; nach 3a/3b läuft zusätzlich eine Checklisten-Gate-Stichprobe (Landing
 optisch/funktional unverändert, `/` sauber).
 
+## 9. Welle 4 — Seiten in EINEM Programm: Puck-Verwaltung · Ordner-Import · native Animation (Spec)
+
+Leons Anweisungen (wörtlich): „**alles in einem programm**" · „ich will … **seiten importieren** …
+über **ordner** und die eingefügt werden" („kann ja auch ganz normal an mich in **normaler ordner
+website struktur** übergeben werden" · „das würde das komplette system perfekt abrunden **das ist das
+letzte was fehlt**") · Fusions-Problem: „man muss ja alle **daten relativ haben (knotenpunkte
+koordinaten)** … sollten wir dafür den standalone erst mal **mit puck verbinden**".
+
+**4a — Seiten-Bereich im Editor:** `/editor` bekommt oben im Panel-Kopf einen Bereichs-Umschalter
+**„Animator | Seiten"**. Der Seiten-Bereich (neue Route `/editor/seiten` + `/editor/seiten/[name]`
+oder Client-State — nach Code-Lage entscheiden, output:"export"-tauglich = Query-Param bevorzugt):
+Liste aller `seiten/*.json` (bestehende `/api/puck-seite/liste`), Anlegen/Öffnen/Löschen; Öffnen
+mountet den Puck-Editor (bestehende `app/puck/puck.config.tsx`-Config) mit der Seite; **Speichern über
+die Seiten-API** (Konflikt-Modell `erwartetGespeichert` nutzen; localStorage-Spike-Persistenz der
+/puck-Route wird dort NICHT angefasst — der Spike bleibt als Referenz). Fehlerzustände sichtbar (409 →
+Hinweis + Neu-laden-Angebot).
+
+**4b — Ordner-Import (Stufe-C-light, deterministisch):** Im Seiten-Bereich „Website importieren":
+Ordner wählen (File System Access, Muster aus Backdrop-Ordner-Modus) → `index.html` (bzw. wählbare
+HTML-Datei) mit `DOMParser` zerlegen → deterministisches Mapping in **generische, neu registrierte
+Puck-Bausteine**: `SektionBlock` (Container), `TextBlock` (Überschriften/Absätze, editierbar),
+`BildBlock` (Bilder), `HtmlBlock` (Rest-Markup **entschärft**: `<script>`/`<iframe>`/`on*`-Attribute/
+`javascript:`-URLs werden entfernt — deterministisch, dokumentiert; KEIN externer Sanitizer, Grenze
+ehrlich benennen). Assets aus dem Ordner: Bilder als Data-URL wenn klein (<300 KB), sonst über neuen
+Endpoint `POST /api/import/asset` nach `public/import/<slug>/` kopiert (Muster `/api/assets`
+aktion=schreibe; openapi.yaml ergänzen!). Ergebnis: Import-**Bericht zuerst** (was wird zu was, was
+wurde entfernt/geflaggt — ehrliches Flagging als fester UI-Teil), dann Speichern als
+`seiten/<slug>.json` + Öffnen im Puck-Editor. Serialisierungs-Grenze gilt: nur Abbildbares wird
+Baustein, Rest landet sichtbar im Flag-Bericht.
+
+**4c — Animation nativ auf Puck-Seiten (Fusion):** (1) Puck-`render`-Wrapper gibt jeder Komponente
+`data-og-id="puck:<props.id>"` → der 3b-Anker-Mechanismus greift sofort relativ zu Puck-Bausteinen.
+(2) Neuer Backdrop-Modus „Puck-Seite": der Animator legt sich über eine gerenderte Seite aus
+`seiten/*.json` (`<Render>` als Bühne, wie Ordner-Backdrop nur intern). (3) Das Animations-Abbild
+wird Teil der Seiten-Datei (optionales Feld `anim` in `SeitenDatei` — Schema-additiv, Server-Gate
+erweitert) → **eine Datei = Seite + Animation**. (4) Export „Ganze Seite (HTML)" exportiert für
+Puck-Seiten Markup (DOM-Abgriff der Render-Bühne) + Animations-Overlay zusammen. Optische Abnahme
+und Feinschliff der Fusion ausdrücklich bei Leon.
+
 **Invarianten für alle Wellen** (Inventar §4.4): z-Stack kollisionsfrei · „Knoten SIND der Fluss" ·
 Höhen-Normalisierung nur im Prop-Pfad · Grafik-Ebene pointer-events:none · uebernommen-Kopplung ·
 `grafik.config.json` bleibt der EINZIGE Live-Schreibpfad („Als Standard setzen", mit confirm) ·
