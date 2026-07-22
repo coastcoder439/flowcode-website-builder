@@ -93,8 +93,47 @@ Inventar §4.2 Duplikat). Das Einstiegs-Tutorial wird zum **Editor-Tutorial**: b
 - **2c — Fluss-Undo (§3) + Preset-Bibliothek (§4).**
 - **2d — Hilfe/Tutorial (§6) + Checklisten-Gate:** Verify-Agent geht `feature-inventar.md` §1 Punkt für
   Punkt durch (Datei-/Verhaltensprüfung), Ergebnis als Abhak-Protokoll.
-- Danach Welle 3 (AP-D Website-OG · AP-J HTML-Export · Element-ID-Anker) und Welle 4 (Puck-Fusion +
-  Ordner-Import) — separat geplant.
+- Danach Welle 3 (§8) und Welle 4 (Puck-Fusion + Ordner-Import) — separat geplant.
+
+## 8. Welle 3 — Website-OG · Element-Anker · HTML-Export (Spec)
+
+Leons Anweisungen (wörtlich): „es muss **alles von der OG Website auch mit OG getagt** werden … sonst
+bricht da die Logik" · „man kann immer noch nicht die **objekte die schon auf der seite sind anklicken
+und auswählen** … er muss den website … layer auch schon als '**website-og**' … als **extra ist stand
+layer** importiert werden" · „andere **export formate wie html** maybe um die **ganze seite** rauszuhauen
+oder **einzelne elemente**". Drei aufeinander aufbauende Stufen:
+
+**3a — AP-D Website-OG (Fundament):**
+1. **Alles taggen:** Jede sichtbare Einheit der Landing (Sektionen, Überschriften, Texte, Bilder, SVGs,
+   Hintergründe, Deko, Karten) bekommt `data-og-id` (stabil + sprechend, Schema `sektion:element:index`)
+   und `data-og-typ` (`sektion|text|bild|svg|deko|hintergrund`). Reine Attribute — null Verhalten,
+   null Optik. `data-vorhang-id` der Bäume bleibt zusätzlich bestehen.
+2. **Ist-Stand-Ebene:** Der Editor liest beim Start alle `[data-og-id]` und zeigt sie im Ebenen-Reiter
+   als eigene, eingeklappte Gruppe „Website (Ist-Stand)" (gruppiert nach Sektion). Klick = Auswahl:
+   Element wird auf der Bühne markiert (Outline-Overlay) + hingescrollt; Objekt-Reiter zeigt
+   Basis-Infos (Typ, Größe, Bildquelle). Für `bild|svg`: Knopf „In den Builder holen" (generalisiert
+   das Vorhang-Muster: erzeugt Grafik am Platz, EIN Keyframe; Quelle bleibt unberührt — für getaggte
+   Nicht-Vorhang-Elemente wird das Original NICHT ausgeblendet, ehrlich als Kopie-über-Original
+   kommuniziert). `text|sektion|deko`: nur Auswahl/Highlight (Übernahme ergibt als Grafik keinen Sinn).
+3. **Direktklick:** Alt+Klick auf der Bühne wählt das getroffene OG-Element aus (Alt vermeidet
+   Kollision mit Grafik-Auswahl und normaler Seiten-Interaktion; im Hilfe-/Tutorial-Text erklären).
+
+**3b — Element-ID-Anker (Präzision):** `GrafikKeyframe` bekommt optionale Felder `ankerId?` (eine
+`data-og-id`) + `ankerDy?` (Offset zum Anker-Element-Top, Dokument-px). Beim Keyframe-Setzen wird
+automatisch das nächstliegende getaggte Element + Offset gespeichert (zusätzlich zu den bestehenden
+absoluten Werten — vollständig rückwärtskompatibel). Beim Rendern gilt: Anker vorhanden → Position =
+Anker-Top + Offset (überlebt Verschiebungen mitten in der Seite); Anker fehlt → bestehender Pfad
+(absolute Werte + Höhen-Normalisierung). Gleiches Prinzip für `scrollY` (Trigger-Anker). Ein
+Objekt-Reiter-Hinweis zeigt den erkannten Anker; Abwählbar („frei positionieren").
+
+**3c — AP-J HTML-Export:** Export-Reiter um zwei Wege ergänzt (bestehende drei bleiben):
+1. **Einzelnes Element:** ausgewählte Grafik (inkl. Keyframes) als selbständiges HTML-Snippet —
+   `<div>` + `<style>` mit CSS-Scroll-Driven-Animation (`animation-timeline: scroll()`; Keyframes →
+   CSS-@keyframes) + kleinem JS-Fallback für Browser ohne Scroll-Timeline. Datei `wee-element-<name>.html`.
+2. **Ganze Seite:** die bestehende Overlay-HTML-Variante zusätzlich als vollständige eigenständige
+   Seite (HTML-Gerüst + Overlay + Runtime + eingebettete Bilder optional) `wee-seite.html`.
+Verify je Stufe im Browser; nach 3a/3b läuft zusätzlich eine Checklisten-Gate-Stichprobe (Landing
+optisch/funktional unverändert, `/` sauber).
 
 **Invarianten für alle Wellen** (Inventar §4.4): z-Stack kollisionsfrei · „Knoten SIND der Fluss" ·
 Höhen-Normalisierung nur im Prop-Pfad · Grafik-Ebene pointer-events:none · uebernommen-Kopplung ·
