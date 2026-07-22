@@ -23,11 +23,13 @@
 - Konsequenz fürs Editor-UI: Das heutige **dunkle Panel widerspricht der Vorgabe** → Umbau auf helles,
   sandbasiertes UI mit Orange/Grün-500 als Signalfarben. (Zur Bestätigung.)
 
-## Noch offen (Leons Festlegung, gebraucht VOR dem Umbau — nicht vor der Mängelsuche)
+## Bestätigt (Leon, 2026-07-23 — „jo")
 
-1. **Hell-Modus bestätigt?** Editor-Panels hell/sand statt dunkel (s. Interpretation).
-2. **Typografie:** Gelten die WEE-Fonts (Syne für Headlines, Montserrat für Text) auch fürs Tool-UI?
-3. **Weitere Regeln** (Radien, Schatten, Abstände, Icon-Stil) — oder gilt: Standalone-HTML-Designsystem
-   + diese Farbregeln, Rest nach bestem fachlichen Ermessen mit Leons Abnahme?
-4. **M25-Zielbild bestätigen:** „Export in die eigene Seite integriert" = am Ende fällt ein fertiger,
-   deploybarer statischer Ordner der im Builder gebauten Seite MIT Animationen heraus — richtig?
+1. **Hell-Modus:** ✅ Editor-Panels hell/sand statt dunkel (Interpretation bestätigt).
+2. **Typografie:** ✅ WEE-Fonts (Syne/Montserrat) auch fürs Tool-UI.
+3. **Weitere Regeln:** ✅ Standalone-Designsystem + Farbregeln; Rest nach fachlichem Ermessen mit
+   Leons Abnahme.
+4. **M25-Zielbild:** ✅ mit Präzisierung — der Export ist **primär (nicht ausschließlich) auf den
+   Webbuilder ausgelegt**: Kernweg = **Ordner-Struktur-Export** (fertiger, deploybarer statischer
+   Ordner der im Builder gebauten Seite MIT Animationen). Das **Export-Menü ist primär darauf
+   ausgerichtet**; Fremdseiten-Wege (Overlay/Runtime/Element) bleiben nachgeordnete Zusatzoptionen.
