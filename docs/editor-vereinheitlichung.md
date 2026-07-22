@@ -216,6 +216,30 @@ alle nackten Knöpfe** (Prüfstand: SeitenBereich 9/0, SeitenImport 5/0, ExportP
 (3) Testreste entfernen (`seiten/rt-4c.json`, `abbilder/welle3b-verifikation.json` — Leons Ok vom
 2026-07-22 liegt vor).
 
+## 11. Welle 6 — Import-Endlevel HYBRID (Skripte mechanisch · lokales Modell urteilt)
+
+Leons Vorgaben: Werkzeuge aus [import-endlevel.md](import-endlevel.md) statt Eigenbau-Heuristik; die
+**Zerlegungs-Urteile trifft das lokale Modell** (Ollama `gemma4`, läuft — Tokenkosten sind kein Argument);
+Verifikation strikt nach [verifikations-protokoll.md](verifikations-protokoll.md). Messlatte (Nutzer-Erlebnis,
+Abnahme dagegen): **Startseite + ALLE Unterseiten in Puck · alle Texte sichtbar · Layout im Screenshot-Paar
+Original-vs-Bühne deckungsgleich · 0 Bild-404 · Testreste (rt-bleibt-Preset) entfernt.**
+
+- **6a Einfrieren:** `scripts/freeze-seite.mjs` — Playwright (devDep + Chromium; `npm install` im Root ist
+  erlaubt, `npm run build` bleibt verboten) rendert `out/` über einen Mini-Static-Server, wartet Hydration,
+  macht einen Scroll-Sweep (Entrance-/Lazy-Trigger), treibt alle Animationen in den Endzustand
+  (`getAnimations().finish()`), greift dann den sichtbaren End-DOM ab (freeze-dry falls tragfähig, sonst
+  dokumentierter Eigen-Abgriff). Löst die opacity-0-Falle an der Wurzel.
+- **6b Gemma-Segmentierung:** `scripts/segmentiere-gemma.mjs` — kompakte DOM-Outline (nicht Roh-HTML) →
+  Ollama `http://127.0.0.1:11434` (gemma4, JSON-Format) urteilt: Sektionsgrenzen, Block-Typ-Zuordnung
+  (Text/Bild/Html), Sektions-Titel. Skript validiert (alle Knoten abgedeckt, Reihenfolge dokumentgetreu),
+  bei Modell-Formfehlern bis 2 Retries mit Fehler-Feedback; deterministischer Fallback nur als klar
+  deklarierter Modus im Bericht. CSS je Baustein weiter mechanisch (bestehende 5a-Kette).
+- **6c Vollständigkeit:** alle `out/**/index.html` als eigene Seiten; Assets vollständig (`<img>` in
+  HtmlBlöcken + CSS-`url()` auflösen und kopieren — 0×404); `rt-bleibt`-Preset entfernen.
+- **6d Abnahme:** Verify-Agent nach Protokoll (Screenshot-Paar Original vs. Bühne, opacity-Stichproben,
+  404-Netzscan, Unterseiten-Liste); danach **eigener End-to-End-Blick des Orchestrators** vor jedem Bericht.
+  Dogfood: Seiten-Checks wo möglich über das gedruckte `flowcode-builder-pp-cli`.
+
 **Invarianten für alle Wellen** (Inventar §4.4): z-Stack kollisionsfrei · „Knoten SIND der Fluss" ·
 Höhen-Normalisierung nur im Prop-Pfad · Grafik-Ebene pointer-events:none · uebernommen-Kopplung ·
 `grafik.config.json` bleibt der EINZIGE Live-Schreibpfad („Als Standard setzen", mit confirm) ·
