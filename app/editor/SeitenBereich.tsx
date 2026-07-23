@@ -22,12 +22,19 @@
  * /puck-import-Spike (localStorage) bleibt davon unberuehrt.
  */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 import { Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { config } from "../puck/puck.config";
-import { SeitenImport } from "./SeitenImport";
 import { SeitenVorschau } from "./SeitenVorschau";
+import type { Station, Sub } from "./stationen";
 import { entferneAktiveSeite, setzeAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
 import "./seiten-bereich.css";
 
@@ -131,7 +138,27 @@ function formatiereZeit(iso: string): string {
   return d.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 }
 
-export function SeitenBereich() {
+interface SeitenBereichProps {
+  /** F2: Sub-Zustand aus der Shell (offener Puck / Vorschau) — die EINE
+   *  URL-Wahrheit. SeitenBereich fuehrt dazu KEINEN eigenen popstate mehr. */
+  sub?: Sub;
+  /** F2: zentraler History-Reducer der Shell. Puck-Oeffnen/-Schliessen und
+   *  Vorschau laufen hierueber (konsistenter pushState, Dirty-Guard). */
+  navigiere?: (ziel: Station, sub?: Sub) => void;
+  /** F2: SeitenBereich registriert hier seine Dirty-Pruefung, damit die Shell
+   *  beim Verlassen des Puck-Editors rueckfragen kann. */
+  istUngespeichertRef?: MutableRefObject<() => boolean>;
+}
+
+/** Phase 1/F1 + F2: Seiten-Bereich der Vier-Stationen-Shell. Der Sub-Zustand
+ *  (offener Puck-Editor / statische Vorschau) wird von der Shell per Prop
+ *  gefuehrt (URL-Wahrheit in ./stationen); dieser Bereich schreibt die History
+ *  ausschliesslich ueber den durchgereichten `navigiere()`-Reducer. */
+export function SeitenBereich({
+  sub = null,
+  navigiere,
+  istUngespeichertRef,
+}: SeitenBereichProps = {}) {
   /* Liste + deren Ladezustand */
   const [seiten, setSeiten] = useState<SeitenInfo[]>([]);
   const [listeGeladen, setListeGeladen] = useState(false);
@@ -152,47 +179,33 @@ export function SeitenBereich() {
   const [puckKey, setPuckKey] = useState(0);
   /* Immer die aktuellsten Puck-Daten, ohne bei jedem Tastendruck zu rerendern. */
   const aktuelleDatenRef = useRef<Data | null>(null);
+  /* Der zuletzt GESPEICHERTE Daten-Stand (beim Laden/Speichern/Neu-Laden
+     gesetzt). Dirty = aktuelleDatenRef ≠ gespeicherteDatenRef (F2/N20). */
+  const gespeicherteDatenRef = useRef<Data | null>(null);
+  /* Spiegel des offenen Seiten-Namens, damit der Sub-Loader-Effekt nicht von
+     `offeneSeite` abhaengen muss (verhindert Nachlade-Schleifen). */
+  const offeneNameRef = useRef<string | null>(null);
 
   /* Hilfe-Dialog */
   const [hilfeOffen, setHilfeOffen] = useState(false);
-
-  /* Ordner-Import-Assistent (Welle 4b) */
-  const [importOffen, setImportOffen] = useState(false);
 
   /* Welle 5b: aktive Website (Default-Buehne des Animators) — hier zum
      Markieren/Setzen je Seite. */
   const aktiveSeite = useAktiveSeite();
 
-  /* Welle 5b: statische Vollbild-Vorschau. Reload-fest ueber den Query-Param
-     `?bereich=seiten&vorschau=<name>` (gleiches Muster wie der Bereichs-
-     Umschalter in page.tsx): beim Laden aus der URL gelesen, Vor/Zurueck via
-     pushState/popstate. */
-  const [vorschau, setVorschau] = useState<string | null>(null);
-
-  useEffect(() => {
-    const lese = () => {
-      const p = new URLSearchParams(window.location.search);
-      setVorschau(p.get("vorschau"));
-    };
-    lese();
-    window.addEventListener("popstate", lese);
-    return () => window.removeEventListener("popstate", lese);
-  }, []);
-
-  const oeffneVorschau = useCallback((name: string) => {
-    setVorschau(name);
-    const p = new URLSearchParams(window.location.search);
-    p.set("bereich", "seiten");
-    p.set("vorschau", name);
-    window.history.pushState(null, "", `?${p.toString()}`);
-  }, []);
+  /* F2: Vorschau oeffnen/schliessen laufen ueber den zentralen Reducer der
+     Shell. Oeffnen = neuer History-Eintrag (Sub „vorschau"); Schliessen =
+     history.back() — das pop-t exakt den Vorschau-Eintrag zurueck, ohne einen
+     zusaetzlichen Vorwaerts-Sprung (kein Zustandssprung, N20). */
+  const oeffneVorschau = useCallback(
+    (name: string) => {
+      navigiere?.("bauen", { art: "vorschau", seite: name });
+    },
+    [navigiere],
+  );
 
   const schliesseVorschau = useCallback(() => {
-    setVorschau(null);
-    const p = new URLSearchParams(window.location.search);
-    p.delete("vorschau");
-    const qs = p.toString();
-    window.history.pushState(null, "", qs ? `?${qs}` : window.location.pathname);
+    window.history.back();
   }, []);
 
   const ladeListe = useCallback(async () => {
@@ -215,26 +228,76 @@ export function SeitenBereich() {
     void ladeListe();
   }, [ladeListe]);
 
-  /* --- Seite oeffnen (laden → Puck montieren) --- */
-  const oeffne = useCallback(async (name: string) => {
-    setEditorFehler(null);
-    setKonfliktText(null);
-    const r = await postJson<LadeAntwort>("/api/puck-seite/lade", { name });
-    if (!r.ok || !r.json) {
-      const f = (r.json as FehlerAntwort | null)?.fehler;
-      setListeFehler(f ?? `Seite „${name}" konnte nicht geladen werden.`);
-      return;
+  /* --- Puck-Daten fuer eine Seite laden (async) --- */
+  const ladePuck = useCallback(
+    async (name: string) => {
+      setEditorFehler(null);
+      setKonfliktText(null);
+      const r = await postJson<LadeAntwort>("/api/puck-seite/lade", { name });
+      if (!r.ok || !r.json) {
+        const f = (r.json as FehlerAntwort | null)?.fehler;
+        setListeFehler(f ?? `Seite „${name}" konnte nicht geladen werden.`);
+        /* Fehlschlag → Sub aufloesen (zurueck zur Liste), damit die URL nicht
+           auf eine nicht ladbare Seite zeigt. */
+        navigiere?.("bauen");
+        return;
+      }
+      const daten = r.json.data;
+      aktuelleDatenRef.current = daten;
+      gespeicherteDatenRef.current = daten; /* frisch geladen = nichts ungespeichert */
+      setOffeneSeite({
+        name: r.json.name,
+        data: daten,
+        erwartetGespeichert: r.json.gespeichert,
+        styles: Array.isArray(r.json.styles) ? r.json.styles : [],
+      });
+      setSpeicherStatus("bereit");
+      setPuckKey((k) => k + 1);
+    },
+    [navigiere],
+  );
+
+  /* F2: der offene Puck-Editor folgt dem Sub-Zustand aus der Shell (URL-Wahrheit).
+     Wird `sub` zu einem Puck fuer eine noch nicht geladene Seite → laden. Faellt
+     `sub` vom Puck weg (Liste/Vorschau/Stationswechsel) → offene Seite raeumen und
+     die Liste auffrischen. `offeneNameRef` (statt `offeneSeite`) haelt den Effekt
+     schlank und schleifenfrei. */
+  useEffect(() => {
+    if (sub?.art === "puck") {
+      if (offeneNameRef.current !== sub.seite) void ladePuck(sub.seite);
+    } else if (offeneNameRef.current !== null) {
+      setOffeneSeite(null);
+      aktuelleDatenRef.current = null;
+      gespeicherteDatenRef.current = null;
+      setKonfliktText(null);
+      setEditorFehler(null);
+      void ladeListe();
     }
-    aktuelleDatenRef.current = r.json.data;
-    setOffeneSeite({
-      name: r.json.name,
-      data: r.json.data,
-      erwartetGespeichert: r.json.gespeichert,
-      styles: Array.isArray(r.json.styles) ? r.json.styles : [],
-    });
-    setSpeicherStatus("bereit");
-    setPuckKey((k) => k + 1);
-  }, []);
+  }, [sub, ladePuck, ladeListe]);
+
+  /* Namens-Spiegel nachziehen (Loader-Effekt liest ihn statt `offeneSeite`). */
+  useEffect(() => {
+    offeneNameRef.current = offeneSeite?.name ?? null;
+  }, [offeneSeite]);
+
+  /* F2/N20: Dirty-Pruefung bei der Shell registrieren — sie fragt sie beim
+     Verlassen des Puck-Editors (Stationswechsel, Browser-Zurueck, Tab-Schliessen)
+     ab. „Ungespeichert" = aktuelle Puck-Daten ≠ zuletzt gespeicherter Stand. Der
+     Vergleich laeuft nur bei Navigationsversuchen, daher ist JSON.stringify hier
+     unkritisch. */
+  useEffect(() => {
+    if (!istUngespeichertRef) return;
+    istUngespeichertRef.current = () => {
+      if (offeneNameRef.current === null) return false;
+      const a = aktuelleDatenRef.current;
+      const g = gespeicherteDatenRef.current;
+      if (!a || !g) return false;
+      return JSON.stringify(a) !== JSON.stringify(g);
+    };
+    return () => {
+      if (istUngespeichertRef) istUngespeichertRef.current = () => false;
+    };
+  }, [istUngespeichertRef]);
 
   /* --- Speichern (mit Konflikt-Guard) --- */
   const speichere = useCallback(
@@ -264,6 +327,8 @@ export function SeitenBereich() {
       }
       /* Neuen Stand als erwartetGespeichert uebernehmen → Folge-Speichern ok. */
       setOffeneSeite((s) => (s ? { ...s, erwartetGespeichert: r.json!.gespeichert } : s));
+      /* Gespeicherter Stand = die eben geschriebenen Daten → nicht mehr dirty. */
+      gespeicherteDatenRef.current = daten;
       setKonfliktText(null);
       setSpeicherStatus("gespeichert");
     },
@@ -279,6 +344,7 @@ export function SeitenBereich() {
       return;
     }
     aktuelleDatenRef.current = r.json.data;
+    gespeicherteDatenRef.current = r.json.data; /* frischer Server-Stand = nicht dirty */
     setOffeneSeite({
       name: r.json.name,
       data: r.json.data,
@@ -290,14 +356,12 @@ export function SeitenBereich() {
     setPuckKey((k) => k + 1);
   }, [offeneSeite]);
 
-  /* --- Editor schliessen (zurueck zur Liste) --- */
+  /* --- Editor schliessen (zurueck zur Liste) --- F2: laeuft ueber den zentralen
+     Reducer (Dirty-Guard greift dort). Der Sub-Loader raeumt beim Sub-Wechsel die
+     offene Seite und laedt die Liste neu. */
   const schliesse = useCallback(() => {
-    setOffeneSeite(null);
-    setKonfliktText(null);
-    setEditorFehler(null);
-    aktuelleDatenRef.current = null;
-    void ladeListe();
-  }, [ladeListe]);
+    navigiere?.("bauen");
+  }, [navigiere]);
 
   /* --- Neue Seite anlegen --- */
   const legeAn = useCallback(
@@ -319,12 +383,14 @@ export function SeitenBereich() {
         }
         setNeuName("");
         await ladeListe();
-        await oeffne(r.json.name);
+        /* F2: Oeffnen laeuft ueber den zentralen Reducer (History-Eintrag +
+           URL). Der Sub-Loader-Effekt laedt die frische Seite. */
+        navigiere?.("bauen", { art: "puck", seite: r.json.name });
       } finally {
         setNeuLauft(false);
       }
     },
-    [neuName, ladeListe, oeffne],
+    [neuName, ladeListe, navigiere],
   );
 
   /* --- Seite loeschen --- */
@@ -346,14 +412,34 @@ export function SeitenBereich() {
     [offeneSeite, schliesse, ladeListe, aktiveSeite],
   );
 
-  /* Welle 5b: statische Vollbild-Vorschau hat Vorrang (reload-fest via
-     Query-Param, portalt sich chrome-frei ueber alles). */
-  if (vorschau) {
-    return <SeitenVorschau name={vorschau} onZurueck={schliesseVorschau} />;
+  /* F2: der Sub-Zustand aus der Shell (URL-Wahrheit) bestimmt die Ansicht.
+     Statische Vollbild-Vorschau (reload-fest via Query-Param, portalt sich
+     chrome-frei ueber alles) hat Vorrang. */
+  if (sub?.art === "vorschau") {
+    return <SeitenVorschau name={sub.seite} onZurueck={schliesseVorschau} />;
   }
 
-  /* Editor offen → Puck-Ansicht; sonst Verwaltungs-Ansicht. */
-  if (offeneSeite) {
+  /* Puck-Sub aktiv: Editor zeigen, sobald die Daten der angeforderten Seite
+     geladen sind — bis dahin ein schlichter Lade-Zwischenzustand (der
+     Sub-Loader-Effekt holt die Daten). */
+  if (sub?.art === "puck") {
+    if (!offeneSeite || offeneSeite.name !== sub.seite) {
+      return (
+        <div className="seiten-editor">
+          <div className="seiten-editor-kopf">
+            <span className="seiten-editor-name">{sub.seite}</span>
+            <span className="seiten-editor-status" role="status" aria-live="polite">
+              Lädt …
+            </span>
+          </div>
+          {editorFehler && (
+            <div className="seiten-konflikt" role="alert">
+              <span>{editorFehler}</span>
+            </div>
+          )}
+        </div>
+      );
+    }
     return (
       <div className="seiten-editor">
         <div className="seiten-editor-kopf">
@@ -437,27 +523,6 @@ export function SeitenBereich() {
     );
   }
 
-  /* Ordner-Import-Assistent (Welle 4b): eigener Voll-Bereich. Nach dem
-     Speichern Liste neu laden und die frische Seite direkt oeffnen. */
-  if (importOffen) {
-    return (
-      <SeitenImport
-        onFertig={async (frischerName) => {
-          setImportOffen(false);
-          /* Welle 5b (§10/5b): die importierte Seite wird automatisch die
-             aktive Website (Default-Buehne des Animators). */
-          setzeAktiveSeite(frischerName);
-          await ladeListe();
-          await oeffne(frischerName);
-        }}
-        onAbbruch={() => {
-          setImportOffen(false);
-          void ladeListe();
-        }}
-      />
-    );
-  }
-
   return (
     <div className="seiten-verwaltung">
       <div className="seiten-verwaltung-innen">
@@ -466,8 +531,8 @@ export function SeitenBereich() {
           <button
             type="button"
             className="seiten-btn"
-            onClick={() => setImportOffen(true)}
-            title="Einen Ordner mit einer fertigen Website einlesen und in Bausteine zerlegen"
+            onClick={() => navigiere?.("import")}
+            title="Zur Import-Station wechseln — einen Ordner mit einer fertigen Website einlesen und in Bausteine zerlegen"
           >
             Website importieren
           </button>
@@ -556,7 +621,7 @@ export function SeitenBereich() {
                     <button
                       type="button"
                       className="seiten-btn"
-                      onClick={() => void oeffne(s.name)}
+                      onClick={() => navigiere?.("bauen", { art: "puck", seite: s.name })}
                       title={`„${s.name}“ im Baukasten-Editor oeffnen`}
                     >
                       Oeffnen

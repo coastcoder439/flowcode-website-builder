@@ -27,12 +27,7 @@ import { GrafikInspector } from "./GrafikInspector";
 import { GrafikKeyframeTimeline } from "./GrafikKeyframeTimeline";
 import { SeiteTab } from "./GrafikSeiteTab";
 import { GrafikTutorial, HilfeIcon, tutorialAlsGesehenMerken, tutorialNochNichtGesehen } from "./GrafikHilfe";
-import {
-  HilfeMenue,
-  ProduktTutorial,
-  produktTutorialAlsGesehenMerken,
-  produktTutorialNochNichtGesehen,
-} from "./ProduktTutorial";
+import { HilfeMenue } from "./ProduktTutorial";
 import { GrafikExportPanel } from "./GrafikExportPanel";
 import { useFlussObjekt } from "@/components/river/FlussObjektContext";
 import { FlussObjektBild } from "@/components/river/FlussObjektBild";
@@ -87,6 +82,9 @@ import { andereSnapBoxen, berechneSnap, tentativeBox, type SnapErgebnis } from "
 import "./grafik-editor.css";
 
 const STORAGE_KEY = "wee-grafik-setups";
+/** Merker fürs Ein-/Ausblenden des Animator-Panels (M22 / F6): "0" = versteckt,
+ *  alles andere (inkl. fehlend) = sichtbar. Tab-unabhängig, überlebt Reloads. */
+const PANEL_SICHTBAR_KEY = "wee-animator-panel-sichtbar";
 /** Bewegungs-Schwelle (px): darunter zählt pointerup als Klick (Lock). */
 const KLICK_TOLERANZ_PX = 4;
 /** Scrollrad: Skalierungs-Faktor pro Raste. */
@@ -369,7 +367,16 @@ interface AbbildStandardAntwort {
   grafikenAnzahl: number;
 }
 
-export function GrafikEditor() {
+interface GrafikEditorProps {
+  /** Öffnet die Produkt-Tour erneut (manueller Aufruf über das „?"-Kopf-Menue).
+   *  Die Tour ist seit Phase 1/F5 auf Shell-Ebene (app/editor/page.tsx)
+   *  gemountet und feuert automatisch auf Station 1 (Import); hier wird nur der
+   *  manuelle Wiederöffnen-Weg durchgereicht. Optional, damit der Editor auch
+   *  ohne Shell mountet (dann fehlt der Produkt-Tour-Eintrag lautlos). */
+  onProduktTutorial?: () => void;
+}
+
+export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
   const ctx = useGrafiken();
   /* /editor (Welle 2b-1): der Fluss ist ein Objekt in DIESEM Panel. Auf der
      alten Route (Redirect) fehlt der Provider → null → alle Fluss-Zweige
@@ -411,14 +418,13 @@ export function GrafikEditor() {
   /** Einstiegs-Tutorial: offen beim allerersten Besuch (s. Effekt unten) UND
    *  jederzeit über den „? Hilfe"-Knopf im Panel-Kopf wieder aufrufbar. */
   const [tutorialOffen, setTutorialOffen] = useState(false);
-  /** Produkt-Onboarding (Welle 5d, §10/5d): eigener Latch, laeuft beim ersten
-   *  Besuch VOR dem Animator-Tutorial und ist danach ueber das „?"-Kopf-Menue
-   *  einzeln aufrufbar (s. ProduktTutorial.tsx). */
-  const [produktTutorialOffen, setProduktTutorialOffen] = useState(false);
-  /** Merkt, dass das Produkt-Tutorial gerade als AUTOMATISCHE Erst-Besuch-Kette
-   *  laeuft — dann folgt nach dem Schliessen das Animator-Tutorial. Bei manuellem
-   *  Aufruf ueber das Kopf-Menue bleibt es aus (kein ungewolltes Nachladen). */
-  const produktAutoKetteRef = useRef(false);
+  /* Phase 1/F5 (docs/plan-analyse/lens-flow.md §3-S6): Das Produkt-Onboarding
+     (eigener Latch "wee-produkt-tutorial-gesehen") lebt NICHT mehr hier im
+     Animator-Panel, sondern auf Shell-Ebene (app/editor/page.tsx) und feuert
+     dort automatisch auf Station 1 (Import) — das war der ganze M2-Fix. Der
+     Animator (dieses Panel) mountet nur auf Station 3; sein eigenes
+     Animator-Tutorial (unten) bleibt hier. Der manuelle Wiederöffnen-Weg der
+     Produkt-Tour läuft über die Prop onProduktTutorial zum Shell-Mount. */
   const [scrollY, setScrollY] = useState(0);
   /** true, solange eine Datei über der Seite schwebt (Drop-Hinweis). */
   const [dropAktiv, setDropAktiv] = useState(false);
@@ -500,6 +506,12 @@ export function GrafikEditor() {
    *  State (kein Verlauf/keine Projektdaten), gleiche Kategorie wie
    *  dropAktiv/tauschQuelle oben. */
   const [einrastenAktiv, setEinrastenAktiv] = useState(true);
+  /** Sichtbarkeit des Animator-Panels (M22 / F6): Toggle blendet .gre-panel per
+   *  CSS-Klasse aus — KEIN Unmount, damit State, Undo-Historie und Latches
+   *  erhalten bleiben. Tab-unabhängig (gleiche Kategorie wie einrastenAktiv).
+   *  Start immer sichtbar (SSR-fest); der Effekt unten zieht den in localStorage
+   *  gemerkten Wert nach → kein Hydration-Mismatch. */
+  const [panelSichtbar, setPanelSichtbar] = useState(true);
   /** Aktive Snap-Hilfslinien (Viewport-px) während eines Zugs — null = keine
    *  (Einrasten aus ODER gerade nichts getroffen). */
   const [snapLinien, setSnapLinien] = useState<SnapErgebnis | null>(null);
@@ -634,18 +646,16 @@ export function GrafikEditor() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  /* Tutorial beim ALLERERSTEN Besuch automatisch zeigen (Merker in
-     localStorage) — danach nie wieder von selbst, nur noch über den
-     Kopf-Knopf. Reihenfolge (Welle 5d, §10/5d): das Produkt-Tutorial läuft
-     VOR dem Animator-Tutorial. Ist es noch nicht gesehen, öffnet es zuerst und
-     merkt sich die AUTO-Kette (produktAutoKetteRef); das Animator-Tutorial
-     folgt dann beim Schließen. Ist das Produkt-Tutorial schon gesehen, greift
-     unverändert die bisherige Animator-Auto-Anzeige. */
+  /* Animator-Tutorial beim ALLERERSTEN Animator-Besuch automatisch zeigen
+     (Merker in localStorage "wee-grafik-tutorial-gesehen") — danach nie wieder
+     von selbst, nur noch über den Kopf-Knopf. Die frühere Kette „erst
+     Produkt-Tutorial, dann Animator-Tutorial" entfällt (Phase 1/F5): das
+     Produkt-Tutorial ist auf Shell-Ebene gewandert und feuert dort auf Station
+     1 (Import), noch bevor der Animator überhaupt gemountet ist — es kann von
+     hier aus keine Kette mehr auslösen. Jedes Tutorial öffnet also unabhängig
+     beim ersten Besuch seiner eigenen Station. */
   useEffect(() => {
-    if (produktTutorialNochNichtGesehen()) {
-      produktAutoKetteRef.current = true;
-      setProduktTutorialOffen(true);
-    } else if (tutorialNochNichtGesehen()) {
+    if (tutorialNochNichtGesehen()) {
       setTutorialOffen(true);
     }
   }, []);
@@ -657,17 +667,32 @@ export function GrafikEditor() {
     setTutorialOffen(false);
   };
 
-  /** Produkt-Tutorial schließen: Latch setzen; lief es als automatische
-   *  Erst-Besuch-Kette, folgt jetzt das Animator-Tutorial (falls auch das noch
-   *  nicht gesehen wurde). Beim manuellen Aufruf über das Kopf-Menue bleibt die
-   *  Kette aus. */
-  const produktTutorialSchliessen = () => {
-    produktTutorialAlsGesehenMerken();
-    setProduktTutorialOffen(false);
-    if (produktAutoKetteRef.current) {
-      produktAutoKetteRef.current = false;
-      if (tutorialNochNichtGesehen()) setTutorialOffen(true);
+  /* Panel-Sichtbarkeit (M22 / F6) aus localStorage nachziehen — erst NACH dem
+     ersten Render (Effekt), damit Server- und Client-Erstausgabe identisch
+     bleiben (Default „sichtbar"). Nur "0" versteckt; alles andere lässt sichtbar. */
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(PANEL_SICHTBAR_KEY) === "0") {
+        setPanelSichtbar(false);
+      }
+    } catch {
+      /* kein localStorage — dann bleibt der Default (sichtbar). */
     }
+  }, []);
+
+  /** Panel ein-/ausblenden (reine Sichtbarkeit, kein Unmount) und den neuen
+   *  Zustand dauerhaft merken — beide Knöpfe (Kopf-Toggle + Wiedereinblenden)
+   *  laufen hierüber, damit der Latch immer synchron bleibt. */
+  const panelSichtbarUmschalten = () => {
+    setPanelSichtbar((sichtbar) => {
+      const naechster = !sichtbar;
+      try {
+        localStorage.setItem(PANEL_SICHTBAR_KEY, naechster ? "1" : "0");
+      } catch {
+        /* ohne localStorage nur für diese Sitzung gemerkt. */
+      }
+      return naechster;
+    });
   };
 
   const grafiken = ctx?.grafiken ?? [];
@@ -2563,7 +2588,19 @@ export function GrafikEditor() {
 
   return (
     <>
-    <div className="gre-panel">
+    {/* Rest-Wiedereinblend-Knopf (M22 / F6): dezent oben links, nur solange das
+        Panel versteckt ist. Holt das Panel per Toggle zurück (State bleibt). */}
+    {!panelSichtbar && (
+      <button
+        className="gre-panel-einblenden"
+        onClick={panelSichtbarUmschalten}
+        title="Panel einblenden"
+        aria-label="Animator-Panel einblenden"
+      >
+        ⟩
+      </button>
+    )}
+    <div className={`gre-panel${panelSichtbar ? "" : " gre-panel--versteckt"}`}>
       <div className="gre-kopf">
         <strong>Grafik-Editor</strong>
         {/* Undo/Redo dispatchen nach Fokus (Welle 2c-1, Bauvorlage §3): bei
@@ -2597,9 +2634,20 @@ export function GrafikEditor() {
             das Animator-Tutorial. Jetzt ein kleines Auswahl-Menue — Produkt-Tour
             ODER Animator-Anleitung einzeln aufrufbar (s. ProduktTutorial.tsx). */}
         <HilfeMenue
-          onProdukt={() => setProduktTutorialOffen(true)}
+          onProdukt={() => onProduktTutorial?.()}
           onAnimator={() => setTutorialOffen(true)}
         />
+        {/* Panel ausblenden (M22 / F6): versteckt .gre-panel per CSS, damit man
+            die Bühne ungestört sieht. Kein Unmount → State/Undo/Latches bleiben.
+            Wiedereinblenden über den Rest-Knopf unten (nur bei verstecktem Panel). */}
+        <button
+          className="gre-verlauf-btn gre-panel-toggle"
+          onClick={panelSichtbarUmschalten}
+          title="Panel ausblenden – Seite ungestört ansehen"
+          aria-label="Animator-Panel ausblenden"
+        >
+          ⟨
+        </button>
         {/* Kreuz-Link „← Fluss" entfällt (Welle 2a): Grafik- und Fluss-Editor
             liegen jetzt gemeinsam auf /editor, ein Editor-Wechsel-Link zeigte
             nur auf die tote Trennung (Inventar §4.3). Das Fluss-Panel ist auf
@@ -3649,9 +3697,10 @@ export function GrafikEditor() {
         grafik-editor.css). Nur bei OG-Auswahl. */}
     {ogAuswahl && <WebsiteOgOverlay ogId={ogAuswahl} />}
     <GrafikTutorial offen={tutorialOffen} onSchliessen={tutorialSchliessen} />
-    {/* Welle 5d (§10/5d): Produkt-Onboarding — eigener Latch, läuft beim ersten
-        Besuch VOR dem Animator-Tutorial. */}
-    <ProduktTutorial offen={produktTutorialOffen} onSchliessen={produktTutorialSchliessen} />
+    {/* Phase 1/F5: Das Produkt-Onboarding (<ProduktTutorial>) ist auf
+        Shell-Ebene (app/editor/page.tsx) gewandert — es feuert dort selbst auf
+        Station 1 (Import) und wird von dort manuell ueber das „?"-Kopf-Menue
+        (onProduktTutorial) wieder geoeffnet. */}
     </>
   );
 }

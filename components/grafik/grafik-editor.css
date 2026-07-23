@@ -46,6 +46,40 @@
   cursor: not-allowed;
 }
 
+/* M22 / F6 — Panel ein-/ausblenden.
+   Ausgeblendet = reine Sichtbarkeit (display:none), KEIN Unmount: State,
+   Undo-Historie und Latches im GrafikEditor bleiben erhalten. */
+.gre-panel--versteckt {
+  display: none;
+}
+
+/* Kopf-Toggle: kleiner Abstand zum Hilfe-Menü, sonst wie die ↶↷-Knöpfe. */
+.gre-panel button.gre-panel-toggle {
+  margin-left: 4px;
+}
+
+/* Rest-Wiedereinblend-Knopf — liegt AUSSERHALB von .gre-panel (bleibt sichtbar,
+   wenn das Panel versteckt ist). Dezent an derselben Ecke wie das Panel, im
+   vorhandenen Panel-Stil (Optik-Feinschliff folgt in der Design-Phase). */
+.gre-panel-einblenden {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 60;
+  background: rgba(20, 30, 24, 0.92);
+  color: #f2efe7;
+  border: 0;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font: 13px/1 system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.gre-panel-einblenden:hover {
+  opacity: 1;
+}
+
 .gre-scroll {
   font-size: 11px;
   opacity: 0.6;

@@ -1,16 +1,19 @@
-/* seiten-bereich.css — Styles fuer den Bereichs-Umschalter „Animator | Seiten"
-   und den Seiten-Bereich (Welle 4a, docs/editor-vereinheitlichung.md §9/4a).
-   Wird nur in /editor geladen (Import in app/editor/page.tsx bzw.
-   SeitenBereich.tsx) und beruehrt weder die Landing noch das Animator-Panel.
+/* seiten-bereich.css — Styles fuer die Editor-Stations-Navigation (Phase 1/F1:
+   „1 · Importieren | 2 · Seite bauen | 3 · Animieren | 4 · Vorschau & Export")
+   und den Seiten-Bereich (Welle 4a, docs/editor-vereinheitlichung.md §9/4a;
+   Station-Shell: docs/plan-analyse/lens-flow.md §2). Wird nur in /editor geladen
+   (Import in app/editor/page.tsx bzw. SeitenBereich.tsx) und beruehrt weder die
+   Landing noch das Animator-Panel.
 
-   Positionierungs-Vertrag (siehe page.tsx-Kommentar): Der Umschalter ist eine
-   kompakte, fixierte Pille oben MITTIG mit hohem z-index (ueber .gre-panel=60,
-   grafik-hilfe=300 UND ueber dem Puck-Editor). Er kollidiert bewusst NICHT mit
+   Positionierungs-Vertrag (siehe page.tsx-Kommentar): Die Nav ist eine kompakte,
+   fixierte Pille oben MITTIG mit hohem z-index (ueber .gre-panel=60,
+   grafik-hilfe=300 UND ueber dem Puck-Editor). Sie kollidiert bewusst NICHT mit
    dem links sitzenden Animator-Panel (.gre-panel, top:12px/left:12px). Im
    Seiten-Bereich beginnt die Puck-Flaeche 44px tiefer, damit die Pille frei
-   ueber Pucks eigenem Kopf schwebt. */
+   ueber Pucks eigenem Kopf schwebt. (Die Farb-/Design-Politur der breiteren
+   4er-Leiste — hell/sand statt dunkel — folgt in Phase 6.) */
 
-/* ---- Bereichs-Umschalter (tablist) ---- */
+/* ---- Stations-Navigation (tablist) ---- */
 .editor-umschalter {
   position: fixed;
   top: 8px;
@@ -18,6 +21,9 @@
   transform: translateX(-50%);
   z-index: 1000;
   display: flex;
+  flex-wrap: wrap; /* F1: vier laengere Labels — auf schmalen Viewports umbrechen statt ueberlaufen */
+  justify-content: center;
+  max-width: calc(100vw - 16px);
   gap: 2px;
   padding: 3px;
   background: rgba(20, 30, 24, 0.92);
@@ -36,6 +42,7 @@
   background: transparent;
   color: #d7dcd3;
   font: inherit;
+  white-space: nowrap; /* Label „1 · Importieren" nie mitten im Wort umbrechen */
 }
 
 .editor-umschalter [role="tab"][aria-selected="true"] {
