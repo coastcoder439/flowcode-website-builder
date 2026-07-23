@@ -653,3 +653,287 @@
   color: var(--text-muted, #5a6960);
   font-family: var(--font-body, system-ui, sans-serif);
 }
+
+/* ==================================================================
+   Station 4 „Vorschau & Export" (X4) — Station4Preview.tsx /
+   Station4ExportPanel.tsx. Leiste + iframe-Buehne + Export-Fenster.
+   Nutzt dieselben Tokens/Bausteine wie der Seiten-Bereich (hell/Sand).
+   ================================================================== */
+
+.s4-flaeche {
+  /* erbt .editor-seiten-flaeche (fixed, inset:0, padding-top:44px, flex-column) */
+  gap: 0;
+}
+
+/* ---- Obere Leiste: Zurueck · Seiten-Wahl · Quelle · Export-Toggle ---- */
+.s4-leiste {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px clamp(12px, 3vw, 24px);
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+}
+
+.s4-feld {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-muted, #5a6960);
+}
+
+.s4-feld select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-default, rgba(46, 58, 51, 0.2));
+  border-radius: var(--radius-xs, 6px);
+  background: var(--surface, #fff);
+  color: var(--text-strong, #16201a);
+  font: inherit;
+  max-width: 40vw;
+}
+
+.s4-feld select:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: 1px;
+  border-color: var(--accent-500, #ea8914);
+}
+
+/* Segmentierter Quelle-Umschalter (In-Memory ⇄ Ordner-Artefakt) */
+.s4-quelle {
+  display: inline-flex;
+  border: 1px solid var(--border-default, rgba(46, 58, 51, 0.2));
+  border-radius: var(--radius-pill, 999px);
+  overflow: hidden;
+}
+
+.s4-quelle-btn {
+  appearance: none;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-body, #2e3a33);
+  padding: 6px 14px;
+  font: var(--fw-medium, 500) var(--text-sm, 0.875rem) / 1 var(--font-body, system-ui, sans-serif);
+}
+
+.s4-quelle-btn + .s4-quelle-btn {
+  border-left: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+}
+
+.s4-quelle-btn--aktiv {
+  background: var(--accent-500, #ea8914);
+  color: #fff;
+  font-weight: var(--fw-semibold, 600);
+}
+
+.s4-quelle-btn:focus-visible {
+  outline: 2px solid var(--focus-ring, rgba(114, 172, 67, 0.55));
+  outline-offset: -2px;
+}
+
+.s4-export-toggle {
+  margin-left: auto;
+}
+
+/* ---- Ausklappbares Export-Fenster ---- */
+.s4-export-fenster {
+  max-height: 46vh;
+  overflow: auto;
+  padding: 14px clamp(12px, 3vw, 24px);
+  background: var(--surface-2, #f4f1ea);
+  border-bottom: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+}
+
+.s4-export {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 760px;
+}
+
+.s4-export-primaer {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.s4-export-primaer .seiten-btn {
+  /* der Export-Knopf liegt ausserhalb von .seiten-flaeche → Basis-Optik hier */
+  appearance: none;
+  cursor: pointer;
+  padding: 8px 16px;
+  border-radius: var(--radius-xs, 6px);
+  border: 1px solid var(--accent-500, #ea8914);
+  background: var(--accent-500, #ea8914);
+  color: #fff;
+  font: var(--fw-semibold, 600) var(--text-sm, 0.875rem) / 1 var(--font-body, system-ui, sans-serif);
+}
+
+.s4-export-primaer .seiten-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.s4-export-erklaerung {
+  margin: 0;
+  flex: 1;
+  min-width: 240px;
+  font-size: var(--text-sm, 0.875rem);
+  line-height: var(--lh-normal, 1.5);
+  color: var(--text-muted, #5a6960);
+}
+
+.s4-export-erklaerung code,
+.s4-export-erfolg code {
+  padding: 1px 6px;
+  border-radius: var(--radius-xs, 6px);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  font-size: var(--text-xs, 0.75rem);
+}
+
+.s4-export-fortschritt {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-body, #2e3a33);
+}
+
+.s4-export-zaehler {
+  color: var(--text-muted, #5a6960);
+}
+
+.s4-export-fehler {
+  padding: 10px 14px;
+  border-radius: var(--radius-xs, 6px);
+  font-size: var(--text-sm, 0.875rem);
+  background: color-mix(in srgb, #c9442e 12%, transparent);
+  color: var(--danger, #c9442e);
+  border: 1px solid color-mix(in srgb, #c9442e 30%, transparent);
+}
+
+.s4-export-bericht {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.s4-export-erfolg {
+  margin: 0;
+  font-weight: var(--fw-semibold, 600);
+  color: var(--success, #3f7d3f);
+}
+
+.s4-export-statistik {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.s4-export-statistik li {
+  padding: 6px 12px;
+  border-radius: var(--radius-xs, 6px);
+  background: color-mix(in srgb, #72ac43 12%, transparent);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-body, #2e3a33);
+}
+
+.s4-export-statistik b {
+  color: var(--text-strong, #16201a);
+}
+
+.s4-export-warnungen {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-body, #2e3a33);
+}
+
+.s4-export-warnungen ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.s4-export-warn-seite {
+  font-weight: var(--fw-semibold, 600);
+  color: var(--danger, #c9442e);
+}
+
+.s4-export-keine-warnungen {
+  margin: 0;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--success, #3f7d3f);
+}
+
+.s4-export-sekundaer > summary {
+  cursor: pointer;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: var(--fw-semibold, 600);
+  color: var(--text-body, #2e3a33);
+  padding: 6px 0;
+}
+
+.s4-export-sekundaer-hinweis {
+  margin: 4px 0 8px;
+  font-size: var(--text-xs, 0.75rem);
+  line-height: var(--lh-normal, 1.5);
+  color: var(--text-muted, #5a6960);
+}
+
+/* GrafikExportPanel eingebettet: das ansonsten schwebende .gre-panel als
+   statische Karte im Drawer (dunkle Panel-Optik bleibt, Positionierung raus). */
+.s4-eingebettet-panel.gre-panel {
+  position: static;
+  inset: auto;
+  width: 100%;
+  max-width: 320px;
+  max-height: none;
+  z-index: auto;
+  box-shadow: none;
+  margin: 0;
+}
+
+/* ---- iframe-Buehne (die eigentliche Vorschau = Export-Wahrheit) ---- */
+.s4-buehne {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  background: #fff;
+}
+
+.s4-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #fff;
+}
+
+.s4-hinweis {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  margin: 16px auto;
+  max-width: 560px;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm, 10px);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-subtle, rgba(46, 58, 51, 0.12));
+  box-shadow: var(--shadow-md, 0 8px 22px -8px rgba(20, 48, 33, 0.18));
+  text-align: center;
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-body, #2e3a33);
+  font-family: var(--font-body, system-ui, sans-serif);
+}

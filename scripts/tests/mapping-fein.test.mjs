@@ -11,8 +11,15 @@
  *   · img->BildBlock, h1/p->TextBlock;
  *   · Determinismus (2x gleiche Ausgabe);
  *   · Verlustschutz: jede Segment-ref landet als Baustein (kein Atom verloren);
- *   · echte Freeze-Ausgabe: htmlBloecke sinkt drastisch, sektionen/texte/bilder
- *     steigen gegenueber htmlZuPuck.
+ *   · echte Freeze-Ausgabe: der HtmlBlock-ANTEIL (html / alle Blattatome) sinkt
+ *     drastisch, sektionen/texte/bilder steigen gegenueber htmlZuPuck.
+ *     WICHTIG (Leon-Befund 2026-07-23): verglichen wird der ANTEIL, nicht die
+ *     absolute HtmlBlock-Zahl. grob liefert wenige MONOLITHISCHE Bloecke (das
+ *     ganze <header>/<main>/<footer> je EIN Block, texte==0); fein zerlegt in
+ *     viele feine Blattatome (74 Texte + 23 Bilder) samt kleiner html-Reste
+ *     (Links/Buttons/Canvas). Die absolute html-Zahl KANN dabei steigen (20>9) —
+ *     das ist erwuenscht, nicht ein Regress. Aussagekraeftig ist einzig, dass
+ *     html in fein vom dominierenden zum Rest-Format wird (Anteil ~41%→~17%).
  *
  * Muster (Selbst-Reexec + happy-dom-DOMParser) wie segmentiere.test.mjs.
  */
@@ -159,12 +166,20 @@ if (existsSync(FREEZE_INDEX) && existsSync(SEG_INDEX)) {
     assert(fein.statistik.sektionen >= 4, `erwartet >=4 Sektionen, war ${fein.statistik.sektionen}`);
   });
 
-  await test("Freeze index.html: htmlBloecke sinkt drastisch (fein << grob)", () => {
+  await test("Freeze index.html: HtmlBlock-ANTEIL sinkt drastisch (fein << grob)", () => {
+    /* Anteil = HtmlBloecke / alle Blattatome (Texte+Bilder+HtmlBloecke). Die
+       ABSOLUTE html-Zahl vergleichen waere Aepfel↔Birnen (grob: wenige riesige
+       Monolith-Bloecke; fein: viele winzige Rest-Bloecke) — sie kann in fein
+       sogar hoeher liegen. Der Fidelity-Gewinn steckt darin, dass html vom
+       DOMINIERENDEN zum RESTLICHEN Format wird: der Anteil sinkt drastisch. */
+    const anteil = (s) => s.htmlBloecke / (s.texte + s.bilder + s.htmlBloecke || 1);
+    const grobAnteil = anteil(grob.statistik);
+    const feinAnteil = anteil(fein.statistik);
     assert(
-      fein.statistik.htmlBloecke < grob.statistik.htmlBloecke,
-      `fein.htmlBloecke (${fein.statistik.htmlBloecke}) muss < grob.htmlBloecke (${grob.statistik.htmlBloecke})`,
+      feinAnteil < grobAnteil * 0.6,
+      `fein HtmlBlock-Anteil (${(feinAnteil * 100).toFixed(1)}%) muss << grob (${(grobAnteil * 100).toFixed(1)}%)`,
     );
-    console.log(`       (grob→fein  htmlBloecke ${grob.statistik.htmlBloecke}→${fein.statistik.htmlBloecke}, texte ${grob.statistik.texte}→${fein.statistik.texte}, bilder ${grob.statistik.bilder}→${fein.statistik.bilder}, sektionen ${grob.statistik.sektionen}→${fein.statistik.sektionen})`);
+    console.log(`       (grob→fein  html-Anteil ${(grobAnteil * 100).toFixed(0)}%→${(feinAnteil * 100).toFixed(0)}%, htmlBloecke ${grob.statistik.htmlBloecke}→${fein.statistik.htmlBloecke}, texte ${grob.statistik.texte}→${fein.statistik.texte}, bilder ${grob.statistik.bilder}→${fein.statistik.bilder}, sektionen ${grob.statistik.sektionen}→${fein.statistik.sektionen})`);
   });
 
   await test("Freeze index.html: texte + bilder steigen gegenueber grob", () => {

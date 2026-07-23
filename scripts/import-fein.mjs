@@ -36,6 +36,9 @@
  *   node scripts/import-fein.mjs --alle --basis-slug wee-fein  (Slug-Praefix fuer --alle)
  *   node scripts/import-fein.mjs --kein-freeze           (vorhandene Freeze-HTML nutzen)
  *   node scripts/import-fein.mjs --kein-css              (juice-Inlining ueberspringen)
+ *   node scripts/import-fein.mjs --modus strukturtreu    (Default: layout-treue Sektionen)
+ *   node scripts/import-fein.mjs --modus fein            (lose Geschwister-Bausteine, alt)
+ *   node scripts/import-fein.mjs --modus grob            (Ein-Ebenen-Heuristik)
  *   node scripts/import-fein.mjs --neu                   (Segmentier-Cache ignorieren)
  *   node scripts/import-fein.mjs --keine-leerung         (Asset-Ordner NICHT vorher leeren)
  *   node scripts/import-fein.mjs --seite bildung --slug x --json  (Maschinen-Ausgabe)
@@ -95,7 +98,7 @@ const { Window } = await import("happy-dom");
    (z.B. /_next/static/css/...) einen TypeError Invalid URL gegen about:blank. */
 globalThis.DOMParser = new Window({ url: "http://import.local/" }).DOMParser;
 
-const { htmlZuPuck, htmlZuPuckMitSegmentierung, ersetzeBildQuellen } = await import("../lib/import/html-zu-puck.ts");
+const { htmlZuPuck, htmlZuPuckMitSegmentierung, htmlZuPuckStrukturtreu, ersetzeBildQuellen } = await import("../lib/import/html-zu-puck.ts");
 const { baueOutline } = await import("../lib/import/dom-outline.ts");
 /* Schritt V (M7): CSS-url()-Reparatur — Fonts/Medien aus den kopierten CSS-
    Dateien aufloesen + rebasen (rein/AST; Datei-Kopie bleibt hier im Skript). */
@@ -121,6 +124,11 @@ function argFlag(name) {
 
 const SEITE = argWert("--seite", "."); // Freeze-Seitenpfad (".", "bildung", …)
 const ORDNER = argWert("--ordner", DEFAULT_OUT);
+/* Phase 4b: Mapping-Modus. Default „strukturtreu" (Leons Befund 2026-07-23 — das
+   feine Mapping zerstoert das Layout; strukturtreu haelt je Sektion EIN Original-
+   Markup-Template + Marker-injizierte editierbare Inhalte). „fein" (lose
+   Geschwister-Bausteine) und „grob" (Ein-Ebenen-Heuristik) bleiben als Optionen. */
+const MODUS = argWert("--modus", "strukturtreu");
 const MODELL = argWert("--modell", process.env.SEG_MODELL || "gemma4");
 const KEIN_FREEZE = argFlag("--kein-freeze");
 const KEIN_CSS = argFlag("--kein-css");
@@ -168,8 +176,9 @@ const ZIEL_SLUG = argWert(
    BEVOR irgendetwas gefroren/gespeichert/geleert wird. */
 const WERT_FLAGS = new Set([
   "--seite", "--ordner", "--modell", "--erwartet-gespeichert",
-  "--basis-slug", "--slug", "--ziel-slug",
+  "--basis-slug", "--slug", "--ziel-slug", "--modus",
 ]);
+const ERLAUBTE_MODI = new Set(["strukturtreu", "fein", "grob"]);
 const BOOL_FLAGS = new Set([
   "--kein-freeze", "--kein-css", "--neu", "--alle", "--json", "--keine-leerung",
 ]);
@@ -194,6 +203,10 @@ function pruefeArgumente() {
     if (BOOL_FLAGS.has(a)) continue;
     if (a.startsWith("--")) unbekannt.push(a);
     /* sonst: freistehender Positions-Wert — hier nicht erwartet, wird ignoriert. */
+  }
+  if (!ERLAUBTE_MODI.has(MODUS)) {
+    console.error(`✗ Unbekannter --modus „${MODUS}". Erlaubt: ${[...ERLAUBTE_MODI].join(", ")}.`);
+    process.exit(2);
   }
   if (unbekannt.length === 0 && ohneWert.length === 0) return;
   if (unbekannt.length > 0) console.error(`✗ Unbekannte(s) Argument(e): ${unbekannt.join(", ")}`);
@@ -450,6 +463,37 @@ async function inlineCss(freezeHtml, fileMap) {
     return { html: freezeHtml, hinweis: "übersprungen (juice nicht installiert)" };
   }
   const extraCss = await sammleCss(freezeHtml, fileMap);
+  /* RESPONSIVE LAYOUT-TREUE (Fix K3, Leons Befund 2026-07-23): juice inliniert
+     eine BASIS-Regel als style-Attribut, das dann JEDE @media-Ueberschreibung
+     schlaegt (Inline-Spezifitaet > Stylesheet). Konkret zog juice
+     `.block-prose__inner{grid-template-columns:1fr}` (Basis) inline und
+     ueberstimmte `@media(min-width:860px){…1.1fr .9fr}` — die Zweispalten-Sektion
+     kollabierte in der Vorschau zur Einspalte, obwohl das gefreezte Original
+     zweispaltig ist. Da der StrukturBlock das VOLLSTAENDIGE Stylesheet (inkl.
+     @media) mit hochlaedt, duerfen die responsiven Track-/Sizing-Eigenschaften
+     NICHT inline landen — das Stylesheet regelt sie korrekt (auch nach Umzug,
+     weil klassen-basiert). `display` bleibt bewusst inline: die DOM-treue
+     Sektionierung (stapeltVertikal in html-zu-puck.ts) liest es, um Flex-/Grid-
+     Reihen als EINEN Block zusammenzuhalten. In juice 12 ist excludedProperties
+     eine EIGENSCHAFT der juice-Funktion, KEINE call-Option — daher hier gesetzt. */
+  juice.excludedProperties = [
+    /* Grid-CONTAINER-Spuren (responsive Spalten/Zeilen). */
+    "grid-template-columns", "grid-template-rows", "grid-template",
+    "grid-template-areas", "grid-auto-columns", "grid-auto-rows", "grid-auto-flow",
+    /* Grid-ITEM-Platzierung + Reihenfolge (responsive!). GRUND wie oben: juice zog
+       `.card{grid-column:span 2}` (mobile-Basis) inline und ueberstimmte die
+       Desktop-Platzierung — die 3 CTA-Karten spannten je 2 Spuren und STAPELTEN
+       statt nebeneinander (block-ctaband; bildung/organisation-team). order/
+       *-self analog: Item-Position darf nur das Stylesheet (mit @media) regeln. */
+    "grid-column", "grid-column-start", "grid-column-end",
+    "grid-row", "grid-row-start", "grid-row-end", "grid-area",
+    "order", "align-self", "justify-self", "place-self",
+    /* Flex-Richtung/-Umbruch + Multi-Column. */
+    "flex-direction", "flex-flow", "flex-wrap",
+    "columns", "column-count", "column-width",
+    /* Responsive Breiten (sonst schlaegt die inline-Basis die @media-Breite). */
+    "width", "min-width", "max-width",
+  ];
   let gejuiced;
   try {
     gejuiced = juice(freezeHtml, {
@@ -532,16 +576,22 @@ async function importiereSeite({ seite, zielSlug, fileMap, erwartetGespeichert =
   const { html: mappingHtml, hinweis: cssHinweis } = await inlineCss(freezeHtml, fileMap);
   log(`[CSS] Inlining: ${cssHinweis}`);
 
-  /* --- (I4) MAPPING (fein) + Vergleich zum groben Fallback --- */
+  /* --- (I4) MAPPING (modus-abhaengig) + Vergleich zum groben Fallback --- */
   const grob = htmlZuPuck(freezeHtml, { idPraefix: zielSlug, styleUebernehmen: true });
-  const bericht = htmlZuPuckMitSegmentierung(
-    mappingHtml,
-    { sektionen: segErgebnis.sektionen },
-    { idPraefix: zielSlug, styleUebernehmen: true },
-  );
+  const mapOpts = { idPraefix: zielSlug, styleUebernehmen: true };
+  const seg = { sektionen: segErgebnis.sektionen };
+  /* strukturtreu (Default): je Sektion EIN layout-treues Original-Markup-Template
+     mit Marker-injizierten Texten/Bildern. fein: lose Geschwister-Bausteine (alt).
+     grob: Ein-Ebenen-Heuristik (kein Segmentier-Urteil). */
+  const bericht =
+    MODUS === "strukturtreu"
+      ? htmlZuPuckStrukturtreu(mappingHtml, seg, mapOpts)
+      : MODUS === "fein"
+        ? htmlZuPuckMitSegmentierung(mappingHtml, seg, mapOpts)
+        : htmlZuPuck(mappingHtml, mapOpts);
   const flags = [...bericht.flags];
 
-  log(`[I4] Statistik grob→fein  Sektionen ${grob.statistik.sektionen}→${bericht.statistik.sektionen} · Texte ${grob.statistik.texte}→${bericht.statistik.texte} · Bilder ${grob.statistik.bilder}→${bericht.statistik.bilder} · HTML-Bloecke ${grob.statistik.htmlBloecke}→${bericht.statistik.htmlBloecke}`);
+  log(`[I4] Modus „${MODUS}" · Statistik grob→${MODUS}  Sektionen ${grob.statistik.sektionen}→${bericht.statistik.sektionen} · Texte ${grob.statistik.texte}→${bericht.statistik.texte} · Bilder ${grob.statistik.bilder}→${bericht.statistik.bilder} · HTML-Bloecke ${grob.statistik.htmlBloecke}→${bericht.statistik.htmlBloecke}`);
 
   /* --- Asset-Aufraeumung (I6, reversibel): alten Asset-Ordner leeren, damit
      Waisen aus einem frueheren Import dieses Slugs nicht liegen bleiben. --- */
@@ -638,6 +688,7 @@ async function importiereSeite({ seite, zielSlug, fileMap, erwartetGespeichert =
     seite: seiteLabel,
     freezeSlug,
     zielSlug,
+    mappingModus: MODUS,
     modus: segErgebnis.modus,
     modell: segErgebnis.modell ?? null,
     framework: bericht.framework.typ,

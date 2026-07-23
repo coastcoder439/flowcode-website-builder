@@ -1,0 +1,1765 @@
+{
+  "datum": "2026-07-23T19:44:22.635Z",
+  "viewportBreite": 1280,
+  "schwelle": 0.08,
+  "seiten": [
+    {
+      "kurz": "startseite",
+      "freezeSlug": "index",
+      "zielSlug": "wee-v3-fein",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "World Eden Era",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.67,
+          "links": 0.096,
+          "rechts": 0.766
+        },
+        "puck": {
+          "spreizung": 0.67,
+          "dny": 0.005
+        },
+        "links": "Bildet den produktiven Kern. In einem ge",
+        "rechts": "Wissenstransfer und lokale Wertschöpfung"
+      },
+      "landmarken": [
+        {
+          "text": "Wir bei World Eden Era (WEE) sind eine gemeinnützige Organis",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0116,
+          "original": {
+            "nx": 0.0501,
+            "ny": 0.1834
+          },
+          "puck": {
+            "nx": 0.0501,
+            "ny": 0.195
+          }
+        },
+        {
+          "text": "Project Oasis ist unser ganzheitliches Systemkonzept für ein",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.024,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.379
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.4029
+          }
+        },
+        {
+          "text": "In der sozial stark benachteiligten Humla-Region in Nepal wo",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0103,
+          "original": {
+            "nx": 0.523,
+            "ny": 0.6685
+          },
+          "puck": {
+            "nx": 0.523,
+            "ny": 0.6582
+          }
+        },
+        {
+          "text": "Bildet den produktiven Kern. In einem geschlossenen Kreislau",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0316,
+          "original": {
+            "nx": 0.096,
+            "ny": 0.4995
+          },
+          "puck": {
+            "nx": 0.096,
+            "ny": 0.531
+          }
+        },
+        {
+          "text": "Wir träumen nicht von einer Rückkehr in die Vergangenheit, s",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0175,
+          "original": {
+            "nx": 0.3245,
+            "ny": 0.2765
+          },
+          "puck": {
+            "nx": 0.3245,
+            "ny": 0.294
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 6023,
+        "puckPx": 5665
+      }
+    },
+    {
+      "kurz": "project-oasis",
+      "freezeSlug": "project-oasis",
+      "zielSlug": "wee-v3-fein-project-oasis",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Leben ermöglichen.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.672,
+          "links": 0,
+          "rechts": 0.672
+        },
+        "puck": {
+          "spreizung": 0.672,
+          "dny": 0.018
+        },
+        "links": "Das System im Detail",
+        "rechts": "↔ Ziehen zum Umschauen"
+      },
+      "landmarken": [
+        {
+          "text": "Das System ist modular aufgebaut und verbindet zukunftsfähig",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0038,
+          "original": {
+            "nx": 0.075,
+            "ny": 0.4624
+          },
+          "puck": {
+            "nx": 0.075,
+            "ny": 0.4586
+          }
+        },
+        {
+          "text": "Project Oasis ist unser ganzheitliches Systemkonzept für ein",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0007,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.0814
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.0807
+          }
+        },
+        {
+          "text": "Im Inneren nutzen wir das Prinzip der Symbiose: Fische und P",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.001,
+          "original": {
+            "nx": 0.0844,
+            "ny": 0.1232
+          },
+          "puck": {
+            "nx": 0.0844,
+            "ny": 0.1222
+          }
+        },
+        {
+          "text": "Project Oasis ist langfristig angelegt. Die modulare Bauweis",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0062,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.8734
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.8672
+          }
+        },
+        {
+          "text": "Project Oasis basiert auf einem geschlossenen, ressourceneff",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.005,
+          "original": {
+            "nx": 0.0887,
+            "ny": 0.5978
+          },
+          "puck": {
+            "nx": 0.0887,
+            "ny": 0.5928
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 13223,
+        "puckPx": 13334
+      }
+    },
+    {
+      "kurz": "bildung",
+      "freezeSlug": "bildung",
+      "zielSlug": "wee-v3-fein-bildung",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Verstehen, was uns trägt.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.621,
+          "links": 0.088,
+          "rechts": 0.709
+        },
+        "puck": {
+          "spreizung": 0.621,
+          "dny": 0.03
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Unsere Systeme funktionieren nur, wenn die Menschen sie vers",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.0653,
+            "ny": 0.2844
+          },
+          "puck": {
+            "nx": 0.0653,
+            "ny": 0.2843
+          }
+        },
+        {
+          "text": "Alle Angaben in diesem Bereich sind auf wissenschaftliche Pr",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0001,
+          "original": {
+            "nx": 0.0653,
+            "ny": 0.3247
+          },
+          "puck": {
+            "nx": 0.0653,
+            "ny": 0.3247
+          }
+        },
+        {
+          "text": "Die Symbiose aus Fisch- und Pflanzenzucht in einem geschloss",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0001,
+          "original": {
+            "nx": 0.0703,
+            "ny": 0.5374
+          },
+          "puck": {
+            "nx": 0.0703,
+            "ny": 0.5373
+          }
+        },
+        {
+          "text": "Regenerative Landnutzung, die Böden aufbaut statt sie zu ers",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0001,
+          "original": {
+            "nx": 0.5172,
+            "ny": 0.5303
+          },
+          "puck": {
+            "nx": 0.5172,
+            "ny": 0.5302
+          }
+        },
+        {
+          "text": "Traditionelle Landwirtschaft und Aquaponik im ausgewogenen V",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0698,
+          "original": {
+            "nx": 0.5227,
+            "ny": 0.6738
+          },
+          "puck": {
+            "nx": 0.5227,
+            "ny": 0.604
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 4268,
+        "puckPx": 4269
+      }
+    },
+    {
+      "kurz": "faq",
+      "freezeSlug": "faq",
+      "zielSlug": "wee-v3-fein-faq",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Häufige Fragen",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.612,
+          "links": 0.096,
+          "rechts": 0.709
+        },
+        "puck": {
+          "spreizung": 0.612,
+          "dny": 0
+        },
+        "links": "Sorge dafür, dass Projekte Realität werd",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Ja. World Eden Era ist eine als gemeinnützig anerkannte gUG ",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.001,
+          "original": {
+            "nx": 0.077,
+            "ny": 0.374
+          },
+          "puck": {
+            "nx": 0.077,
+            "ny": 0.373
+          }
+        },
+        {
+          "text": "Aquaponik verbindet Fischzucht und Pflanzenanbau in einem ge",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0014,
+          "original": {
+            "nx": 0.077,
+            "ny": 0.5269
+          },
+          "puck": {
+            "nx": 0.077,
+            "ny": 0.5255
+          }
+        },
+        {
+          "text": "Ja. Als gemeinnützig anerkannte Organisation erhältst du aut",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0011,
+          "original": {
+            "nx": 0.077,
+            "ny": 0.4186
+          },
+          "puck": {
+            "nx": 0.077,
+            "ny": 0.4175
+          }
+        },
+        {
+          "text": "Deine Spende fließt vollständig in unsere satzungsgemäßen Zw",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0012,
+          "original": {
+            "nx": 0.077,
+            "ny": 0.4409
+          },
+          "puck": {
+            "nx": 0.077,
+            "ny": 0.4397
+          }
+        },
+        {
+          "text": "World Eden Era (WEE) ist eine gemeinnützige Organisation für",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0013,
+          "original": {
+            "nx": 0.077,
+            "ny": 0.5046
+          },
+          "puck": {
+            "nx": 0.077,
+            "ny": 0.5032
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 2996,
+        "puckPx": 3004
+      }
+    },
+    {
+      "kurz": "404",
+      "freezeSlug": "404",
+      "zielSlug": "wee-v3-fein-404",
+      "bestanden": false,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 4,
+      "landmarkenBestanden": 3,
+      "hero": {
+        "status": "n/a",
+        "originalHeroText": "Seite nicht gefunden",
+        "originalUeberlappt": false,
+        "puckUeberlappt": false
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.474,
+          "links": 0.063,
+          "rechts": 0.536
+        },
+        "puck": {
+          "spreizung": 0.474,
+          "dny": 0
+        },
+        "links": "© 2026 World Eden Era gUG (haftungsbesch",
+        "rechts": "Datenschutzerklärung"
+      },
+      "landmarken": [
+        {
+          "text": "Gut zu wissen: Diese Seite nutzt und . Wir messen Besuche nu",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.3334,
+            "ny": 0.898
+          },
+          "puck": {
+            "nx": 0.3334,
+            "ny": 0.898
+          }
+        },
+        {
+          "text": "Die aufgerufene Seite existiert nicht (mehr). Vielleicht hil",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.2764
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.2764
+          }
+        },
+        {
+          "text": "World Eden Era gUG (haftungsbeschränkt)Täubchenweg 8504317 L",
+          "gefunden": true,
+          "bestanden": false,
+          "dx": 0.079,
+          "dy": 0.1659,
+          "original": {
+            "nx": 0.3625,
+            "ny": 0.6814
+          },
+          "puck": {
+            "nx": 0.4415,
+            "ny": 0.5156
+          }
+        },
+        {
+          "text": "Spenden-SEPA-FormularIBAN: DE03 3702 0500 0020 2370 91BIC: B",
+          "gefunden": false,
+          "bestanden": false,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.6814
+          }
+        },
+        {
+          "text": "© 2026 World Eden Era gUG (haftungsbeschränkt)",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.9462
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.9462
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 900,
+        "puckPx": 900
+      }
+    },
+    {
+      "kurz": "barrierefreiheit",
+      "freezeSlug": "barrierefreiheit",
+      "zielSlug": "wee-v3-fein-barrierefreiheit",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "n/a",
+        "originalHeroText": "Barrierefreiheitserklärung",
+        "originalUeberlappt": false,
+        "puckUeberlappt": false
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.341,
+          "links": 0.195,
+          "rechts": 0.536
+        },
+        "puck": {
+          "spreizung": 0.341,
+          "dny": 0.02
+        },
+        "links": "Feedback und Kontakt",
+        "rechts": "Datenschutzerklärung"
+      },
+      "landmarken": [
+        {
+          "text": "Wir haben unter anderem folgende Maßnahmen umgesetzt: semant",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.2862
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.2862
+          }
+        },
+        {
+          "text": "Die World Eden Era gUG (haftungsbeschränkt) ist bemüht, ihre",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.0988
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.0988
+          }
+        },
+        {
+          "text": "Wir streben die Konformität mit WCAG 2.1 Stufe AA an. Die We",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.1991
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.1991
+          }
+        },
+        {
+          "text": "Nicht vollständig barrierefrei können derzeit sein: verlinkt",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.4353
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.4353
+          }
+        },
+        {
+          "text": "Solltest du auf deine Kontaktaufnahme keine zufriedenstellen",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.6315
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.6315
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 1804,
+        "puckPx": 1804
+      }
+    },
+    {
+      "kurz": "bildung-aquaponik",
+      "freezeSlug": "bildung-aquaponik",
+      "zielSlug": "wee-v3-fein-bildung-aquaponik",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Ein Kreislauf, zwei Ernten.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.64,
+          "links": 0.063,
+          "rechts": 0.702
+        },
+        "puck": {
+          "spreizung": 0.64,
+          "dny": 0.027
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Das Grundprinzip ist eine Symbiose. Die Ausscheidungen der F",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0018,
+          "original": {
+            "nx": 0.0659,
+            "ny": 0.2502
+          },
+          "puck": {
+            "nx": 0.0659,
+            "ny": 0.2484
+          }
+        },
+        {
+          "text": "In unserem Systemkonzept Project Oasis bildet Aquaponik den ",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0013,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.615
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.6163
+          }
+        },
+        {
+          "text": "Die Geodom-Kuppel schützt die Anlage vor extremen Witterungs",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0011,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.6452
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.6463
+          }
+        },
+        {
+          "text": "Aquaponik verbindet zwei Produktionsformen in einem geschlos",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0016,
+          "original": {
+            "nx": 0.0659,
+            "ny": 0.2258
+          },
+          "puck": {
+            "nx": 0.0659,
+            "ny": 0.2241
+          }
+        },
+        {
+          "text": "Weil das Wasser im Kreislauf geführt wird, muss nur der Verl",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0032,
+          "original": {
+            "nx": 0.082,
+            "ny": 0.4322
+          },
+          "puck": {
+            "nx": 0.082,
+            "ny": 0.429
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 4903,
+        "puckPx": 4939
+      }
+    },
+    {
+      "kurz": "bildung-permakultur",
+      "freezeSlug": "bildung-permakultur",
+      "zielSlug": "wee-v3-fein-bildung-permakultur",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Mit der Natur gestalten.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.64,
+          "links": 0.063,
+          "rechts": 0.702
+        },
+        "puck": {
+          "spreizung": 0.64,
+          "dny": 0.026
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Permakultur ist ein Gestaltungsansatz für land- und ressourc",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0013,
+          "original": {
+            "nx": 0.0711,
+            "ny": 0.2227
+          },
+          "puck": {
+            "nx": 0.0711,
+            "ny": 0.2214
+          }
+        },
+        {
+          "text": "Im Zentrum stehen einige wenige Prinzipien: Vielfalt statt M",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0015,
+          "original": {
+            "nx": 0.0711,
+            "ny": 0.2579
+          },
+          "puck": {
+            "nx": 0.0711,
+            "ny": 0.2564
+          }
+        },
+        {
+          "text": "Während der aquaponische Kern von Project Oasis im geschützt",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0007,
+          "original": {
+            "nx": 0.0747,
+            "ny": 0.6121
+          },
+          "puck": {
+            "nx": 0.0747,
+            "ny": 0.6128
+          }
+        },
+        {
+          "text": "— Belegt alle genannten Werte: +27 % Bodenkohlenstoff, −20 %",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.08,
+            "ny": 0.7429
+          },
+          "puck": {
+            "nx": 0.08,
+            "ny": 0.7429
+          }
+        },
+        {
+          "text": "Eine 2024 in Communications Earth & Environment (Nature Port",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0022,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.3749
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.3727
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 4959,
+        "puckPx": 4988
+      }
+    },
+    {
+      "kurz": "bildung-vergleich-landwirtschaft",
+      "freezeSlug": "bildung-vergleich-landwirtschaft",
+      "zielSlug": "wee-v3-fein-bildung-vergleich-landwirtschaft",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Zwei Wege, Nahrung zu erzeugen.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.64,
+          "links": 0.063,
+          "rechts": 0.702
+        },
+        "puck": {
+          "spreizung": 0.64,
+          "dny": 0.023
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Wirtschaftlichkeit: Hier liegt eine klare Schwäche der Aquap",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0007,
+          "original": {
+            "nx": 0.0724,
+            "ny": 0.5027
+          },
+          "puck": {
+            "nx": 0.0724,
+            "ny": 0.5021
+          }
+        },
+        {
+          "text": "Zudem verlangt der Betrieb Fachwissen aus zwei Welten zuglei",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0008,
+          "original": {
+            "nx": 0.0443,
+            "ny": 0.6313
+          },
+          "puck": {
+            "nx": 0.0443,
+            "ny": 0.6305
+          }
+        },
+        {
+          "text": "Wasser: Weil Aquaponik das Wasser im Kreislauf führt, muss n",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0006,
+          "original": {
+            "nx": 0.0724,
+            "ny": 0.4466
+          },
+          "puck": {
+            "nx": 0.0724,
+            "ny": 0.446
+          }
+        },
+        {
+          "text": "Aquaponik ist kein Allheilmittel. Ihre größten Schwächen sin",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0008,
+          "original": {
+            "nx": 0.0443,
+            "ny": 0.6056
+          },
+          "puck": {
+            "nx": 0.0443,
+            "ny": 0.6047
+          }
+        },
+        {
+          "text": "Boden: Traditionelle Landwirtschaft ist auf fruchtbaren Bode",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0006,
+          "original": {
+            "nx": 0.0724,
+            "ny": 0.477
+          },
+          "puck": {
+            "nx": 0.0724,
+            "ny": 0.4763
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 5738,
+        "puckPx": 5746
+      }
+    },
+    {
+      "kurz": "bildung-wissenschaft",
+      "freezeSlug": "bildung-wissenschaft",
+      "zielSlug": "wee-v3-fein-bildung-wissenschaft",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Auf Evidenz gebaut.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.631,
+          "links": 0.084,
+          "rechts": 0.715
+        },
+        "puck": {
+          "spreizung": 0.631,
+          "dny": 0.019
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Ebenso klar benennt die Forschung die Grenzen: Aquaponik ist",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.009,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.2
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.209
+          }
+        },
+        {
+          "text": "Aquaponik ist kein neues Versprechen, sondern ein seit Jahrz",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0078,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.1733
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.1811
+          }
+        },
+        {
+          "text": "Das EU-geförderte Projekt INAPRO des Leibniz-Instituts für G",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0165,
+          "original": {
+            "nx": 0.5102,
+            "ny": 0.3674
+          },
+          "puck": {
+            "nx": 0.5102,
+            "ny": 0.3839
+          }
+        },
+        {
+          "text": "Sensorik, Automatisierung und maschinelles Lernen machen Sys",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0187,
+          "dy": 0.0188,
+          "original": {
+            "nx": 0.15,
+            "ny": 0.6082
+          },
+          "puck": {
+            "nx": 0.1313,
+            "ny": 0.5894
+          }
+        },
+        {
+          "text": "Parallel liefert die Systemökologie, etwa die Forschung zu P",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0102,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.2267
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.2369
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 6526,
+        "puckPx": 6245
+      }
+    },
+    {
+      "kurz": "datenschutz",
+      "freezeSlug": "datenschutz",
+      "zielSlug": "wee-v3-fein-datenschutz",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "n/a",
+        "originalHeroText": "Datenschutzerklärung",
+        "originalUeberlappt": false,
+        "puckUeberlappt": false
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.6,
+          "links": 0.063,
+          "rechts": 0.662
+        },
+        "puck": {
+          "spreizung": 0.6,
+          "dny": 0.019
+        },
+        "links": "© 2026 World Eden Era gUG (haftungsbesch",
+        "rechts": "Barrierefreiheit"
+      },
+      "landmarken": [
+        {
+          "text": "Wenn du uns per E-Mail (info@world-eden-era.org) kontaktiers",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.7583
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.7583
+          }
+        },
+        {
+          "text": "(Anbieter: Web Inclusion GmbH) ein. Dabei werden Programmbib",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.5302
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.5302
+          }
+        },
+        {
+          "text": "Du hast jederzeit das Recht auf Auskunft (Art. 15 DSGVO), Be",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.1347
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.1347
+          }
+        },
+        {
+          "text": ", 340 S Lemon Ave #4133, Walnut, CA 91789, USA, gehostet. Be",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.198
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.198
+          }
+        },
+        {
+          "text": "Wenn du an uns spendest oder eine Patenschaft übernimmst, ve",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.6354
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.6354
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 4249,
+        "puckPx": 4249
+      }
+    },
+    {
+      "kurz": "impressum",
+      "freezeSlug": "impressum",
+      "zielSlug": "wee-v3-fein-impressum",
+      "bestanden": false,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 4,
+      "landmarkenBestanden": 3,
+      "hero": {
+        "status": "n/a",
+        "originalHeroText": "Impressum",
+        "originalUeberlappt": false,
+        "puckUeberlappt": false
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.341,
+          "links": 0.195,
+          "rechts": 0.536
+        },
+        "puck": {
+          "spreizung": 0.341,
+          "dny": 0.031
+        },
+        "links": "Feststellung der Gemeinnützigkeit",
+        "rechts": "Datenschutzerklärung"
+      },
+      "landmarken": [
+        {
+          "text": "Gut zu wissen: Diese Seite nutzt und . Wir messen Besuche nu",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.3334,
+            "ny": 0.4982
+          },
+          "puck": {
+            "nx": 0.3334,
+            "ny": 0.4982
+          }
+        },
+        {
+          "text": "Die Feststellung der Gemeinnützigkeit liegt vor und kann als",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.5278
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.5278
+          }
+        },
+        {
+          "text": "World Eden Era gUG (haftungsbeschränkt)Täubchenweg 8504317 L",
+          "gefunden": true,
+          "bestanden": false,
+          "dx": 0.1672,
+          "dy": 0.6439,
+          "original": {
+            "nx": 0.3625,
+            "ny": 0.8278
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.1839
+          }
+        },
+        {
+          "text": "Der Gesellschaftsvertrag / die Satzung kann als PDF eingeseh",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0,
+          "original": {
+            "nx": 0.1953,
+            "ny": 0.6197
+          },
+          "puck": {
+            "nx": 0.1953,
+            "ny": 0.6197
+          }
+        },
+        {
+          "text": "Spenden-SEPA-FormularIBAN: DE03 3702 0500 0020 2370 91BIC: B",
+          "gefunden": false,
+          "bestanden": false,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.8278
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 1622,
+        "puckPx": 1622
+      }
+    },
+    {
+      "kurz": "organisation",
+      "freezeSlug": "organisation",
+      "zielSlug": "wee-v3-fein-organisation",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Who WEE are",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.64,
+          "links": 0.063,
+          "rechts": 0.702
+        },
+        "puck": {
+          "spreizung": 0.64,
+          "dny": 0.015
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "In einer Welt, in der globale Lieferketten zunehmend fragil ",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0006,
+          "original": {
+            "nx": 0.0844,
+            "ny": 0.1433
+          },
+          "puck": {
+            "nx": 0.0844,
+            "ny": 0.1428
+          }
+        },
+        {
+          "text": "Eine Welt, in der jede Gemeinschaft – unabhängig von geograf",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.001,
+          "original": {
+            "nx": 0.4734,
+            "ny": 0.244
+          },
+          "puck": {
+            "nx": 0.4734,
+            "ny": 0.243
+          }
+        },
+        {
+          "text": "Ohne Ernährungssicherheit gibt es keine nachhaltige wirtscha",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0187,
+          "dy": 0.0014,
+          "original": {
+            "nx": 0.15,
+            "ny": 0.3579
+          },
+          "puck": {
+            "nx": 0.1313,
+            "ny": 0.3564
+          }
+        },
+        {
+          "text": "Ein wesentlicher Bestandteil unserer Finanzierung sind Förde",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0187,
+          "dy": 0,
+          "original": {
+            "nx": 0.15,
+            "ny": 0.7817
+          },
+          "puck": {
+            "nx": 0.1313,
+            "ny": 0.7817
+          }
+        },
+        {
+          "text": "Globale Krisen, Pandemien und geopolitische Konflikte zeigen",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0187,
+          "dy": 0.0012,
+          "original": {
+            "nx": 0.15,
+            "ny": 0.3131
+          },
+          "puck": {
+            "nx": 0.1313,
+            "ny": 0.3119
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 8555,
+        "puckPx": 8589
+      }
+    },
+    {
+      "kurz": "organisation-grundsaetze",
+      "freezeSlug": "organisation-grundsaetze",
+      "zielSlug": "wee-v3-fein-organisation-grundsaetze",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Unsere Grundsätze",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.62,
+          "links": 0.089,
+          "rechts": 0.709
+        },
+        "puck": {
+          "spreizung": 0.62,
+          "dny": 0.023
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "Die World Eden Era gUG (haftungsbeschränkt) verfolgt ausschl",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0019,
+          "original": {
+            "nx": 0.0708,
+            "ny": 0.2038
+          },
+          "puck": {
+            "nx": 0.0708,
+            "ny": 0.2018
+          }
+        },
+        {
+          "text": "Wir unterstützen den Aufbau nachhaltiger, eigenständiger Str",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0039,
+          "original": {
+            "nx": 0.0851,
+            "ny": 0.4153
+          },
+          "puck": {
+            "nx": 0.0851,
+            "ny": 0.4114
+          }
+        },
+        {
+          "text": "Illustration 1: Die fünf Satzungszwecke als verbundene Icon-",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0033,
+          "original": {
+            "nx": 0.3262,
+            "ny": 0.3448
+          },
+          "puck": {
+            "nx": 0.3262,
+            "ny": 0.3416
+          }
+        },
+        {
+          "text": "Aquaponik verbindet Fischzucht und Pflanzenanbau in einem sy",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0024,
+          "original": {
+            "nx": 0.2382,
+            "ny": 0.487
+          },
+          "puck": {
+            "nx": 0.2382,
+            "ny": 0.4846
+          }
+        },
+        {
+          "text": "Konkret fördert unsere Satzung fünf Bereiche -- ideell und f",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0022,
+          "original": {
+            "nx": 0.0708,
+            "ny": 0.2294
+          },
+          "puck": {
+            "nx": 0.0708,
+            "ny": 0.2272
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 5561,
+        "puckPx": 5614
+      }
+    },
+    {
+      "kurz": "organisation-team",
+      "freezeSlug": "organisation-team",
+      "zielSlug": "wee-v3-fein-organisation-team",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Unser Team",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.614,
+          "links": 0.088,
+          "rechts": 0.702
+        },
+        "puck": {
+          "spreizung": 0.614,
+          "dny": 0
+        },
+        "links": "Sorge dafür, dass Projekte Realität werd",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "»Tue das, was du von anderen erwartest, ihnen zuerst. Ich bi",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0004,
+          "dy": 0.0062,
+          "original": {
+            "nx": 0.2999,
+            "ny": 0.4076
+          },
+          "puck": {
+            "nx": 0.2995,
+            "ny": 0.4014
+          }
+        },
+        {
+          "text": "»Technology means nothing until it reaches the people who ne",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0001,
+          "dy": 0.0002,
+          "original": {
+            "nx": 0.5289,
+            "ny": 0.5647
+          },
+          "puck": {
+            "nx": 0.5288,
+            "ny": 0.5645
+          }
+        },
+        {
+          "text": "»Every positive action, no matter how small, contributes to ",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0.0002,
+          "dy": 0.0002,
+          "original": {
+            "nx": 0.3017,
+            "ny": 0.5643
+          },
+          "puck": {
+            "nx": 0.3015,
+            "ny": 0.5641
+          }
+        },
+        {
+          "text": "Folge uns, teile unsere Inhalte und verbreite unsere Vision.",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.002,
+          "original": {
+            "nx": 0.7025,
+            "ny": 0.7592
+          },
+          "puck": {
+            "nx": 0.7025,
+            "ny": 0.7612
+          }
+        },
+        {
+          "text": "Es gibt viele Möglichkeiten wie du unsere Mission unterstütz",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0029,
+          "original": {
+            "nx": 0.0625,
+            "ny": 0.7085
+          },
+          "puck": {
+            "nx": 0.0625,
+            "ny": 0.7115
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 3287,
+        "puckPx": 3347
+      }
+    },
+    {
+      "kurz": "pilot-projekt",
+      "freezeSlug": "pilot-projekt",
+      "zielSlug": "wee-v3-fein-pilot-projekt",
+      "bestanden": true,
+      "landmarkenGesamt": 5,
+      "landmarkenGemessen": 5,
+      "landmarkenBestanden": 5,
+      "hero": {
+        "status": "ok",
+        "originalHeroText": "Zusammen in Leipzig.",
+        "originalUeberlappt": true,
+        "puckUeberlappt": true
+      },
+      "spalten": {
+        "status": "ok",
+        "original": {
+          "spreizung": 0.649,
+          "links": 0.041,
+          "rechts": 0.69
+        },
+        "puck": {
+          "spreizung": 0.649,
+          "dny": 0.014
+        },
+        "links": "Es gibt viele Möglichkeiten wie du unser",
+        "rechts": "Teilen. Inspirieren. Wirken."
+      },
+      "landmarken": [
+        {
+          "text": "In Leipzig bauen wir das aquaponische System von Project Oas",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0019,
+          "original": {
+            "nx": 0.0406,
+            "ny": 0.1393
+          },
+          "puck": {
+            "nx": 0.0406,
+            "ny": 0.1374
+          }
+        },
+        {
+          "text": "Ein Proof of Concept in der Entstehung: Hier sollen technolo",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0021,
+          "original": {
+            "nx": 0.0406,
+            "ny": 0.1571
+          },
+          "puck": {
+            "nx": 0.0406,
+            "ny": 0.155
+          }
+        },
+        {
+          "text": "Wir wollen aktiven Wissenstransfer fördern: Die Anlage soll ",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0045,
+          "original": {
+            "nx": 0.6654,
+            "ny": 0.3395
+          },
+          "puck": {
+            "nx": 0.6654,
+            "ny": 0.3349
+          }
+        },
+        {
+          "text": "Moderne Sensorik und Softwareanalyse sollen uns künftig präz",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0045,
+          "original": {
+            "nx": 0.0809,
+            "ny": 0.3364
+          },
+          "puck": {
+            "nx": 0.0809,
+            "ny": 0.3319
+          }
+        },
+        {
+          "text": "Die geernteten Erträge der Anlage sollen direkt in die lokal",
+          "gefunden": true,
+          "bestanden": true,
+          "dx": 0,
+          "dy": 0.0046,
+          "original": {
+            "nx": 0.3758,
+            "ny": 0.3402
+          },
+          "puck": {
+            "nx": 0.3758,
+            "ny": 0.3357
+          }
+        }
+      ],
+      "hoehen": {
+        "originalPx": 8319,
+        "puckPx": 8432
+      }
+    }
+  ],
+  "zusammenfassung": {
+    "seitenGesamt": 16,
+    "bestanden": 14,
+    "gescheitert": 2,
+    "schwelleErfuellt": true,
+    "pflichtSeiten": {
+      "startseite": true,
+      "project-oasis": true
+    }
+  }
+}

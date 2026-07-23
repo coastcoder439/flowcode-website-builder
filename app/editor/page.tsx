@@ -46,7 +46,7 @@ import { UndoBusProvider, useUndoBus, sollUndoShortcutGreifen } from "@/componen
 import { entferneAktiveSeite, setzeAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
 import { SeitenBereich } from "./SeitenBereich";
 import { SeitenImport } from "./SeitenImport";
-import { SeitenVorschau } from "./SeitenVorschau";
+import { Station4Preview } from "./Station4Preview";
 import {
   leseZustand,
   urlVon,
@@ -216,8 +216,9 @@ function EditorInner({ onProduktTutorial }: { onProduktTutorial: () => void }) {
  *                navigiere("bauen", Puck der frisch importierten Seite).
  *   - bauen    → der bisherige SeitenBereich (Liste + Puck-Editor).
  *   - animator → unveraendert BackdropProvider → EditorInner.
- *   - preview  → Platzhalter: SeitenVorschau der AKTIVEN Website; die Station
- *                wird in Phase 5 zur Export-Wahrheit ausgebaut (M23/N14).
+ *   - preview  → Station4Preview: klickbare iframe-Vorschau des INLINE-Artefakts
+ *                der aktiven Website (= Export-Wahrheit, M23/N14) + ausklappbares
+ *                Export-Fenster (Ordner primaer, 5 Datei-Wege sekundaer, M25).
  *
  * F2 (docs/plan-analyse/lens-flow.md §3-S3): Der zentrale History-Reducer
  * `navigiere(station, sub?)` (unten in EditorPage) ist jetzt die EINE Stelle,
@@ -233,7 +234,7 @@ const STATIONEN: { id: Station; label: string; hilfe: string }[] = [
   { id: "import", label: "1 · Importieren", hilfe: "Eine fertige Website einlesen und in Bausteine zerlegen" },
   { id: "bauen", label: "2 · Seite bauen", hilfe: "Seiten verwalten und im Baukasten-Editor (Puck) zusammensetzen" },
   { id: "animator", label: "3 · Animieren", hilfe: "Scroll-Animationen ueber der aktiven Website gestalten" },
-  { id: "preview", label: "4 · Vorschau & Export", hilfe: "Fertige Seite als Vollbild ansehen (Export folgt in Phase 5)" },
+  { id: "preview", label: "4 · Vorschau & Export", hilfe: "Fertige Seite klickbar ansehen und als Ordner oder Einzeldatei exportieren" },
 ];
 
 /** Browser-Tab-Titel je Station (N16, Rest): macht Tabs/Lesezeichen/Teilen-
@@ -294,40 +295,6 @@ function StationsNav({ station, onWechsel }: { station: Station; onWechsel: (s: 
           {s.label}
         </button>
       ))}
-    </div>
-  );
-}
-
-/** Station 4 (Platzhalter bis Phase 5): Vollbild-Vorschau der AKTIVEN Website.
- *  Ist keine aktive Website gesetzt, bleibt die Nav sichtbar und eine dezente
- *  Notiz erklaert, was hier spaeter passiert. Die eigentliche Export-Wahrheit
- *  auf der Animator-Buehne (M23/N14) folgt in Phase 5. */
-function StationVorschau({ onZurueck }: { onZurueck: () => void }) {
-  const aktiveSeite = useAktiveSeite();
-  if (aktiveSeite) {
-    /* SeitenVorschau portalt sich chrome-frei ueber alles (inkl. Nav); der
-       „Zurueck"-Knopf fuehrt zurueck in den Flow (Station Animieren). */
-    return <SeitenVorschau name={aktiveSeite} onZurueck={onZurueck} />;
-  }
-  return (
-    <div
-      className="editor-seiten-flaeche"
-      id="stations-panel"
-      role="tabpanel"
-      aria-labelledby="tab-preview"
-      tabIndex={0}
-    >
-      <div className="seiten-verwaltung">
-        <div className="seiten-verwaltung-innen">
-          <p className="seiten-leer">
-            Noch keine aktive Website gesetzt. Waehle in „2 · Seite bauen" eine Seite als aktive
-            Website — dann zeigt diese Station ihre Vollbild-Vorschau.
-          </p>
-          <p className="seiten-import-hinweis">
-            Station 4 wird in Phase 5 zur Export-Wahrheit ausgebaut.
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
@@ -638,7 +605,7 @@ export default function EditorPage() {
           </BackdropProvider>
         </div>
       ) : station === "preview" ? (
-        <StationVorschau onZurueck={() => navigiere("animator")} />
+        <Station4Preview onZurueck={() => navigiere("animator")} />
       ) : station === "import" ? (
         /* F4 (lens-flow.md §3-S5): Import ist jetzt eine ECHTE Station 1 — der
            Assistent wird direkt hier als Voll-Bereich gemountet, nicht mehr als

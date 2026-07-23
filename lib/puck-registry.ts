@@ -27,6 +27,13 @@ export const PUCK_KOMPONENTEN_TYPEN = [
   "TextBlock",
   "BildBlock",
   "HtmlBlock",
+  // Phase 4b (struktur-erhaltender Import): eine Original-Sektion bleibt als EIN
+  // Block (Layout-Traeger), editierbar ueber Text-/Bild-Injektion. Prop-Typ +
+  // Render: lib/import/struktur-injektion.ts + components/import/StrukturBlock.tsx,
+  // registriert in app/puck/puck.config.tsx. texte/bilder sind KEINE Slots
+  // (Arrays aus {id,label,…}, nicht {type,props}) → das Server-Gate laeuft NICHT
+  // rekursiv hinein, was hier korrekt ist.
+  "StrukturBlock",
 ] as const;
 
 export type PuckKomponentenTyp = (typeof PUCK_KOMPONENTEN_TYPEN)[number];

@@ -151,8 +151,12 @@ function escapeFuerInlineScript(json: string): string {
 /** Mount-Div + inline Config als die ZWEI gemeinsamen Zeilen von Overlay-
  *  und Ganze-Seite-Export (Welle 3c) – an EINER Stelle, damit die beiden Wege
  *  nicht auseinanderlaufen. Reihenfolge/Wortlaut sind bewusst unverändert
- *  (Overlay-Export bleibt byte-identisch). */
-function baueMountUndConfig(config: EmbedConfig): string[] {
+ *  (Overlay-Export bleibt byte-identisch).
+ *
+ *  Exportiert (Station 4/S1), damit der Ordner-Export (ordner-export.ts)
+ *  dieselben zwei Zeilen fuer die externalisierte index.html nutzt statt sie zu
+ *  duplizieren — reine Wiederverwendung, aendert die bestehenden Wege nicht. */
+export function baueMountUndConfig(config: EmbedConfig): string[] {
   const configJson = escapeFuerInlineScript(JSON.stringify(config));
   return [
     `<div data-wee-anim></div>`,

@@ -46,3 +46,14 @@ seiten/.papierkorb/
 # vor einem Re-Import geleerte public/import/<slug>/-Ordner wandern reversibel
 # hierher — fluechtige Undo-Reste, kein Quellstand.
 public/import/.papierkorb/
+
+# Ordner-Struktur-Export (Station 4 / S2, POST /api/export/ordner): deploybarer
+# Rohbau je Website unter export/<slug>/ — reines Build-Output, jederzeit neu
+# erzeugbar, nie committen. Fuehrender Slash: NUR die Wurzel export/, nicht der
+# Quellcode-Ordner app/api/export/.
+/export/
+
+# Statischer Vorschau-Spiegel des Ordner-Exports (Station 4 / X4, spiegel:true):
+# public/export/<slug>/ wird nur fuer die iframe-Vorschau geschrieben (Next
+# liefert es statisch aus). Reines Dev-Artefakt, jederzeit neu erzeugbar.
+/public/export/

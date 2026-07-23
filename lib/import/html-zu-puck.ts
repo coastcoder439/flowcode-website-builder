@@ -48,6 +48,19 @@ import type { ComponentData, Data, Slot } from "@puckeditor/core";
 import { entferneFremdkoerper, erkenntFramework, type FrameworkErkennung } from "./fremdkoerper-filter";
 import { baueOutlineMitElementen } from "./dom-outline";
 import { validiereSegmentierung, type BlockTyp, type Segmentierung } from "./gemma-contract";
+/* Phase 4b (struktur-erhaltendes Mapping): Marker-Attribut-Namen + Prop-Typen des
+ * StrukturBlock. Import statt Neu-Definition = eine Quelle der Wahrheit (die
+ * Injektion in struktur-injektion.ts liest exakt dieselben Marker). Der Import ist
+ * ZYKLISCH (struktur-injektion importiert entschaerfeHtml/ImportFlag von hier),
+ * aber sicher: beide Seiten nutzen die importierten Namen NUR in Funktionsruempfen,
+ * nie auf Modul-Init-Ebene. */
+import {
+  MARKER_BILD,
+  MARKER_TEXT,
+  type StrukturBild,
+  type StrukturBlockProps,
+  type StrukturText,
+} from "./struktur-injektion";
 
 /* ---- Baustein-Prop-Typen (geteilte Wahrheit mit app/puck/puck.config.tsx) ----
  * puck.config.tsx importiert diese Typen (wie GrafikLayerBlockProps aus
@@ -191,6 +204,9 @@ const FLAG_SEG_REF_FEHLT = "Segment-Knoten ohne Element";
 /* Schritt IV: Outline-Atome, die die Segmentierung nicht abgedeckt hat, wurden in
    einer Rest-Sektion aufgefangen (Verlustschutz). */
 const FLAG_SEG_REST = "Nicht segmentierte Atome in Rest-Sektion";
+/* Phase 4b (strukturtreu): eine DOM-Sektions-Wurzel lieferte kein Template (leer
+   nach Entschaerfung) — kein Block erzeugt. */
+const FLAG_STRUKTUR_LEER = "Struktur-Sektion ohne aufloesbare Atome uebersprungen";
 
 /** Deterministischer id-Zaehler pro Import (stabil bei identischer Eingabe). */
 class IdZaehler {
@@ -533,9 +549,64 @@ export function htmlZuPuck(
 /* Schritt IV — Puck-Mapping aus dem Modell-Urteil (M5)                 */
 /* ------------------------------------------------------------------ */
 
-/** Trimmt + kollabiert Whitespace (lokal, damit der Adapter dep-frei bleibt). */
+/* Tags, die im gerenderten Layout IMMER eine visuelle Grenze setzen (Block-/
+ * Listen-/Tabellen-Fluss, Zeilenumbruch). Zwischen ihrem Text und dem Nachbar-
+ * text gehoert ein Trenner, auch wenn im Markup kein Whitespace-Textknoten steht. */
+const BLOCK_GRENZE_TAGS = new Set([
+  "DIV", "P", "SECTION", "HEADER", "FOOTER", "MAIN", "NAV", "ARTICLE", "ASIDE",
+  "H1", "H2", "H3", "H4", "H5", "H6",
+  "UL", "OL", "LI", "DL", "DT", "DD",
+  "TABLE", "THEAD", "TBODY", "TFOOT", "TR", "TD", "TH",
+  "FIGURE", "FIGCAPTION", "BLOCKQUOTE", "PRE", "ADDRESS", "HR", "BR",
+  "FORM", "FIELDSET", "LEGEND", "DETAILS", "SUMMARY",
+]);
+
+/* Inline-Display-Werte, die (per juice inliniertem style) einen sonst inline
+ * fliessenden Knoten zu einem eigenen Layout-Kasten machen — der klassische
+ * Wort-fuer-Wort-Reveal (<span style="display:inline-block;margin-right:…">Wort
+ * </span>) glued sonst im textContent zu „FeststoffewieFutterreste". */
+const BOX_DISPLAY = /display\s*:\s*(inline-block|block|flex|grid|inline-flex|inline-grid|table|table-cell|list-item)/i;
+
+/** Ist `el` eine visuelle Layout-Grenze (Block-Tag, <br>, oder ein per Inline-
+ *  style zum Kasten gemachter Inline-Knoten)? Nur dann setzt die Text-Extraktion
+ *  einen Trenner um seinen Inhalt. Reine Inline-Auszeichnung (<em>/<strong>/<a>
+ *  ohne Box-Display) bleibt ungetrennt — dort steht echter Whitespace ohnehin im
+ *  Textknoten. */
+function istLayoutGrenze(el: Element): boolean {
+  if (BLOCK_GRENZE_TAGS.has(el.tagName)) return true;
+  const style = el.getAttribute("style");
+  return !!style && BOX_DISPLAY.test(style);
+}
+
+/** Sammelt den sichtbaren Text eines Elements und setzt an Layout-Grenzen einen
+ *  Trenner ein — behebt den Whitespace-Verlust bei per-Wort-Spans (Leons
+ *  „FeststoffewieFutterreste"-Befund 2026-07-23). Reine Textknoten werden 1:1
+ *  uebernommen; Element-Kinder rekursiv, mit fuehrendem/abschliessendem Leer-
+ *  raum, wenn sie eine Layout-Grenze sind. Am Ende Whitespace-Kollaps + Trim. */
+function elementText(el: Element): string {
+  const teile: string[] = [];
+  const rein = (knoten: Node): void => {
+    for (const kind of Array.from(knoten.childNodes)) {
+      if (kind.nodeType === 3 /* Text */) {
+        teile.push(kind.textContent ?? "");
+        continue;
+      }
+      if (kind.nodeType !== 1 /* Element */) continue;
+      const kindEl = kind as Element;
+      const grenze = istLayoutGrenze(kindEl);
+      if (grenze) teile.push(" ");
+      rein(kindEl);
+      if (grenze) teile.push(" ");
+    }
+  };
+  rein(el);
+  return teile.join("").replace(/\s+/g, " ").trim();
+}
+
+/** Trimmt + kollabiert Whitespace, MIT Layout-Grenzen-Trennern (s. elementText).
+ *  Frueher ein reiner `el.textContent`-Kollaps — der verklebte per-Wort-Spans. */
 function normTextContent(el: Element): string {
-  return (el.textContent ?? "").replace(/\s+/g, " ").trim();
+  return elementText(el);
 }
 
 /** Kopf-Ebene <style>/<link rel=stylesheet> sammeln (styleUebernehmen) bzw.
@@ -760,6 +831,373 @@ export function htmlZuPuckMitSegmentierung(
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Phase 4b — Struktur-erhaltendes Mapping (StrukturBlock)              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Gemeinsamer Vorfahr zweier Elemente (oder null). Liefert `a`, wenn `a` Vorfahr
+ * von `b` ist (und umgekehrt) — reiner Ketten-Vergleich, kein DOM-Feature ausser
+ * parentElement.
+ */
+function gemeinsamerVorfahr(a: Element, b: Element): Element | null {
+  const vorfahren = new Set<Element>();
+  for (let n: Element | null = a; n; n = n.parentElement) vorfahren.add(n);
+  for (let m: Element | null = b; m; m = m.parentElement) {
+    if (vorfahren.has(m)) return m;
+  }
+  return null;
+}
+
+/** Kleinster gemeinsamer Vorfahr (LCA) einer Element-Liste (oder null). */
+function findeLca(els: Element[]): Element | null {
+  if (els.length === 0) return null;
+  let anc: Element | null = els[0];
+  for (let i = 1; i < els.length && anc; i++) anc = gemeinsamerVorfahr(anc, els[i]);
+  return anc;
+}
+
+/** Kind-Index-Pfad von `von` (Vorfahr) hinab zu `bis` (Nachfahr/gleich), oder
+ *  null wenn `bis` kein Nachfahr von `von` ist. Deterministisch, damit sich ein
+ *  Original-Knoten im frischen (noch unbeschnittenen) Klon exakt wiederfinden
+ *  laesst. */
+function indexPfad(von: Element, bis: Element): number[] | null {
+  const pfad: number[] = [];
+  let n: Element | null = bis;
+  while (n && n !== von) {
+    const eltern: Element | null = n.parentElement;
+    if (!eltern) return null;
+    pfad.unshift(Array.from(eltern.children).indexOf(n));
+    n = eltern;
+  }
+  return n === von ? pfad : null;
+}
+
+/** Folgt einem Kind-Index-Pfad ab `wurzel` (im Klon). */
+function knotenAnPfad(wurzel: Element, pfad: number[]): Element | null {
+  let n: Element | null = wurzel;
+  for (const i of pfad) {
+    n = n?.children[i] ?? null;
+    if (!n) return null;
+  }
+  return n;
+}
+
+/** Marker-Ziel eines „bild"-Atoms: das <img> selbst oder ein einzeln enthaltenes
+ *  <img>. Fuer Nicht-<img>-Medien (canvas/svg/Hintergrund-DIV) gibt es keinen
+ *  sinnvollen editierbaren src-Marker — der Knoten bleibt reines Template-Markup
+ *  (seine Quelle wird ueber die Bild-Registrierung dennoch aufgeloest). */
+function bildMarkerZiel(atom: Element): HTMLImageElement | null {
+  if (atom.tagName === "IMG") return atom as HTMLImageElement;
+  const innen = atom.querySelector("img");
+  return innen ? (innen as HTMLImageElement) : null;
+}
+
+/** Einzeiler-Kuerzung fuer sprechende Sidebar-Labels (texte[].label u.a.). */
+function kuerze(text: string, max: number): string {
+  const eine = text.replace(/\s+/g, " ").trim();
+  return eine.length <= max ? eine : `${eine.slice(0, max - 1)}…`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Phase 4b — DOM-treue Sektionierung (Fix K3, Leons Befund 2026-07-23) */
+/* ------------------------------------------------------------------ */
+/*
+ * WARUM NICHT gemma-Sektionen als Grenze (der alte strukturtreu-Bug): gemma
+ * urteilt SEMANTISCH ("Hero", "Ueber uns", "Features") — NICHT DOM-strukturell.
+ * Wird eine echte Zweispalten-Sektion (z.B. block-prose: Fliesstext | Zitat)
+ * von gemma auf zwei Sektionen aufgeteilt, bekommt jede ihre eigene, ZU TIEFE
+ * LCA und wird zu einem vollbreiten Block — die Spalten STAPELN (Leons Befund:
+ * "Das Konzept" zweispaltig → Einspalten-Stapel; project-oasis-Fehlerklasse).
+ *
+ * FIX: Die Sektionsgrenze kommt aus dem ECHTEN DOM-Container-Baum, nicht aus
+ * gemma. Jeder natuerliche Top-Level-Container (section/header/footer/nav/…, ein
+ * klassifizierter Layout-div) wird EIN StrukturBlock mit seinem VOLLSTAENDIGEN
+ * Original-Markup — Spalten, Overlays und Grids bleiben darin unversehrt. Nur
+ * bedeutungslose Huellen (main, body, klassen-/id-/stil-lose Wrapper-divs) werden
+ * DURCHSCHRITTEN, damit die Seite nicht in EINEM Riesenblock landet, sondern die
+ * Sektionen einzeln verschieb-/loeschbar bleiben. gemma liefert weiterhin das
+ * Text/Bild-Urteil je Atom (Marker-Platzierung), aber NICHT mehr die Geometrie.
+ */
+
+/** Tags, die nie als Inhalt zaehlen (Kopf-/Skript-/Deko-Metadaten). */
+const NICHT_INHALT = new Set(["script", "style", "link", "meta", "noscript", "template", "head", "title", "base"]);
+
+/** Semantische/klassifizierte Sektions-Tags: werden IMMER als EIN Block emittiert
+ *  (nie durchschritten) — ihr Inneres ist ein zusammenhaengendes Layout. */
+const SEKTION_STOP_TAGS = new Set([
+  "section", "header", "footer", "nav", "article", "aside", "figure", "form",
+  "table", "ul", "ol", "dl", "blockquote",
+]);
+
+/** Tags, die als reine Gruppierungs-Huelle DURCHSCHRITTEN werden duerfen
+ *  (main/body immer; div nur wenn anonym). */
+const DURCHSTIEG_TAGS = new Set(["main", "body", "div"]);
+
+/** Container-Tags, deren Anwesenheit als Kind einen anonymen Wrapper als reine
+ *  Huelle ausweist (Kinder sind selbst Layout-Container, kein Fliess-Inhalt). */
+const CONTAINER_KIND_TAGS = new Set([
+  "div", "section", "header", "footer", "nav", "article", "aside", "main",
+  "ul", "ol", "figure", "form",
+]);
+
+/** Traegt das Element einen direkten (nicht ererbten) nicht-leeren Textknoten? */
+function hatDirektText(el: Element): boolean {
+  for (const n of Array.from(el.childNodes)) {
+    if (n.nodeType === 3 && (n.textContent ?? "").trim()) return true;
+  }
+  return false;
+}
+
+/** Nicht-ignorierte Element-Kinder. */
+function inhaltsKinder(el: Element): Element[] {
+  return Array.from(el.children).filter((k) => !NICHT_INHALT.has(k.tagName.toLowerCase()));
+}
+
+/** Liest den `display`-Wert aus dem (ggf. von juice inlined) style-Attribut. */
+function inlineDisplay(el: Element): string {
+  const m = /(?:^|;)\s*display\s*:\s*([a-z-]+)/i.exec(el.getAttribute("style") || "");
+  return m ? m[1].toLowerCase() : "";
+}
+
+/**
+ * Stapelt `el` seine Kinder VERTIKAL (→ Durchsteigen kann die Geometrie nicht
+ * veraendern, weil die Kinder ohnehin untereinander stehen)? Entscheidungs-
+ * grundlage ist die von juice inlinierte `display`/`flex-direction` — GENAU die
+ * gerenderte Layout-Wahrheit. Nur bei einem beweisbar vertikalen Stapel (block/
+ * flow-root/list-item bzw. flex-column) wird durchgestiegen; bei allem, was die
+ * Kinder NEBENEINANDER anordnen koennte (flex-row, grid, inline-*, table, float
+ * ist hier nicht erkennbar → konservativ), bleibt der Container EIN Block und
+ * seine Spalten/Grids bleiben unversehrt (Leons Kernbefund). Fehlt jede inline-
+ * display-Angabe (kein juice / attribut-los), gilt der HTML-Default Block =
+ * vertikaler Fluss → sicher zum Durchsteigen.
+ */
+function stapeltVertikal(el: Element): boolean {
+  const display = inlineDisplay(el);
+  if (display === "" || display === "block" || display === "flow-root" || display === "list-item") return true;
+  if (display === "flex" || display === "inline-flex") {
+    const m = /(?:^|;)\s*flex-direction\s*:\s*([a-z-]+)/i.exec(el.getAttribute("style") || "");
+    const dir = m ? m[1].toLowerCase() : "row";
+    return dir === "column" || dir === "column-reverse";
+  }
+  /* grid, inline-block, inline, inline-grid, table*, contents, … → koennte neben-
+     einander anordnen → NICHT durchsteigen. */
+  return false;
+}
+
+/**
+ * Ist `el` eine reine Durchstiegs-Huelle (→ NICHT als eigener Block emittieren,
+ * sondern in ihre Kinder absteigen)? Bedingungen:
+ *   · Tag ist main/body oder div (semantische/klassifizierte Sektions-Tags sind
+ *     NIE eine Huelle — sie tragen zusammenhaengendes Layout),
+ *   · kein eigener Direkt-Text (sonst als Block behalten),
+ *   · mind. ein Container-Kind (sonst Inline-/Blatt-Reihe, z.B. per-Wort-Spans),
+ *   · el stapelt seine Kinder beweisbar VERTIKAL (stapeltVertikal) — nur dann
+ *     aendert Durchsteigen die Geometrie garantiert nicht.
+ * Streu-Blattkinder (skip-link u.a.) werden beim Abstieg zu eigenen Mini-Bloecken
+ * (bei vertikalem Fluss stapeln sie ohnehin — Treue bleibt gewahrt).
+ */
+function istDurchstiegsHuelle(el: Element): boolean {
+  const tag = el.tagName.toLowerCase();
+  if (SEKTION_STOP_TAGS.has(tag)) return false;
+  if (!DURCHSTIEG_TAGS.has(tag)) return false;
+  if (hatDirektText(el)) return false;
+  const kinder = inhaltsKinder(el);
+  if (kinder.length === 0) return false;
+  if (!kinder.some((k) => CONTAINER_KIND_TAGS.has(k.tagName.toLowerCase()))) return false;
+  return stapeltVertikal(el);
+}
+
+/** Enthaelt `el` (selbst oder im Subtree) mindestens ein Outline-Atom? */
+function enthaeltAtom(el: Element, atome: Set<Element>): boolean {
+  if (atome.has(el)) return true;
+  for (const a of atome) if (el.contains(a)) return true;
+  return false;
+}
+
+/**
+ * Ermittelt die DOM-treuen Sektions-Wurzeln ab `wurzel`: steigt durch reine
+ * Huellen ab und sammelt jeden ersten nicht-Huellen-Container (mit Atomen) als
+ * eine Sektion. So bleibt jede echte Layout-Sektion (Spalten/Overlay/Grid) in
+ * EINEM Template, waehrend bedeutungslose Wrapper aufgeloest werden.
+ */
+function sammleSektionsWurzeln(wurzel: Element, atome: Set<Element>): Element[] {
+  const out: Element[] = [];
+  const rein = (el: Element): void => {
+    for (const kind of inhaltsKinder(el)) {
+      if (!enthaeltAtom(kind, atome)) continue; // reine Deko/leer zwischen Sektionen
+      if (istDurchstiegsHuelle(kind)) rein(kind);
+      else out.push(kind);
+    }
+  };
+  if (!istDurchstiegsHuelle(wurzel)) return enthaeltAtom(wurzel, atome) ? [wurzel] : [];
+  rein(wurzel);
+  return out;
+}
+
+/**
+ * Baut EINEN StrukturBlock aus einer DOM-treuen Sektions-Wurzel (Fix K3). Anders
+ * als der alte gemma-getriebene Weg (LCA aus verstreuten Atomen + Fremd-Beschnitt)
+ * ist die Wurzel HIER bereits der exakte, disjunkte Sektions-Container — das gesamte
+ * Original-Markup bleibt 1:1 Layout-Traeger, es wird NICHTS beschnitten (die
+ * Sektionen ueberlappen per Konstruktion nicht). Innerhalb der Wurzel bekommt
+ * jedes text/bild-Atom seinen Marker + editierbaren Prop-Wert.
+ */
+function baueSektionsBlockAusWurzel(
+  ctx: BauKontext,
+  wurzel: Element,
+  typNach: Map<string, BlockTyp>,
+  refNach: Map<Element, string>,
+  alleAtome: Element[],
+): ComponentData | null {
+  const klon = wurzel.cloneNode(true) as Element;
+  const texte: StrukturText[] = [];
+  const bilder: StrukturBild[] = [];
+  let tN = 0;
+  let bN = 0;
+
+  const eigenAtome = alleAtome.filter((a) => a === wurzel || wurzel.contains(a));
+  for (const atom of eigenAtome) {
+    const typ = typNach.get(refNach.get(atom) ?? "") ?? rateTyp(atom);
+    if (typ === "text") {
+      const wert = elementText(atom);
+      if (!wert) continue; // leerer „Text" → kein Marker, bleibt Template-Markup
+      const pfad = indexPfad(wurzel, atom);
+      if (!pfad) continue;
+      const ziel = knotenAnPfad(klon, pfad);
+      if (!ziel) continue;
+      const id = `t${(tN += 1)}`;
+      ziel.setAttribute(MARKER_TEXT, id);
+      texte.push({ id, label: kuerze(wert, 40), wert });
+      ctx.statistik.texte += 1;
+    } else if (typ === "bild") {
+      const zielOrig = bildMarkerZiel(atom);
+      if (!zielOrig) continue; // canvas/svg/bg → nur Template-Markup (kein src-Marker)
+      const pfad = indexPfad(wurzel, zielOrig);
+      if (!pfad) continue;
+      const zielKlon = knotenAnPfad(klon, pfad);
+      if (!zielKlon) continue;
+      const src = zielOrig.getAttribute("src") ?? "";
+      const alt = zielOrig.getAttribute("alt") ?? "";
+      const id = `b${(bN += 1)}`;
+      zielKlon.setAttribute(MARKER_BILD, id);
+      bilder.push({ id, label: alt || kuerze(src.split("/").pop() ?? "Bild", 40), src, alt });
+    }
+    /* typ "html" → keine Marker, bleibt unangetastetes Template-Markup. */
+  }
+
+  const flags = entschaerfeElement(klon, ctx.stil);
+  ctx.flags.push(...flags);
+  registriereHtmlBilder(ctx, klon);
+
+  const template = klon.outerHTML.trim();
+  if (!template) return null;
+
+  ctx.statistik.sektionen += 1;
+  const props: StrukturBlockProps = { id: ctx.ids.naechste("struktur"), template, texte, bilder };
+  return { type: "StrukturBlock", props };
+}
+
+/**
+ * HTML + Segmentierungs-Urteil -> STRUKTUR-ERHALTENDE Puck-Data (Phase 4b). Jede
+ * gemma-Sektion wird EIN StrukturBlock, dessen `template` das Original-Markup 1:1
+ * traegt (Layout-Treue) und dessen texte[]/bilder[] die editierbaren Inhalte an
+ * Marker-Positionen sind (Injektion: struktur-injektion.ts).
+ *
+ * GEGENSATZ zu htmlZuPuckMitSegmentierung (fein): das feine Mapping zerlegt eine
+ * Sektion in lose Geschwister-Bausteine und ZERSTOERT das Layout (Hero-Overlay →
+ * Stapel, Zweispalter → Einspalte). Das strukturtreue Mapping behaelt das Layout,
+ * gibt aber Einzelelement-Drag INNERHALB einer Sektion auf (Treue vor
+ * Granularitaet, Leons Prioritaet).
+ *
+ * ERWARTUNG wie htmlZuPuckMitSegmentierung: `html` ist dasselbe (Freeze-)HTML, aus
+ * dem Schritt III die Outline gebildet hat — die refs decken sich deterministisch.
+ * Fuer die Style-Treue liefert der Skript-Pfad (import-fein.mjs, juice) die inlined
+ * Styles VOR dem Mapping; dieser reine Adapter liest sie nur mit (bleibt juice-frei).
+ */
+export function htmlZuPuckStrukturtreu(
+  html: string,
+  segmentierung: Segmentierung,
+  opts: { idPraefix?: string; styleUebernehmen?: boolean } = {},
+): ImportBericht {
+  const stil: StilSammler | null = opts.styleUebernehmen ? { stylesheets: [], inlineStyles: [] } : null;
+  const ctx: BauKontext = {
+    ids: new IdZaehler(opts.idPraefix ? `${opts.idPraefix}-` : ""),
+    flags: [],
+    statistik: { sektionen: 0, texte: 0, bilder: 0, htmlBloecke: 0 },
+    bilder: [],
+    stil,
+    htmlBildSrcs: new Set<string>(),
+  };
+
+  const framework = erkenntFramework(html);
+
+  const gefiltert = entferneFremdkoerper(html);
+  for (const e of gefiltert.entfernt) {
+    ctx.flags.push({ grund: FLAG_FREMDKOERPER, detail: e.beschreibung });
+  }
+
+  const { knoten, elemente, doc } = baueOutlineMitElementen(gefiltert.html);
+  sammleKopfStyles(ctx, doc);
+  flaggeSkripte(ctx, doc);
+
+  const geprueft = validiereSegmentierung(segmentierung, knoten);
+  if (!geprueft.ok) ctx.flags.push({ grund: FLAG_SEG_ABWEICHUNG, detail: geprueft.fehler });
+
+  /* Typ-Karte (gemma-Urteil je Atom) + Element/ref-Karten fuer den Block-Bau.
+     gemma liefert NUR noch das Text/Bild-Urteil je Atom (Marker-Platzierung),
+     NICHT mehr die Sektionsgeometrie (Fix K3, s. sammleSektionsWurzeln). */
+  const typNach = new Map<string, BlockTyp>();
+  for (const s of segmentierung.sektionen) for (const b of s.bloecke) typNach.set(b.ref, b.typ);
+  const alleAtome = knoten.map((k) => elemente.get(k.ref)).filter((e): e is Element => !!e);
+  const atomSet = new Set<Element>(alleAtome);
+  const refNach = new Map<Element, string>();
+  for (const [ref, el] of elemente) refNach.set(el, ref);
+
+  /* DOM-treue Sektionierung: die Grenzen kommen aus dem echten Container-Baum,
+     nicht aus gemmas semantischem Urteil. Wurzel = LCA aller Atome (der reale
+     Inhalts-Wrapper; faellt bei Bedarf auf <body> zurueck). */
+  const wurzel = findeLca(alleAtome) ?? doc?.body ?? null;
+  const content: ComponentData[] = [];
+
+  if (wurzel) {
+    const sektionsWurzeln = sammleSektionsWurzeln(wurzel, atomSet);
+    for (const sw of sektionsWurzeln) {
+      const block = baueSektionsBlockAusWurzel(ctx, sw, typNach, refNach, alleAtome);
+      if (block) content.push(block);
+      else ctx.flags.push({ grund: FLAG_STRUKTUR_LEER, detail: sw.tagName.toLowerCase() });
+    }
+
+    /* Verlustschutz: Atome, die keine emittierte Sektions-Wurzel abdeckt (bei
+       sauberer DOM-Struktur leer), in einem Rest-StrukturBlock auffangen. */
+    const abgedeckt = new Set<Element>();
+    for (const sw of sammleSektionsWurzeln(wurzel, atomSet)) {
+      for (const a of alleAtome) if (a === sw || sw.contains(a)) abgedeckt.add(a);
+    }
+    const restAtome = alleAtome.filter((a) => !abgedeckt.has(a));
+    if (restAtome.length > 0) {
+      const restLca = findeLca(restAtome);
+      if (restLca) {
+        const block = baueSektionsBlockAusWurzel(ctx, restLca, typNach, refNach, alleAtome);
+        if (block) {
+          ctx.flags.push({ grund: FLAG_SEG_REST, detail: `${restAtome.length} Atome ohne DOM-Sektion` });
+          content.push(block);
+        }
+      }
+    }
+  }
+
+  return {
+    data: { root: {}, content },
+    flags: dedupliziereFlags(ctx.flags),
+    statistik: ctx.statistik,
+    bilder: ctx.bilder,
+    stylesheets: stil ? dedupliziereStrings(stil.stylesheets) : [],
+    inlineStyles: stil ? dedupliziereStrings(stil.inlineStyles) : [],
+    framework,
+  };
+}
+
 /** Behaelt die erste Vorkommen-Reihenfolge, wirft exakte Duplikate raus. */
 function dedupliziereStrings(werte: string[]): string[] {
   const gesehen = new Set<string>();
@@ -862,6 +1300,35 @@ export function ersetzeBildQuellen(
         const neu = html.replace(htmlRegex, (treffer) => htmlMap.get(treffer) ?? treffer);
         if (neu !== html) return { ...item, props: { ...item.props, html: neu } };
       }
+    }
+    /* Phase 4b: StrukturBlock traegt Original-Bildquellen an ZWEI Stellen — im
+       `template`-Markup (Hintergrundbilder, dekorative <img>) UND in den
+       editierbaren `bilder[].src`. Beide ueber denselben (laengste-Pfade-zuerst)
+       Alternations-Ersatz wie beim HtmlBlock umbiegen. */
+    if (item.type === "StrukturBlock" && htmlRegex) {
+      const props = item.props as { template?: unknown; bilder?: unknown };
+      let geaendert = false;
+      const neueProps: Record<string, unknown> = { ...item.props };
+      if (typeof props.template === "string" && props.template.length > 0) {
+        const neu = props.template.replace(htmlRegex, (treffer) => htmlMap.get(treffer) ?? treffer);
+        if (neu !== props.template) {
+          neueProps.template = neu;
+          geaendert = true;
+        }
+      }
+      if (Array.isArray(props.bilder)) {
+        const neuBilder = props.bilder.map((b) => {
+          const src = (b as { src?: unknown }).src;
+          if (typeof src !== "string" || src.length === 0) return b;
+          const neu = src.replace(htmlRegex, (treffer) => htmlMap.get(treffer) ?? treffer);
+          return neu === src ? b : { ...(b as object), src: neu };
+        });
+        if (neuBilder.some((b, i) => b !== (props.bilder as unknown[])[i])) {
+          neueProps.bilder = neuBilder;
+          geaendert = true;
+        }
+      }
+      if (geaendert) return { ...item, props: neueProps } as ComponentData;
     }
     return item;
   };

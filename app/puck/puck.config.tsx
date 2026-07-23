@@ -32,6 +32,8 @@ import {
   type TextBlockProps,
   type TextVariante,
 } from "@/lib/import/html-zu-puck";
+import { StrukturBlock } from "@/components/import/StrukturBlock";
+import type { StrukturBlockProps } from "@/lib/import/struktur-injektion";
 
 type ShapeAccentBlockProps = {
   variant: "arc" | "sunburst" | "blob-a" | "blob-b" | "blob-c";
@@ -51,6 +53,11 @@ type PuckProps = {
   TextBlock: Omit<TextBlockProps, "id">;
   BildBlock: Omit<BildBlockProps, "id">;
   HtmlBlock: Omit<HtmlBlockProps, "id">;
+  // Phase 4b (struktur-erhaltender Import): Original-Markup als Layout-Traeger,
+  // editierbar ueber Text-/Bild-Injektion an Marker-Positionen. Prop-Typ aus
+  // dem Adapter (lib/import/struktur-injektion.ts) — SYNCHRONPFLICHT mit
+  // lib/puck-registry.ts.
+  StrukturBlock: Omit<StrukturBlockProps, "id">;
 };
 
 export const config: Config<PuckProps> = {
@@ -320,8 +327,101 @@ export const config: Config<PuckProps> = {
         <div dangerouslySetInnerHTML={{ __html: entschaerfeHtml(html ?? "").html }} />
       ),
     },
+
+    // ---- Phase 4b: struktur-erhaltender Import-Baustein ----
+    //
+    // Eine ganze Original-Sektion bleibt als EIN Block erhalten (Layout-Treue,
+    // Leons Befund 2026-07-23): `template` ist das entschaerfte Original-Markup
+    // mit Marker-Attributen (data-fc-text/data-fc-bild), texte/bilder sind die
+    // an diesen Markern injizierten, editierbaren Werte. render delegiert 1:1 an
+    // die Render-Einheit components/import/StrukturBlock.tsx (Injektion rein in
+    // lib/import/struktur-injektion.ts). BEWUSSTER TRADE-OFF: kein Einzelelement-
+    // Drag innerhalb der Sektion — Treue vor Granularitaet.
+    StrukturBlock: {
+      label: "Struktur-Sektion (importiert, layout-treu)",
+      fields: {
+        // Das Template ist der Layout-Traeger und bewusst NICHT frei editierbar
+        // (eine Roh-HTML-Bearbeitung wuerde genau das Layout zerstoeren, das der
+        // Baustein bewahrt). Read-only-Vorschau; der Wert bleibt in der Puck-
+        // Data erhalten, weil dieses custom-Feld onChange nie aufruft.
+        template: {
+          type: "custom",
+          label: "Struktur-Vorlage (Layout, nicht editierbar)",
+          render: ({ value }) => (
+            <FieldLabel label="Struktur-Vorlage (Layout, nicht editierbar)">
+              <pre
+                style={{
+                  margin: 0,
+                  maxHeight: 120,
+                  overflow: "auto",
+                  padding: 8,
+                  background: "#faf7f0",
+                  border: "1px solid #e3d9c8",
+                  borderRadius: 6,
+                  font: "11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace",
+                  color: "#6a5f52",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                }}
+              >
+                {kuerzeVorschau(typeof value === "string" ? value : "", 400)}
+              </pre>
+            </FieldLabel>
+          ),
+        },
+        // Editierbare Texte, je Marker einer. Labels sprechend (gekuerzter
+        // Original-Inhalt), damit die Sidebar navigierbar bleibt. Feld-Muster
+        // wie beim TextBlock (mehrzeiliges Textfeld).
+        texte: {
+          type: "array",
+          label: "Texte",
+          getItemSummary: (item: { label?: string; wert?: string }, index?: number) =>
+            item?.label || kuerzeVorschau(item?.wert ?? "", 40) || `Text ${(index ?? 0) + 1}`,
+          arrayFields: {
+            // id + label sind interne Zuordnungs-/Anzeigedaten (id bindet an den
+            // Template-Marker, label speist getItemSummary) — bewusst NICHT
+            // editierbar (custom-Feld ohne UI, onChange wird nie aufgerufen →
+            // Wert bleibt erhalten). Nur `wert` ist editierbar (wie TextBlock).
+            id: { type: "custom", render: () => <></> },
+            label: { type: "custom", render: () => <></> },
+            wert: { type: "textarea", label: "Text" },
+          },
+        },
+        // Editierbare Bilder, je Marker einer. Feld-Muster wie beim BildBlock
+        // (src + alt). Die src wird beim Rendern ge-whitelistet.
+        bilder: {
+          type: "array",
+          label: "Bilder",
+          getItemSummary: (item: { label?: string; alt?: string }, index?: number) =>
+            item?.label || item?.alt || `Bild ${(index ?? 0) + 1}`,
+          arrayFields: {
+            // id + label intern (siehe texte) — nicht editierbar.
+            id: { type: "custom", render: () => <></> },
+            label: { type: "custom", render: () => <></> },
+            src: { type: "text", label: "Bildquelle (src)" },
+            alt: { type: "text", label: "Alternativtext" },
+          },
+        },
+      },
+      defaultProps: {
+        template: '<section data-og-typ="sektion"><p data-fc-text="t1">Text</p></section>',
+        texte: [{ id: "t1", label: "Text", wert: "Text" }],
+        bilder: [],
+      },
+      render: ({ template, texte, bilder }) => (
+        <StrukturBlock template={template} texte={texte ?? []} bilder={bilder ?? []} />
+      ),
+    },
   },
 };
+
+/** Kuerzt einen (ggf. mehrzeiligen) Text auf eine einzeilige Vorschau — fuer
+ *  sprechende Feld-/Item-Labels in der Sidebar. */
+function kuerzeVorschau(text: string, max: number): string {
+  const eine = text.replace(/\s+/g, " ").trim();
+  if (eine.length <= max) return eine;
+  return `${eine.slice(0, max - 1)}…`;
+}
 
 /* --- Welle 4c Punkt 1: data-og-id fuer JEDEN Puck-Baustein --------------
  * docs/editor-vereinheitlichung.md §9/4c(1). Jede registrierte Komponente
@@ -350,6 +450,7 @@ const OG_TYP_JE_KOMPONENTE: Record<string, OgTyp> = {
   TextBlock: "text",
   BildBlock: "bild",
   HtmlBlock: "deko",
+  StrukturBlock: "sektion",
 };
 
 for (const typ of Object.keys(config.components)) {
