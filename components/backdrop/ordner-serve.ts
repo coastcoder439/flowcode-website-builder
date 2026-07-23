@@ -213,3 +213,17 @@ export async function ordnerBereitstellen(handle: OrdnerHandle): Promise<number>
   if (!ok) throw new Error("Service Worker konnte nicht registriert werden");
   return anzahl;
 }
+
+/** Verbindet einen BEREITS anderweitig gepickten Ordner-Handle (I8b/M8: der
+ *  Seiten-Import hat den Ordner schon per showDirectoryPicker gewaehlt) als
+ *  lebendige Ordner-Buehne. Unterschied zu `ordnerBereitstellen`: merkt den
+ *  Handle ZUSAETZLICH dauerhaft in der Backdrop-IndexedDB (genau wie
+ *  `ordnerWaehlen` es beim eigenen Picken tut) — noetig, damit der Ordner-Modus
+ *  ein Neuladen uebersteht (Backdrop.tsx' `ordnerHolen(false)` beim Mounten) und
+ *  „🔓 Ordner erneut freigeben" (BackdropAuswahl) den Handle wiederfindet.
+ *  Den Backdrop-Modus selbst auf "ordner" setzt der Aufrufer (Direktpfad-
+ *  Persistenz, s. SeitenImport). Wirft wie `ordnerBereitstellen`. */
+export async function ordnerVerbinden(handle: OrdnerHandle): Promise<number> {
+  await idbSet(K_ORDNER_HANDLE, handle);
+  return ordnerBereitstellen(handle);
+}

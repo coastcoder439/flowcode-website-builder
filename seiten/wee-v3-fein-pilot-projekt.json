@@ -2,7 +2,7 @@
   "$doc": "Vom Flowcode-Builder gespeicherte Puck-Seite (lib/api/seiten-speicher.ts). data = Puck-Datenmodell {root, content[], ...} der registrierten Komponenten (lib/puck-registry.ts). Geschrieben ueber POST /api/puck-seite/speichere oder den Import-Endpunkt; der Puck-Editor/Render liest exakt dieses data-Feld.",
   "version": 1,
   "name": "wee-v3-fein-pilot-projekt",
-  "gespeichert": "2026-07-23T11:18:19.288Z",
+  "gespeichert": "2026-07-23T15:07:54.230Z",
   "data": {
     "root": {},
     "content": [

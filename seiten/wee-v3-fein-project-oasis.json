@@ -2,30 +2,28 @@
   "$doc": "Vom Flowcode-Builder gespeicherte Puck-Seite (lib/api/seiten-speicher.ts). data = Puck-Datenmodell {root, content[], ...} der registrierten Komponenten (lib/puck-registry.ts). Geschrieben ueber POST /api/puck-seite/speichere oder den Import-Endpunkt; der Puck-Editor/Render liest exakt dieses data-Feld.",
   "version": 1,
   "name": "wee-v3-fein-project-oasis",
-  "gespeichert": "2026-07-23T11:18:50.676Z",
+  "gespeichert": "2026-07-23T15:08:00.924Z",
   "data": {
     "root": {},
     "content": [
       {
         "type": "SektionBlock",
         "props": {
-          "id": "imp-wee-v3-fein-project-oasis-sektion-24",
+          "id": "imp-wee-v3-fein-project-oasis-sektion-27",
           "hintergrund": "transparent",
           "kinder": [
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-1",
-                "text": "Zum Inhalt springen",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-1",
+                "html": "<a href=\"#content\" class=\"skip-link\">Zum Inhalt springen</a>"
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-2",
-                "text": "Visuelle Assistenzsoftware und Vorlesefunktion Eye-Able öffnen. Mit der Tastatur erreichbar über ALT + 1",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-2",
+                "html": "<a class=\"eyeAble_hiddenOpener\" ealangid=\"accessibleLinkText\" style=\"height: 1px !important; width: 1px !important; margin: -1px !important; overflow: hidden !important; clip: rect(1px, 1px, 1px, 1px) !important; position: fixed !important; top: -10000px !important; left: -10000px !important; display: inline;\">Visuelle Assistenzsoftware und Vorlesefunktion Eye-Able öffnen. Mit der Tastatur erreichbar über ALT + 1</a>"
               }
             },
             {
@@ -60,11 +58,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-8",
-                "text": "Bildung",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-8",
+                "html": "<button type=\"button\" class=\"site-nav__trigger\" aria-haspopup=\"true\" aria-expanded=\"false\">Bildung<span class=\"site-nav__chevron\" aria-hidden=\"true\"></span></button>"
               }
             },
             {
@@ -76,11 +73,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-10",
-                "text": "Die Organisation",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-10",
+                "html": "<button type=\"button\" class=\"site-nav__trigger\" aria-haspopup=\"true\" aria-expanded=\"false\">Die Organisation<span class=\"site-nav__chevron\" aria-hidden=\"true\"></span></button>"
               }
             },
             {
@@ -100,11 +96,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-13",
-                "text": "Spenden",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-13",
+                "html": "<a class=\"btn btn--accent site-header__cta\" href=\"https://secure.spendenbank.de/form/3930?langid=1\" target=\"_blank\" rel=\"noopener noreferrer\">Spenden</a>"
               }
             },
             {
@@ -132,11 +127,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-17",
-                "text": "Bildung",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-17",
+                "html": "<a href=\"/bildung/\">Bildung</a>"
               }
             },
             {
@@ -172,11 +166,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-22",
-                "text": "Die Organisation",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-22",
+                "html": "<a href=\"/organisation/\">Die Organisation</a>"
               }
             },
             {
@@ -186,20 +179,11 @@
                 "text": "Unsere Grundsätze",
                 "variante": "p"
               }
-            }
-          ]
-        }
-      },
-      {
-        "type": "SektionBlock",
-        "props": {
-          "id": "imp-wee-v3-fein-project-oasis-sektion-36",
-          "hintergrund": "transparent",
-          "kinder": [
+            },
             {
               "type": "TextBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-25",
+                "id": "imp-wee-v3-fein-project-oasis-text-24",
                 "text": "Unser Team",
                 "variante": "p"
               }
@@ -207,19 +191,27 @@
             {
               "type": "TextBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-26",
+                "id": "imp-wee-v3-fein-project-oasis-text-25",
                 "text": "FAQ",
                 "variante": "p"
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-27",
-                "text": "Spenden",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-26",
+                "html": "<a class=\"btn btn--accent\" href=\"https://secure.spendenbank.de/form/3930?langid=1\" target=\"_blank\" rel=\"noopener noreferrer\">Spenden</a>"
               }
-            },
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-project-oasis-sektion-34",
+          "hintergrund": "transparent",
+          "kinder": [
             {
               "type": "BildBlock",
               "props": {
@@ -246,19 +238,17 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-31",
-                "text": "Über uns",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-31",
+                "html": "<a class=\"btn btn--outline\" href=\"/organisation/\">Über uns</a>"
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-32",
-                "text": "Unterstütze uns hier",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-32",
+                "html": "<div style=\"display: inline-flex; transform: none;\"><a class=\"btn btn--primary\" href=\"https://secure.spendenbank.de/form/3930?langid=1\" target=\"_blank\" rel=\"noopener noreferrer\">Unterstütze uns hier</a></div>"
               }
             },
             {
@@ -266,22 +256,6 @@
               "props": {
                 "id": "imp-wee-v3-fein-project-oasis-text-33",
                 "text": "Was ist Project Oasis?",
-                "variante": "p"
-              }
-            },
-            {
-              "type": "TextBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-34",
-                "text": "Das Konzept",
-                "variante": "h2"
-              }
-            },
-            {
-              "type": "TextBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-35",
-                "text": "Project Oasis ist unser ganzheitliches Systemkonzept für eine dezentrale, ressourcenschonende Lebensmittelproduktion. Anstatt gegen die Natur zu arbeiten, nutzen wir ihre eigenen, perfekten Kreisläufe und kombinieren sie mit intelligenter Strukturgebung. Das Projekt verbindet ökologische Innovation, soziale Stabilisierung und Natur- & Klimaschutz in einem modular skalierbaren Ansatz.",
                 "variante": "p"
               }
             }
@@ -294,6 +268,22 @@
           "id": "imp-wee-v3-fein-project-oasis-sektion-47",
           "hintergrund": "transparent",
           "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-text-35",
+                "text": "Das Konzept",
+                "variante": "h2"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-text-36",
+                "text": "Project Oasis ist unser ganzheitliches Systemkonzept für eine dezentrale, ressourcenschonende Lebensmittelproduktion. Anstatt gegen die Natur zu arbeiten, nutzen wir ihre eigenen, perfekten Kreisläufe und kombinieren sie mit intelligenter Strukturgebung. Das Projekt verbindet ökologische Innovation, soziale Stabilisierung und Natur- & Klimaschutz in einem modular skalierbaren Ansatz.",
+                "variante": "p"
+              }
+            },
             {
               "type": "BildBlock",
               "props": {
@@ -381,7 +371,7 @@
       {
         "type": "SektionBlock",
         "props": {
-          "id": "imp-wee-v3-fein-project-oasis-sektion-58",
+          "id": "imp-wee-v3-fein-project-oasis-sektion-57",
           "hintergrund": "transparent",
           "kinder": [
             {
@@ -396,7 +386,7 @@
               "type": "TextBlock",
               "props": {
                 "id": "imp-wee-v3-fein-project-oasis-text-49",
-                "text": "Wassertanks",
+                "text": "Feststofffilter",
                 "variante": "h3"
               }
             },
@@ -404,7 +394,7 @@
               "type": "TextBlock",
               "props": {
                 "id": "imp-wee-v3-fein-project-oasis-text-50",
-                "text": "AmAnfangjedesKreislaufsstehendieWassertanks:HierlebendieFische,derenAusscheidungendemSystemkontinuierlichdiewichtigstenNährstoffeliefern.",
+                "text": "FeststoffewieFutterresteundSchwebstoffewerdenherausgefiltert,damitdasWassersauberzudenPflanzenweiterströmenkann.",
                 "variante": "p"
               }
             },
@@ -456,14 +446,6 @@
                 "text": "Bakterienfilter",
                 "variante": "h3"
               }
-            },
-            {
-              "type": "TextBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-57",
-                "text": "Bakterienkulturen wandeln das nährstoffreiche Wasser biologisch um: Aus Ammonium entsteht pflanzenverfügbares Nitrat, bevor das Wasser weiterfließt.",
-                "variante": "p"
-              }
             }
           ]
         }
@@ -474,6 +456,14 @@
           "id": "imp-wee-v3-fein-project-oasis-sektion-69",
           "hintergrund": "transparent",
           "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-text-58",
+                "text": "Bakterienkulturen wandeln das nährstoffreiche Wasser biologisch um: Aus Ammonium entsteht pflanzenverfügbares Nitrat, bevor das Wasser weiterfließt.",
+                "variante": "p"
+              }
+            },
             {
               "type": "BildBlock",
               "props": {
@@ -564,7 +554,7 @@
       {
         "type": "SektionBlock",
         "props": {
-          "id": "imp-wee-v3-fein-project-oasis-sektion-80",
+          "id": "imp-wee-v3-fein-project-oasis-sektion-79",
           "hintergrund": "transparent",
           "kinder": [
             {
@@ -639,15 +629,6 @@
                 "text": "Die Systembestandteile",
                 "variante": "h2"
               }
-            },
-            {
-              "type": "BildBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-bild-79",
-                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20200%20200%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M30%20100C24%2060%2070%2024%20116%2028C162%2032%20188%2072%20182%20112C176%20152%20132%20184%2088%20178C44%20172%2036%20140%2030%20100Z%22%20fill%3D%22var(--green-400)%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
-                "alt": "",
-                "breiteProzent": 100
-              }
             }
           ]
         }
@@ -658,6 +639,15 @@
           "id": "imp-wee-v3-fein-project-oasis-sektion-92",
           "hintergrund": "transparent",
           "kinder": [
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-bild-80",
+                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20200%20200%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M30%20100C24%2060%2070%2024%20116%2028C162%2032%20188%2072%20182%20112C176%20152%20132%20184%2088%20178C44%20172%2036%20140%2030%20100Z%22%20fill%3D%22var(--green-400)%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
+                "alt": "",
+                "breiteProzent": 100
+              }
+            },
             {
               "type": "BildBlock",
               "props": {
@@ -1005,7 +995,7 @@
       {
         "type": "SektionBlock",
         "props": {
-          "id": "imp-wee-v3-fein-project-oasis-sektion-135",
+          "id": "imp-wee-v3-fein-project-oasis-sektion-137",
           "hintergrund": "transparent",
           "kinder": [
             {
@@ -1091,6 +1081,22 @@
                 "id": "imp-wee-v3-fein-project-oasis-html-134",
                 "html": "<div class=\"features-list__marker\"><svg viewBox=\"0 0 200 200\" width=\"32\" height=\"32\" class=\"features-list__icon\" aria-hidden=\"true\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"14\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"100\" cy=\"100\" r=\"14\" fill=\"currentColor\" fill-opacity=\"0.2\" stroke=\"none\"></circle><path d=\"M100 48 A52 52 0 0 1 100 152\"></path><path d=\"M114 143 L100 152 L114 161\"></path><path d=\"M100 152 A52 52 0 0 1 100 48\"></path><path d=\"M86 40 L100 48 L86 56\"></path></svg><span class=\"features-list__no\" aria-hidden=\"true\">04</span></div>"
               }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-text-135",
+                "text": "Resilienz gegenüber Krisen",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-project-oasis-text-136",
+                "text": "Globale Lieferkettenkrisen und zunehmende Extremwetterereignisse zeigen die Verwundbarkeit zentraler Systeme. Dezentral betriebene Module schaffen hier unabhängige, lokal kontrollierbare Strukturen.",
+                "variante": "p"
+              }
             }
           ]
         }
@@ -1101,22 +1107,6 @@
           "id": "imp-wee-v3-fein-project-oasis-sektion-146",
           "hintergrund": "transparent",
           "kinder": [
-            {
-              "type": "TextBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-136",
-                "text": "Resilienz gegenüber Krisen",
-                "variante": "h3"
-              }
-            },
-            {
-              "type": "TextBlock",
-              "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-137",
-                "text": "Globale Lieferkettenkrisen und zunehmende Extremwetterereignisse zeigen die Verwundbarkeit zentraler Systeme. Dezentral betriebene Module schaffen hier unabhängige, lokal kontrollierbare Strukturen.",
-                "variante": "p"
-              }
-            },
             {
               "type": "TextBlock",
               "props": {
@@ -1150,11 +1140,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-142",
-                "text": "Mehr zur Wissenschaft dahinter",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-142",
+                "html": "<div class=\"cta-row\"><a class=\"btn btn--outline\" href=\"/bildung/\">Mehr zur Wissenschaft dahinter</a></div>"
               }
             },
             {
@@ -1226,11 +1215,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-151",
-                "text": "Jetzt spenden",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-151",
+                "html": "<div style=\"display: inline-flex; transform: none;\"><a class=\"btn btn--primary\" href=\"https://secure.spendenbank.de/form/3930?langid=1\" target=\"_blank\" rel=\"noopener noreferrer\">Jetzt spenden</a></div>"
               }
             },
             {
@@ -1266,11 +1254,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-156",
-                "text": "Folge uns",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-156",
+                "html": "<div class=\"cta-row\"><a class=\"btn btn--outline\" href=\"https://www.instagram.com/worldedenera/\" target=\"_blank\" rel=\"noopener noreferrer\">Folge uns</a></div>"
               }
             }
           ]
@@ -1366,11 +1353,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-168",
-                "text": "© 2026 World Eden Era gUG (haftungsbeschränkt)",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-168",
+                "html": "<div class=\"container site-footer__bottom\"><span>© <!-- -->2026<!-- --> <!-- -->World Eden Era gUG (haftungsbeschränkt)</span></div>"
               }
             },
             {
@@ -1390,11 +1376,10 @@
               }
             },
             {
-              "type": "TextBlock",
+              "type": "HtmlBlock",
               "props": {
-                "id": "imp-wee-v3-fein-project-oasis-text-171",
-                "text": "Verstanden",
-                "variante": "p"
+                "id": "imp-wee-v3-fein-project-oasis-html-171",
+                "html": "<button class=\"btn btn--primary btn--sm\">Verstanden</button>"
               }
             }
           ]

@@ -188,6 +188,36 @@ function BackdropOrdner() {
 
 type LebendigStatus = "pruefe" | "lebendig" | "render";
 
+/*
+ * QUELLEN-PRIORITÄT DER BÜHNE FÜR EINE IMPORTIERTE SEITE (I8/I8b/M8) — drei
+ * Stufen, absteigend „lebendigster Zustand zuerst". Welche greift, haengt am
+ * gemerkten Backdrop-Modus (backdrop.art), NICHT an einer Laufzeit-Erkennung:
+ *
+ *   (a) VERBUNDENER ORDNER — art:"ordner" → BackdropOrdner (oben in dieser
+ *       Datei): der Service-Worker-Ordnermodus serviert die Original-Dateien
+ *       (inkl. JS) same-origin unter /wee-site/ → die Seite laeuft LEBENDIG MIT
+ *       ihren eigenen (auch JS-getriebenen) Animationen. Das ist der von M8
+ *       geforderte Zustand. Erreichbar (I8b) direkt aus dem Seiten-Import
+ *       (SeitenImport: „Als lebendige Animator-Bühne verbinden") ODER ueber
+ *       „📁 Ordner öffnen" im Hintergrund-Reiter (BackdropAuswahl). Braucht ein
+ *       gueltiges FS-Handle (Chrome/Edge, erlaubter Zugriff).
+ *
+ *   (b) EINGEFRORENE BÜHNE — art:"puck-seite" MIT vorliegender
+ *       public/import/<slug>/buehne.html → BackdropLebendeSeite (unten): die
+ *       gefrorene, NICHT-entkernte Original-Fassung. Layout/Fonts/Bilder/CSS-
+ *       Animationen echt, aber JS-Entrance-Animationen laufen NICHT erneut ab
+ *       (Endzustand, s. buehne-schreiben.mjs „EHRLICHE GRENZE"). Der Fallback
+ *       ohne verbundenen Ordner.
+ *
+ *   (c) PUCK-RENDER — art:"puck-seite" OHNE buehne.html → BackdropPuckRender
+ *       (unten): die zerlegten Bausteine per <Render> inline. Native Puck-Seiten
+ *       (kein Import) sowie Importe ohne Bühnen-Fassung. Kein Feature-Verlust.
+ *
+ * Der Hintergrund-Reiter (BackdropAuswahl) weist bei aktiver Stufe (b) dezent
+ * darauf hin, dass ein verbundener Ordner Stufe (a) — die Original-Animationen —
+ * brächte.
+ */
+
 /** Puck-Seiten-Backdrop mit QUELLEN-WEICHE (I8/M8, lens-import.md §2-Ziel):
  *
  *  Liegt zur Seite eine eingefrorene, NICHT-entkernte Original-Fassung als

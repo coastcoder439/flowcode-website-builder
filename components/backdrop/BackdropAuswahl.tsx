@@ -51,6 +51,10 @@ export function BackdropAuswahl() {
   const [status, setStatus] = useState("");
   const [ordnerWartet, setOrdnerWartet] = useState(false);
   const [ordnerLaedt, setOrdnerLaedt] = useState(false);
+  /* I8b/M8: liegt zur aktiven puck-seite-Buehne eine eingefrorene buehne.html vor
+     (= Quellen-Stufe (b), s. Backdrop.tsx), zeigen wir einen ehrlichen Hinweis,
+     dass ein verbundener Ordner die Original-Animationen (Stufe (a)) braechte. */
+  const [buehneEingefroren, setBuehneEingefroren] = useState(false);
   /* Eigene Puck-Seiten als Buehne (Welle 4c, §9/4c(2)). Liste einmalig laden;
      Fehlschlag → leere Liste (Abschnitt zeigt dann nur den Leer-Hinweis). */
   const [seiten, setSeiten] = useState<SeiteKurz[]>([]);
@@ -67,6 +71,7 @@ export function BackdropAuswahl() {
      NACH dem fruehen Return unten, dieser Effekt braucht die Werte aber
      schon davor. */
   const backdropArt = ctx?.backdrop?.art;
+  const backdropQuelle = ctx?.backdrop?.quelle;
   const ctxLaedt = ctx?.laedt;
 
   /* Beim Start (bzw. sobald der gemerkte Backdrop feststeht) still pruefen,
@@ -89,6 +94,38 @@ export function BackdropAuswahl() {
       tot = true;
     };
   }, [ctxLaedt, backdropArt]);
+
+  /* I8b/M8: Ist die aktive Buehne eine puck-seite, still pruefen, ob dazu eine
+     eingefrorene public/import/<slug>/buehne.html vorliegt (Quellen-Stufe (b),
+     s. Backdrop.tsx). Falls ja, blenden wir unten den ehrlichen Hinweis ein, dass
+     ein verbundener Ordner die Original-Animationen (Stufe (a)) laufen liesse.
+     Gleicher Existenz-Endpoint wie die Backdrop-Weiche (POST /api/import/buehne,
+     immer HTTP 200 → keine Konsolen-Fehler). Best-effort: Netzfehler → kein
+     Hinweis. Vor dem ctx-Null-Check, damit die Hook-Reihenfolge stabil bleibt. */
+  useEffect(() => {
+    if (backdropArt !== "puck-seite" || !backdropQuelle) {
+      setBuehneEingefroren(false);
+      return;
+    }
+    let tot = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/import/buehne", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: backdropQuelle }),
+          cache: "no-store",
+        });
+        const json = (await res.json()) as { vorhanden?: boolean };
+        if (!tot) setBuehneEingefroren(res.ok && json.vorhanden === true);
+      } catch {
+        if (!tot) setBuehneEingefroren(false);
+      }
+    })();
+    return () => {
+      tot = true;
+    };
+  }, [backdropArt, backdropQuelle]);
 
   /* Seiten-Liste einmalig laden (unabhaengig vom Backdrop-Zustand) — vor dem
      ctx-Null-Check, damit die Hook-Reihenfolge stabil bleibt. */
@@ -263,6 +300,18 @@ export function BackdropAuswahl() {
         </div>
       ) : (
         <div className="hg-leer">Keine aktive Website — Demo-Landing (WEE) aktiv.</div>
+      )}
+
+      {/* I8b/M8: aktive Buehne ist die eingefrorene Fassung (Stufe (b)) — ehrlich
+          darauf hinweisen, dass ein verbundener Ordner die Original-Animationen
+          (Stufe (a)) laufen liesse. Dezenter Hinweis-Stil (.hg-hilfe). */}
+      {backdrop?.art === "puck-seite" && buehneEingefroren && (
+        <div
+          className="hg-hilfe"
+          title="Der Ordner-Modus („📁 Ordner öffnen“ hier, oder beim Import „Als lebendige Animator-Bühne verbinden“) serviert die Original-Dateien inklusive JavaScript — dann laufen die eigenen Animationen der Seite erneut ab."
+        >
+          Bühne: eingefrorener Endzustand — Ordner verbinden, damit die Original-Animationen laufen.
+        </div>
       )}
 
       {backdrop?.art === "ordner" && ordnerWartet && (

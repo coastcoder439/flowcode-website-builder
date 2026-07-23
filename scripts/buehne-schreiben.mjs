@@ -10,6 +10,18 @@
  * ohne die Next.js-Assets läuft (der Dev-Server serviert nur die Builder-public/,
  * nicht Bens out/). Konkret:
  *
+ *   0. FREMDKÖRPER-FILTER (N15, I8-FIX): bekannte Hosting-/Gate-Artefakte
+ *      (.site-gate-Passwort-Overlay u. a.) werden VOR dem Parsen aus dem Roh-HTML
+ *      entfernt — über exakt DENSELBEN reinen Filter (lib/import/fremdkoerper-
+ *      filter.ts), den auch der Puck-Importpfad fährt (eine Quelle der Wahrheit,
+ *      kein zweiter Gate-Selektor-Katalog). WARUM zwingend: Schritt (4) strippt
+ *      ALLE <script>, damit fällt der einzige (rein clientseitige) Schließen-
+ *      Handler des Gates weg — das position:fixed/z-index-Overlay bliebe sonst
+ *      PERMANENT über dem Inhalt und verdeckte die ganze Bühne (genau der
+ *      I8-Nicht-OK-Befund). Das Gate ist Zugangsschutz der nicht-öffentlichen
+ *      Bereitstellung, kein Seiteninhalt → es gehört raus (deckungsgleich mit
+ *      dem Import, transparent im Bühnen-Bericht geflaggt).
+ *
  *   1. <link rel=stylesheet> (lokal) → <style> mit dem Datei-Inhalt (aus out/),
  *      url()-Verweise darin als data:-URI eingebettet (Fonts/Hintergründe).
  *   2. <style>-Blöcke: url() ebenfalls eingebettet.
@@ -38,10 +50,35 @@
  *   node scripts/buehne-schreiben.mjs --ordner test-sites/wee-website-v3/out
  */
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
-import { Window } from "happy-dom";
+
+/* ---- Selbst-Reexec mit TS-Transform (I8-FIX) ----
+   Um den REINEN Fremdkörper-Filter aus lib/import/fremdkoerper-filter.ts wieder-
+   zuverwenden (eine Quelle der Wahrheit statt eines zweiten Gate-Selektor-Katalogs),
+   starten wir uns EINMAL mit --experimental-transform-types neu — der Filter ist
+   TypeScript (erasable) und braucht `DOMParser`. Bewährtes Repo-Muster (s.
+   scripts/import-fein.mjs, scripts/tests/fremdkoerper-filter.test.mjs). Aufrufer
+   merken davon nichts: identische CLI, der Re-Start ist intern. */
+if (!process.env.__BUEHNE_REEXEC) {
+  const r = spawnSync(
+    process.execPath,
+    ["--experimental-transform-types", fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    { stdio: "inherit", env: { ...process.env, __BUEHNE_REEXEC: "1" } },
+  );
+  process.exit(r.status ?? 1);
+}
+
+const { readFile, writeFile, mkdir } = await import("node:fs/promises");
+const { dirname, join, resolve } = await import("node:path");
+const { Window } = await import("happy-dom");
+
+/* DOMParser als Global bereitstellen, BEVOR der reine Filter geladen wird — er
+   nutzt `new DOMParser()` (im Browser vorhanden, in Node über happy-dom, reines
+   Parsen ohne Ausführung). url-Basis nötig, sonst wirft happy-dom bei relativen
+   <link href>-Pfaden einen „Invalid URL" gegen about:blank. */
+globalThis.DOMParser = new Window({ url: "http://buehne.local/" }).DOMParser;
+const { entferneFremdkoerper } = await import("../lib/import/fremdkoerper-filter.ts");
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 const FREEZE_ORDNER = join(HIER, ".freeze-out");
@@ -240,6 +277,13 @@ async function main() {
     process.exit(1);
   }
 
+  /* (0) FREMDKÖRPER-FILTER (N15, I8-FIX): das .site-gate-Passwort-Overlay u. a.
+     VOR dem Parsen aus dem Roh-HTML lösen — sonst verdeckt es nach dem Script-
+     Strippen (Schritt 4) permanent die ganze Bühne. Gleiche reine Quelle wie der
+     Puck-Import (lib/import/fremdkoerper-filter.ts) → deckungsgleiches Verhalten. */
+  const gefiltert = entferneFremdkoerper(roh);
+  roh = gefiltert.html;
+
   const fenster = new Window({ url: "http://buehne.local/" });
   const doc = fenster.document;
   doc.documentElement.innerHTML = roh.replace(/^<!DOCTYPE[^>]*>/i, "");
@@ -319,8 +363,10 @@ async function main() {
   await writeFile(zielPfad, ausgabe, "utf-8");
 
   const opacityNull = (ausgabe.match(/opacity:\s*0(?![.\d])/g) || []).length;
+  const fremdZahl = gefiltert.entfernt.length;
+  const fremdListe = fremdZahl > 0 ? ` (${gefiltert.entfernt.map((e) => e.selector).join(", ")})` : "";
   console.log(`✓ Bühne geschrieben: ${zielPfad}`);
-  console.log(`  Stylesheets inline: ${styleGezogen} · Bilder inline: ${bilder} · Scripts entfernt: ${skripte}`);
+  console.log(`  Fremdkörper entfernt: ${fremdZahl}${fremdListe} · Stylesheets inline: ${styleGezogen} · Bilder inline: ${bilder} · Scripts entfernt: ${skripte}`);
   console.log(`  Inline-Styles: Viewport-Höhen→px ${inlineFixes.vhFixes} (Runaway-Fix) · url()→data: ${inlineFixes.urlFixes} (404-Fix)`);
   console.log(`  data-og-id injiziert: ${getaggt} · Größe: ${(ausgabe.length / 1024).toFixed(0)} KB · opacity:0-Reste: ${opacityNull}`);
 }

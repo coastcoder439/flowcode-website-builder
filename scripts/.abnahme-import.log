@@ -1,0 +1,328 @@
+(node:67728) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67728) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67728) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/html-zu-puck.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Feiner Import (--alle) → 16 Seite(n) aus C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\test-sites\wee-website-v3\out, Basis-Slug „wee-v3-fein"
+
+── Seite „(Startseite)" → Freeze-Slug „index" → Ziel „wee-v3-fein" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\index.html
+[I3] Segmentierung …
+(node:65156) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65156) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65156) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „index", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 116 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 162c3ed9bab689df) → wiederverwendet: modus=gemma, 8 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\index.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 547 → 1491)
+[I4] Statistik grob→fein  Sektionen 2→8 · Texte 0→74 · Bilder 13→23 · HTML-Bloecke 9→20
+[I6] Asset-Ordner geleert: 12 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-2026-07-23T15-06-19-323Z
+✓ Gespeichert: seiten/wee-v3-fein.json (8 Bausteine) · Bilder 13+2 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „404" → Freeze-Slug „404" → Ziel „wee-v3-fein-404" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\404.html
+[I3] Segmentierung …
+(node:67280) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67280) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67280) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „404", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 45 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash bb06779978200bda) → wiederverwendet: modus=gemma, 6 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\404.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 9 → 141)
+[I4] Statistik grob→fein  Sektionen 2→6 · Texte 0→36 · Bilder 2→5 · HTML-Bloecke 10→5
+✓ Gespeichert: seiten/wee-v3-fein-404.json (6 Bausteine) · Bilder 1+1 · Styles 2 (+16 Assets) · Flags 16
+
+── Seite „barrierefreiheit" → Freeze-Slug „barrierefreiheit" → Ziel „wee-v3-fein-barrierefreiheit" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\barrierefreiheit.html
+[I3] Segmentierung …
+(node:41696) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41696) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41696) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „barrierefreiheit", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 54 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 76473de569003844) → wiederverwendet: modus=fallback, 7 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\barrierefreiheit.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 6 → 162)
+[I4] Statistik grob→fein  Sektionen 2→7 · Texte 0→48 · Bilder 2→1 · HTML-Bloecke 9→5
+✓ Gespeichert: seiten/wee-v3-fein-barrierefreiheit.json (7 Bausteine) · Bilder 1+0 · Styles 2 (+16 Assets) · Flags 16
+
+── Seite „bildung" → Freeze-Slug „bildung" → Ziel „wee-v3-fein-bildung" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung.html
+[I3] Segmentierung …
+(node:64332) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:64332) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:64332) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „bildung", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 83 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash e7f8f9cc630d54d0) → wiederverwendet: modus=gemma, 6 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 32 → 232)
+[I4] Statistik grob→fein  Sektionen 2→6 · Texte 0→57 · Bilder 6→15 · HTML-Bloecke 9→12
+[I6] Asset-Ordner geleert: 13 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-bildung-2026-07-23T15-06-39-612Z
+✓ Gespeichert: seiten/wee-v3-fein-bildung.json (6 Bausteine) · Bilder 2+5 · Styles 3 (+16 Assets) · Flags 16
+
+── Seite „bildung/aquaponik" → Freeze-Slug „bildung-aquaponik" → Ziel „wee-v3-fein-bildung-aquaponik" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-aquaponik.html
+[I3] Segmentierung …
+(node:69592) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69592) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69592) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „bildung-aquaponik", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 92 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 34b61090fa727c37) → wiederverwendet: modus=gemma, 8 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-aquaponik.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 28 → 265)
+[I4] Statistik grob→fein  Sektionen 2→8 · Texte 0→75 · Bilder 3→12 · HTML-Bloecke 9→6
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-bildung-aquaponik-2026-07-23T15-06-46-276Z
+✓ Gespeichert: seiten/wee-v3-fein-bildung-aquaponik.json (8 Bausteine) · Bilder 1+2 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „bildung/permakultur" → Freeze-Slug „bildung-permakultur" → Ziel „wee-v3-fein-bildung-permakultur" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-permakultur.html
+[I3] Segmentierung …
+(node:62508) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:62508) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:62508) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „bildung-permakultur", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 92 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 788bc3c848ac21a6) → wiederverwendet: modus=gemma, 16 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-permakultur.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 28 → 263)
+[I4] Statistik grob→fein  Sektionen 2→16 · Texte 0→76 · Bilder 3→12 · HTML-Bloecke 9→5
+[I6] Asset-Ordner geleert: 10 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-bildung-permakultur-2026-07-23T15-06-53-019Z
+✓ Gespeichert: seiten/wee-v3-fein-bildung-permakultur.json (16 Bausteine) · Bilder 2+1 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „bildung/vergleich-landwirtschaft" → Freeze-Slug „bildung-vergleich-landwirtschaft" → Ziel „wee-v3-fein-bildung-vergleich-landwirtschaft" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-vergleich-landwirtschaft.html
+[I3] Segmentierung …
+(node:38304) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38304) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:38304) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „bildung-vergleich-landwirtschaft", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 93 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 90fa456a58ad4607) → wiederverwendet: modus=gemma, 11 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-vergleich-landwirtschaft.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 36 → 274)
+[I4] Statistik grob→fein  Sektionen 2→11 · Texte 0→83 · Bilder 3→7 · HTML-Bloecke 9→4
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-bildung-vergleich-landwirtschaft-2026-07-23T15-06-59-729Z
+✓ Gespeichert: seiten/wee-v3-fein-bildung-vergleich-landwirtschaft.json (11 Bausteine) · Bilder 1+2 · Styles 3 (+16 Assets) · Flags 16
+
+── Seite „bildung/wissenschaft" → Freeze-Slug „bildung-wissenschaft" → Ziel „wee-v3-fein-bildung-wissenschaft" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-wissenschaft.html
+[I3] Segmentierung …
+(node:61736) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:61736) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:61736) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „bildung-wissenschaft", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 114 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 5b9a033409ce7dbe) → wiederverwendet: modus=gemma, 7 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\bildung-wissenschaft.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 38 → 332)
+[I4] Statistik grob→fein  Sektionen 2→7 · Texte 0→76 · Bilder 7→15 · HTML-Bloecke 9→24
+[I6] Asset-Ordner geleert: 13 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-bildung-wissenschaft-2026-07-23T15-07-07-002Z
+✓ Gespeichert: seiten/wee-v3-fein-bildung-wissenschaft.json (7 Bausteine) · Bilder 3+4 · Styles 3 (+16 Assets) · Flags 16
+
+── Seite „datenschutz" → Freeze-Slug „datenschutz" → Ziel „wee-v3-fein-datenschutz" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\datenschutz.html
+[I3] Segmentierung …
+(node:69528) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69528) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69528) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „datenschutz", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 81 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 1d932d5008fb1428) → wiederverwendet: modus=gemma, 20 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\datenschutz.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 6 → 254)
+[I4] Statistik grob→fein  Sektionen 2→20 · Texte 0→70 · Bilder 2→3 · HTML-Bloecke 9→9
+✓ Gespeichert: seiten/wee-v3-fein-datenschutz.json (20 Bausteine) · Bilder 1+1 · Styles 2 (+16 Assets) · Flags 17
+
+── Seite „faq" → Freeze-Slug „faq" → Ziel „wee-v3-fein-faq" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\faq.html
+[I3] Segmentierung …
+(node:66504) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66504) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:66504) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „faq", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 75 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 56db29ed7122f28c) → wiederverwendet: modus=gemma, 5 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\faq.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 15 → 200)
+[I4] Statistik grob→fein  Sektionen 2→5 · Texte 0→60 · Bilder 3→6 · HTML-Bloecke 9→10
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-faq-2026-07-23T15-07-20-291Z
+✓ Gespeichert: seiten/wee-v3-fein-faq.json (5 Bausteine) · Bilder 1+2 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „impressum" → Freeze-Slug „impressum" → Ziel „wee-v3-fein-impressum" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\impressum.html
+[I3] Segmentierung …
+(node:68356) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:68356) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:68356) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „impressum", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 61 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash a32d2da9b431815f) → wiederverwendet: modus=gemma, 6 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\impressum.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 6 → 188)
+[I4] Statistik grob→fein  Sektionen 2→6 · Texte 0→49 · Bilder 2→4 · HTML-Bloecke 9→9
+✓ Gespeichert: seiten/wee-v3-fein-impressum.json (6 Bausteine) · Bilder 1+1 · Styles 2 (+16 Assets) · Flags 18
+
+── Seite „organisation" → Freeze-Slug „organisation" → Ziel „wee-v3-fein-organisation" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation.html
+[I3] Segmentierung …
+(node:65652) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65652) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:65652) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „organisation", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 131 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 8eeaeca3a559c1c6) → wiederverwendet: modus=gemma, 15 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 49 → 400)
+[I4] Statistik grob→fein  Sektionen 2→15 · Texte 0→100 · Bilder 5→15 · HTML-Bloecke 9→17
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-organisation-2026-07-23T15-07-33-671Z
+✓ Gespeichert: seiten/wee-v3-fein-organisation.json (15 Bausteine) · Bilder 3+2 · Styles 3 (+16 Assets) · Flags 16
+
+── Seite „organisation/grundsaetze" → Freeze-Slug „organisation-grundsaetze" → Ziel „wee-v3-fein-organisation-grundsaetze" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation-grundsaetze.html
+[I3] Segmentierung …
+(node:69296) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69296) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69296) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „organisation-grundsaetze", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 97 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash db4d3f1adf0648b0) → wiederverwendet: modus=gemma, 10 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation-grundsaetze.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 32 → 283)
+[I4] Statistik grob→fein  Sektionen 2→10 · Texte 0→76 · Bilder 3→17 · HTML-Bloecke 9→5
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-organisation-grundsaetze-2026-07-23T15-07-40-509Z
+✓ Gespeichert: seiten/wee-v3-fein-organisation-grundsaetze.json (10 Bausteine) · Bilder 1+2 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „organisation/team" → Freeze-Slug „organisation-team" → Ziel „wee-v3-fein-organisation-team" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation-team.html
+[I3] Segmentierung …
+(node:32280) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32280) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:32280) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „organisation-team", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 82 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash af45d506461d27fe) → wiederverwendet: modus=gemma, 8 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\organisation-team.segmentierung.json
+[CSS] Inlining: aktiv (style-Attribute 27 → 212)
+[I4] Statistik grob→fein  Sektionen 2→8 · Texte 0→61 · Bilder 9→18 · HTML-Bloecke 9→4
+[I6] Asset-Ordner geleert: 11 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-organisation-team-2026-07-23T15-07-47-217Z
+✓ Gespeichert: seiten/wee-v3-fein-organisation-team.json (8 Bausteine) · Bilder 7+2 · Styles 3 (+16 Assets) · Flags 17
+
+── Seite „pilot-projekt" → Freeze-Slug „pilot-projekt" → Ziel „wee-v3-fein-pilot-projekt" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\pilot-projekt.html
+[I3] Segmentierung …
+(node:35284) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35284) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:35284) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „pilot-projekt", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 124 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash 88f0fd487ff979fa) → wiederverwendet: modus=gemma, 11 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\pilot-projekt.segmentierung.json
+[CSS] Inlining: übersprungen (Inlining veränderte die Outline — ref-Drift vermieden)
+[I4] Statistik grob→fein  Sektionen 2→11 · Texte 0→85 · Bilder 11→24 · HTML-Bloecke 9→16
+[I6] Asset-Ordner geleert: 10 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-pilot-projekt-2026-07-23T15-07-54-062Z
+✓ Gespeichert: seiten/wee-v3-fein-pilot-projekt.json (11 Bausteine) · Bilder 10+1 · Styles 3 (+8 Assets) · Flags 17
+
+── Seite „project-oasis" → Freeze-Slug „project-oasis" → Ziel „wee-v3-fein-project-oasis" ──
+[I1] Freeze übersprungen (--kein-freeze) — nutze C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\project-oasis.html
+[I3] Segmentierung …
+(node:28932) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28932) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:28932) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///C:/Users/Lonsinator/Flowcode-Agentic-OS/user-projects/flowcode-website-builder/lib/import/fremdkoerper-filter.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to \\?\C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\package.json.
+Segmentierung → Slug „project-oasis", Modell „gemma4"
+  Fremdkoerper entfernt: .site-gate
+  Outline: 157 Atome (Wurzel <body>)
+  ✓ Cache-Treffer (eingabeHash a74c35d8e909ab07) → wiederverwendet: modus=gemma, 14 Sektionen
+  C:\Users\Lonsinator\Flowcode-Agentic-OS\user-projects\flowcode-website-builder\scripts\.freeze-out\project-oasis.segmentierung.json
+[CSS] Inlining: übersprungen (Inlining veränderte die Outline — ref-Drift vermieden)
+[I4] Statistik grob→fein  Sektionen 2→14 · Texte 0→108 · Bilder 12→24 · HTML-Bloecke 9→26
+[I6] Asset-Ordner geleert: 10 Eintrag/Eintraege → public/import/.papierkorb/wee-v3-fein-project-oasis-2026-07-23T15-08-00-754Z
+✓ Gespeichert: seiten/wee-v3-fein-project-oasis.json (14 Bausteine) · Bilder 12+1 · Styles 3 (+8 Assets) · Flags 18
+
+══ Fertig: 16 gespeichert, 0 fehlgeschlagen ══
+  Hinweis: interne Links ZWISCHEN den Seiten sind noch NICHT auf die neuen
+  Slugs umgebogen (bewusst spaeter, s. Dateikopf/lens-import.md §3-Schritt-VI).

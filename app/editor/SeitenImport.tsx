@@ -48,7 +48,13 @@ import {
 /* M9/Welle 5a: reine Ordner-Klassifikation (eigenes, node-testbares Modul —
    scripts/tests/ordner-erkennung.test.mjs deckt beide M9-Zweige ab). */
 import { hatNextStruktur, istNextQuellordner } from "@/lib/import/ordner-erkennung";
-import type { OrdnerHandle } from "@/components/backdrop/ordner-serve";
+/* I8b/M8: den importierten Ordner direkt als lebendige Animator-Buehne verbinden
+   (Service-Worker-Ordnermodus — laesst die Original-Seite MIT ihren Animationen
+   laufen). ordnerVerbinden merkt den Handle + stellt ihn bereit; backdropSpeichern
+   setzt den Ordner-Modus per Direktpfad-Persistenz (wie der N19-Self-Heal —
+   die import-Station hat keinen BackdropProvider, s. app/editor/page.tsx). */
+import { ordnerVerbinden, type OrdnerHandle } from "@/components/backdrop/ordner-serve";
+import { backdropSpeichern } from "@/components/backdrop/backdrop-store";
 
 interface SeitenImportProps {
   /** Wird nach erfolgreichem Speichern mit dem Seiten-Namen (Startseite)
@@ -132,6 +138,10 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
   const [styleUebernehmen, setStyleUebernehmen] = useState(false);
   /** E4: Server-Freeze (Playwright) fuer Endzustands-Qualitaet im UI. */
   const [freezeAktiv, setFreezeAktiv] = useState(false);
+  /** I8b/M8: nach dem Speichern den gewaehlten Ordner direkt als lebendige
+   *  Animator-Buehne verbinden (Default AN). Nur mit Ordner-Handle + Chrome/Edge
+   *  wirksam — der Freeze/die Puck-Zerlegung laufen unabhaengig davon. */
+  const [alsBuehneVerbinden, setAlsBuehneVerbinden] = useState(true);
   /** N1: Kurzhilfe-Dialog (gleiches Muster wie die Seiten-Liste). */
   const [hilfeOffen, setHilfeOffen] = useState(false);
   const handleRef = useRef<OrdnerHandle | null>(null);
@@ -390,6 +400,24 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
         gespeichert++;
       }
 
+      /* I8b/M8: den gewaehlten Ordner auf Wunsch direkt als lebendige Animator-
+         Buehne verbinden. Der Service-Worker-Ordnermodus (ordner-serve.ts) laesst
+         die Original-Seite MIT ihren eigenen Animationen laufen — anders als die
+         eingefrorene buehne.html-Fassung, die JS-Entrance-Animationen nicht erneut
+         abspielt (buehne-schreiben.mjs, „EHRLICHE GRENZE"). handleRef traegt den
+         beim Ordnerwaehlen gepickten Handle. Best-effort: der Import ist bereits
+         gespeichert; scheitert das Verbinden (kein Handle, Zugriff entzogen, kein
+         Service Worker), faellt der Animator auf die eingefrorene Buehne zurueck. */
+      const handle = handleRef.current;
+      if (alsBuehneVerbinden && handle && ordnerApiDa()) {
+        try {
+          await ordnerVerbinden(handle);
+          await backdropSpeichern({ art: "ordner", quelle: handle.name, name: handle.name });
+        } catch {
+          /* Verbinden ist best-effort — s. Kommentar oben. */
+        }
+      }
+
       /* Startseite (erste Analyse) im Puck oeffnen. */
       onFertig(analysen[0].slug);
     } catch {
@@ -539,6 +567,23 @@ export function SeitenImport({ onFertig, onAbbruch }: SeitenImportProps) {
               <span>
                 Styles der Seite übernehmen (eigene Seite) — kopiert die CSS-Dateien und bindet sie
                 gescoped auf die Bühne ein. Nur für <strong>selbst gebaute</strong> Seiten sinnvoll.
+              </span>
+            </label>
+
+            {/* I8b/M8: Ordner als lebendige Animator-Bühne verbinden */}
+            <label className="seiten-import-style-schalter">
+              <input
+                type="checkbox"
+                checked={alsBuehneVerbinden}
+                onChange={(e) => setAlsBuehneVerbinden(e.target.checked)}
+              />
+              <span>
+                <strong>Als lebendige Animator-Bühne verbinden</strong> (empfohlen): der gewählte
+                Ordner wird nach dem Speichern direkt als Bühne des Animators verbunden — die
+                Original-Seite läuft dort <strong>mit ihren eigenen Animationen</strong>
+                (Service-Worker-Ordnermodus). Ohne diese Option zeigt der Animator die
+                eingefrorene Fassung (Endzustand, ohne erneute Einblend-Animationen). Braucht
+                Chrome/Edge und den erlaubten Ordnerzugriff.
               </span>
             </label>
           </>
