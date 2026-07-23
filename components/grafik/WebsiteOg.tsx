@@ -180,6 +180,11 @@ interface WebsiteOgEbeneProps {
    *  Website gewechselt wurde), holt dieser Knopf die Ist-Stand-Liste nach.
    *  Fehlt der Callback, wird der Knopf nicht gezeigt. */
   onNeuEinlesen?: () => void;
+  /** M10-Fix: kurze Rückmeldung nach „Neu einlesen" (z. B. „Neu eingelesen: 12
+   *  Elemente"). Der Knopf scannt nur das DOM — bleibt die Liste inhaltlich
+   *  gleich, passiert sichtbar nichts. Diese Zeile macht den Klick sichtbar
+   *  (Leons meistgenannter „tote Knopf"). Reine Anzeige, kein Verlauf. */
+  neuEinlesenStatus?: string;
   /** Welle 5c: ob die aktuelle Bühne überhaupt taggbare Elemente tragen kann
    *  (Landing oder geladene Seite) — dann zeigen wir die Gruppe auch LEER, damit
    *  „Neu einlesen" für eine noch ladende Seiten-Bühne erreichbar bleibt. Bei
@@ -196,6 +201,7 @@ export function WebsiteOgEbene({
   auswahl,
   onWaehlen,
   onNeuEinlesen,
+  neuEinlesenStatus,
   buehneKannTaggen,
 }: WebsiteOgEbeneProps) {
   /* Leer UND die Bühne kann nichts tragen (Bild-/HTML-/Ordner-Backdrop) → wie
@@ -237,6 +243,11 @@ export function WebsiteOgEbene({
         >
           ⟳ Neu einlesen
         </button>
+      )}
+      {neuEinlesenStatus && (
+        <div className="gre-og-status" role="status" aria-live="polite">
+          {neuEinlesenStatus}
+        </div>
       )}
       {liste.length === 0 ? (
         <div className="gre-hilfe">
@@ -287,7 +298,10 @@ interface OgMasse {
 
 interface WebsiteOgObjektProps {
   eintrag: OgEintrag;
-  /** Nur für bild|svg vorhanden — erzeugt die Builder-Kopie (s. GrafikEditor). */
+  /** Erzeugt die Builder-Kopie (s. GrafikEditor.ogInBuilder → ogAlsGrafikErzeugen).
+   *  Wird stets durchgereicht; ob der Knopf erscheint/aktiv ist, entscheidet
+   *  hier unten die DOM-basierte `holbar`-Prüfung (N11-Fix). Optional bleibt es
+   *  nur, damit die Komponente auch ohne Handler robust rendert. */
   onInBuilder?: () => void;
   status: string;
 }

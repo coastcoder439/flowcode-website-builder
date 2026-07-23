@@ -69,21 +69,35 @@ const INNER_SHADOW_STROKES = [
   { widthPx: 14, opacity: 0.16 },
 ];
 
-/** Misst alle konfigurierten Wegpunkt-Anker relativ zur Fluss-Zone. Fehlt ein
- *  Anker im DOM, wird er übersprungen (Fluss läuft dort geradeaus weiter) –
- *  buildRiverGeometry fällt dafür intern auf eine gleichmäßige Schätzung
- *  zurück. */
-function measureAnchors(zoneEl: HTMLDivElement, cfg: RiverConfig): Map<string, AnchorRect> {
+/** Ergebnis von measureAnchors: die gemessenen Anker + wie viele der
+ *  konfigurierten Wegpunkte im DOM fehlten (für EINE zusammenfassende Meldung
+ *  im Aufrufer statt einer Warnung je Anker – siehe N7). */
+interface AnchorMessung {
+  anchors: Map<string, AnchorRect>;
+  gesamt: number;
+  fehlend: number;
+}
+
+/** Misst alle konfigurierten Wegpunkt-Anker relativ zur Fluss-Zone. Der Anker
+ *  ist ein beliebiger CSS-Selektor (querySelector) – auf der WEE-Demo-Landing
+ *  die Sektions-IDs (#mission, #stats …), auf einer importierten Puck-Seite
+ *  können es genauso die data-og-id-Marker der Bausteine sein
+ *  (`[data-og-id="puck:<id>"]`), sofern die Config sie so führt.
+ *
+ *  Fehlt ein Anker im DOM, wird er STILL übersprungen (Fluss läuft dort
+ *  geradeaus weiter – buildRiverGeometry fällt intern auf eine gleichmäßige
+ *  Schätzung zurück). KEINE Warnung je Anker mehr: eine importierte Seite hat
+ *  die Demo-Sektions-IDs nicht, das erzeugte sonst 10–66 Konsolen-Warnungen je
+ *  Load (N7). Stattdessen zählen wir die Fehltreffer und der Aufrufer meldet
+ *  sie als EINE zusammenfassende Zeile. */
+function measureAnchors(zoneEl: HTMLDivElement, cfg: RiverConfig): AnchorMessung {
   const zoneRect = zoneEl.getBoundingClientRect();
   const anchors = new Map<string, AnchorRect>();
+  let fehlend = 0;
   for (const wp of cfg.waypoints) {
     const el = zoneEl.querySelector(wp.anchor);
     if (!el) {
-      if (process.env.NODE_ENV !== "production") {
-        console.warn(
-          `[RiverFlow] Anker nicht gefunden, Fluss läuft dort geradeaus weiter: ${wp.anchor}`,
-        );
-      }
+      fehlend++;
       continue;
     }
     const r = el.getBoundingClientRect();
@@ -94,7 +108,7 @@ function measureAnchors(zoneEl: HTMLDivElement, cfg: RiverConfig): Map<string, A
       height: r.height,
     });
   }
-  return anchors;
+  return { anchors, gesamt: cfg.waypoints.length, fehlend };
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -118,6 +132,9 @@ function columnScale(zoneW: number): number {
 export function RiverFlow({ children }: RiverFlowProps) {
   const zoneRef = useRef<HTMLDivElement>(null);
   const revealRectRef = useRef<SVGRectElement>(null);
+  /* Zuletzt gemeldete Anker-Fehltreffer-Zeile (N7) – verhindert, dass die
+     häufigen Rebuilds (Resize/Font-Ready) dieselbe Meldung wiederholt loggen. */
+  const letzteFehlmeldungRef = useRef<string | null>(null);
   const clipId = `river-reveal-${useId().replace(/:/g, "")}`;
   const shadowClipId = `river-shadow-${useId().replace(/:/g, "")}`;
 
@@ -170,7 +187,21 @@ export function RiverFlow({ children }: RiverFlowProps) {
     const colLeft = (rect.width - RIVER_DESIGN_WIDTH_PX * scale) / 2;
     const designH = rect.height / scale;
 
-    const anchorsPx = measureAnchors(zoneEl, riverConfig);
+    const { anchors: anchorsPx, gesamt, fehlend } = measureAnchors(zoneEl, riverConfig);
+    /* N7: fehlende Anker (z. B. importierte Puck-Seite ohne die
+       Demo-Sektions-IDs) als EINE zusammenfassende Info-Zeile melden statt je
+       Anker zu warnen. Dedupliziert über letzteFehlmeldungRef, damit die
+       häufigen Rebuilds (Resize/Font-Ready) dieselbe Zeile nicht wiederholen. */
+    if (process.env.NODE_ENV !== "production") {
+      const meldung =
+        fehlend > 0
+          ? `[RiverFlow] ${fehlend} von ${gesamt} Ankern nicht gefunden — Fluss läuft dort gerade`
+          : null;
+      if (meldung && meldung !== letzteFehlmeldungRef.current) {
+        console.info(meldung);
+      }
+      letzteFehlmeldungRef.current = meldung;
+    }
     const anchors = new Map<string, AnchorRect>();
     anchorsPx.forEach((a, key) => {
       anchors.set(key, {

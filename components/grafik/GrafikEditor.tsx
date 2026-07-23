@@ -37,6 +37,12 @@ import { BackdropAuswahl } from "@/components/backdrop/BackdropAuswahl";
 import { useBackdropCtx } from "@/components/backdrop/BackdropContext";
 import { useAktiveSeite } from "@/lib/aktive-seite";
 import {
+  leseAnimLadenLatch,
+  schreibeAnimLadenLatch,
+  loescheAnimLadenLatch,
+  type AnimLadenWahl,
+} from "@/lib/anim-laden-latch";
+import {
   WebsiteOgEbene,
   WebsiteOgObjekt,
   WebsiteOgOverlay,
@@ -373,6 +379,84 @@ interface GrafikEditorProps {
   onProduktTutorial?: () => void;
 }
 
+/** In-App-Bestätigung „Gespeicherte Animation der Bühnen-Seite laden?" (M15).
+ *  Bewusst KEIN natives confirm(): ein eigenes Overlay ist testbar, in Phase 6
+ *  stylbar und feuert nicht bei jedem Reload (die Wahl wird gemerkt, s.
+ *  anim-laden-latch.ts). Muster + Optik-Klassen wie der Verlassen-Dialog der
+ *  Shell (app/editor/page.tsx / seiten-bereich.css, dort global geladen). */
+function AnimLadenDialog({
+  seite,
+  anzahl,
+  onLaden,
+  onBehalten,
+}: {
+  seite: string;
+  anzahl: number;
+  onLaden: () => void;
+  onBehalten: () => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const vorherigerFokusRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    vorherigerFokusRef.current = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    return () => {
+      vorherigerFokusRef.current?.focus();
+    };
+  }, []);
+
+  return (
+    <div
+      className="seiten-hilfe-overlay"
+      data-fc-anim-laden-overlay=""
+      onClick={(e) => {
+        /* Klick auf den Schleier = konservativer Weg: Stand behalten. */
+        if (e.target === e.currentTarget) onBehalten();
+      }}
+    >
+      <div
+        ref={dialogRef}
+        className="seiten-hilfe-dialog"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="anim-laden-titel"
+        aria-describedby="anim-laden-text"
+        tabIndex={-1}
+        onKeyDown={(e) => {
+          /* ESC = konservativer Weg: Stand behalten (nichts ersetzen). */
+          if (e.key === "Escape") onBehalten();
+        }}
+      >
+        <h2 id="anim-laden-titel">Gespeicherte Animation dieser Seite laden?</h2>
+        <p id="anim-laden-text">
+          Die Seite „{seite}“ bringt eine gespeicherte Animation mit ({anzahl} Grafik(en)). Den
+          aktuellen Animator-Stand dadurch ersetzen? Deine Wahl wird für diesen Stand der Seite
+          gemerkt — du wirst beim nächsten Öffnen nicht erneut gefragt.
+        </p>
+        <div className="seiten-hilfe-dialog-fuss">
+          <button
+            type="button"
+            className="seiten-btn"
+            onClick={onBehalten}
+            title="Aktuellen Animator-Stand behalten — nichts laden (Wahl wird gemerkt)"
+          >
+            Stand behalten
+          </button>
+          <button
+            type="button"
+            className="seiten-btn seiten-btn--gefahr"
+            onClick={onLaden}
+            title="Gespeicherte Animation der Seite laden und aktuellen Animator-Stand ersetzen (Wahl wird gemerkt)"
+          >
+            Animation laden
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
   const ctx = useGrafiken();
   /* /editor (Welle 2b-1): der Fluss ist ein Objekt in DIESEM Panel. Auf der
@@ -401,6 +485,10 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
   const [ogListe, setOgListe] = useState<OgEintrag[]>([]);
   const [ogAuswahl, setOgAuswahl] = useState<string | null>(null);
   const [ogStatus, setOgStatus] = useState("");
+  /* M10-Fix: eigene Rückmeldung für „⟳ Neu einlesen" (Ebenen-Liste), getrennt
+     vom Objekt-Status (ogStatus, „In den Builder holen") — sonst würde die
+     Zähl-Meldung in den falschen Reiter bluten. Reine Anzeige, kein Verlauf. */
+  const [ogEinlesenStatus, setOgEinlesenStatus] = useState("");
   /* Welle 5b: die aktive Website ist die Default-Buehne des Animators (statt
      der WEE-Demo-Landing, s. app/editor/page.tsx). Der Name selbst wird hier
      NICHT verarbeitet — er dient nur als Rescan-Ausloeser: wechselt die aktive
@@ -442,6 +530,10 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
    *  Bibliothek unter „Presets" gelistet, im Reiter Animation gespeichert.
    *  Reine Zusatz-Bibliothek: unabhängig von platzierten Grafiken/Setups. */
   const [presets, setPresets] = useState<AnimationsPreset[]>([]);
+  /** Inline-Namenseingabe fürs Preset-Speichern (M16, ersetzt window.prompt):
+   *  null = Feld geschlossen (nur der Speichern-Knopf ist zu sehen), ein String
+   *  = Feld offen mit diesem Wert. Enter bestätigt, ESC/Abbrechen schließt. */
+  const [presetNameEingabe, setPresetNameEingabe] = useState<string | null>(null);
 
   /* U5 (docs/plan-analyse/lens-undo.md §2.2/§3-U5, fixt N10): die Bibliothek/der
      Pool war bisher historienlos — ein versehentliches ✕ (Entfernen), ein Import
@@ -623,7 +715,21 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     void (async () => {
       try {
         const geladen = await presetsHolen();
-        if (!tot) setPresets(geladen);
+        /* Einmal-Migration (M20): Das Test-Preset „rt-bleibt" (2 Frames) war ein
+           Entwicklungs-Überbleibsel und liegt nur noch als Alt-Bestand in Leons
+           Browser-IndexedDB — es wird in KEINER Quelldatei geseedet. Beim Laden
+           genau dieses eine Preset herausfiltern und die bereinigte Liste
+           zurückschreiben, damit es dauerhaft verschwindet. Signatur bewusst
+           exakt (Name UND 2 Frames), um kein echtes gleichnamiges Preset zu
+           treffen. Reine Alt-Bestand-Bereinigung → keine Undo-Historie (der
+           Editor ist beim Laden noch nicht bedient worden). */
+        const bereinigt = geladen.filter(
+          (p) => !(p.name === "rt-bleibt" && p.frames.length === 2),
+        );
+        if (!tot) setPresets(bereinigt);
+        if (bereinigt.length !== geladen.length) {
+          void presetsSetzen(bereinigt); // Bereinigung persistieren (fire-and-forget)
+        }
       } catch {
         /* still: Presets sind optionaler Komfort, kein Editor-Kernzustand. */
       }
@@ -901,17 +1007,57 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     if (ctx?.auswahl || flussObjekt?.fokus) setOgAuswahl(null);
   }, [ctx?.auswahl, flussObjekt?.fokus]);
 
-  /* --- Welle 4c(3): anim-Feld einer Puck-Seite in den Animator laden --------
+  /* --- Welle 4c(3) + M15: anim-Feld einer Puck-Seite in den Animator laden ---
      Wird eine Seite als Buehne gewaehlt (puckSeiteName wechselt auf einen
-     Namen), ihr gespeichertes Animations-Abbild automatisch uebernehmen. ctx +
+     Namen), ihr gespeichertes Animations-Abbild uebernehmen. ctx +
      grafiken-Anzahl liegen in einem Ref, damit der Effekt NUR an puckSeiteName
      haengt (ctx-Value wird bei jedem Render neu erzeugt — als Dep wuerde der
-     Effekt sonst dauerlaufen). Bestaetigungs-Hinweis, wenn der Animator schon
-     Grafiken traegt (Spec: nicht ungefragt ueberschreiben). */
+     Effekt sonst dauerlaufen).
+
+     M15: Traegt der Animator schon Grafiken (Ueberschreib-Fall), wird NICHT
+     mehr bei jedem Reload per nativem confirm() gefragt. Stattdessen:
+       - Wahl je Seite + Seiten-Stand gemerkt (anim-laden-latch.ts).
+       - Deckt sich der gemerkte Stand mit dem aktuellen `gespeichert`-Stempel
+         der Seite → die gemerkte Wahl still anwenden.
+       - Kein Merker ODER neuer Seiten-Stand → EINMALIG per In-App-Dialog
+         fragen (setLadeAnfrage → <AnimLadenDialog>), Wahl danach merken.
+     Leerer Animator = nichts zu ueberschreiben → wie bisher still laden. */
   const puckLadeRef = useRef<{ ctx: typeof ctx; grafikenAnzahl: number }>({ ctx, grafikenAnzahl: 0 });
   puckLadeRef.current = { ctx, grafikenAnzahl: grafiken.length };
+
+  /* Offene Lade-Nachfrage (M15): das geladene Abbild + der Seiten-Stand, ueber
+     die der Nutzer im Dialog entscheidet. `null` = kein Dialog offen. */
+  const [ladeAnfrage, setLadeAnfrage] = useState<{
+    seite: string;
+    stand: string;
+    grafiken: Grafik[];
+    uebernommen: string[];
+  } | null>(null);
+  /* Fuer die Seite als aktive Buehne gemerkte Wahl (Anzeige + „wieder fragen"
+     im Speichern-Reiter). `null` = nichts gemerkt. */
+  const [ladeWahl, setLadeWahl] = useState<AnimLadenWahl | null>(null);
+
+  /** Ein geladenes Animations-Abbild in den Animator uebernehmen. Ersetzt den
+   *  Grafik-Stand und leert den Verlauf — ein Buehnen-Wechsel ist ein
+   *  Kontext-Sprung, kein in-Canvas-Edit; deshalb bewusst KEIN Undo-Befehl
+   *  (unveraendert gegenueber vor M15). Liest ctx ueber den Ref → stabil ([]),
+   *  damit der Lade-Effekt weiter nur an puckSeiteName haengt. */
+  const uebernimmAnimation = useCallback(
+    (seite: string, neueGrafiken: Grafik[], uebernommen: string[]) => {
+      const c = puckLadeRef.current.ctx;
+      if (!c) return;
+      c.setGrafiken(neueGrafiken);
+      c.setUebernommen(uebernommen);
+      c.resetHistory();
+      setStatus(`Animation aus Seite „${seite}“ geladen (${neueGrafiken.length} Grafik(en)).`);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!puckSeiteName) return;
+    /* Buehnen-Wechsel: eine evtl. offene Nachfrage der alten Seite schliessen. */
+    setLadeAnfrage(null);
     let abbruch = false;
     void (async () => {
       try {
@@ -921,25 +1067,41 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
           body: JSON.stringify({ name: puckSeiteName }),
         });
         if (!res.ok) return;
-        const json = (await res.json()) as { anim?: { grafiken?: Grafik[]; uebernommen?: string[] } };
+        const json = (await res.json()) as {
+          gespeichert?: string;
+          anim?: { grafiken?: Grafik[]; uebernommen?: string[] };
+        };
         if (abbruch) return;
         const anim = json.anim;
         if (!anim || !Array.isArray(anim.grafiken) || anim.grafiken.length === 0) return;
-        const c = puckLadeRef.current.ctx;
-        if (!c) return;
-        if (
-          puckLadeRef.current.grafikenAnzahl > 0 &&
-          !window.confirm(
-            `Die Seite „${puckSeiteName}“ bringt eine gespeicherte Animation mit ` +
-              `(${anim.grafiken.length} Grafik(en)). Den aktuellen Animator-Stand dadurch ersetzen?`,
-          )
-        ) {
+        const neueGrafiken = anim.grafiken;
+        const uebernommen = anim.uebernommen ?? [];
+        /* Seiten-Stand als Merker-Anker (leerer String, falls die Route ihn
+           mal nicht liefert → dann gilt „kein passender Stand" und es wird
+           gefragt statt still eine veraltete Wahl anzuwenden). */
+        const stand = typeof json.gespeichert === "string" ? json.gespeichert : "";
+
+        /* Leerer Animator → nichts zu ueberschreiben: still laden (kein Dialog). */
+        if (puckLadeRef.current.grafikenAnzahl === 0) {
+          uebernimmAnimation(puckSeiteName, neueGrafiken, uebernommen);
           return;
         }
-        c.setGrafiken(anim.grafiken);
-        c.setUebernommen(anim.uebernommen ?? []);
-        c.resetHistory();
-        setStatus(`Animation aus Seite „${puckSeiteName}“ geladen (${anim.grafiken.length} Grafik(en)).`);
+
+        /* Gemerkte Wahl fuer diesen Seiten-Stand? → still anwenden. */
+        const latch = leseAnimLadenLatch(puckSeiteName);
+        if (latch && latch.stand === stand) {
+          if (latch.wahl === "laden") {
+            uebernimmAnimation(puckSeiteName, neueGrafiken, uebernommen);
+          } else {
+            setStatus(
+              `Animator-Stand behalten — Seite „${puckSeiteName}“ nicht geladen (gemerkte Wahl).`,
+            );
+          }
+          return;
+        }
+
+        /* Kein Merker / neuer Stand → einmalig per In-App-Dialog fragen. */
+        setLadeAnfrage({ seite: puckSeiteName, stand, grafiken: neueGrafiken, uebernommen });
       } catch {
         /* Route nicht erreichbar → Animator-Stand bleibt unveraendert. */
       }
@@ -947,8 +1109,44 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     return () => {
       abbruch = true;
     };
-    // ctx/grafiken bewusst NICHT in den Deps (s.o., via Ref) — nur puckSeiteName.
+    // ctx/grafiken bewusst NICHT in den Deps (s.o., via Ref) — nur puckSeiteName;
+    // uebernimmAnimation ist stabil (leere Deps).
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [puckSeiteName]);
+
+  /* M15-Anzeige: die gemerkte Wahl der aktuellen Buehnen-Seite spiegeln (fuer
+     Hinweis + „wieder fragen"-Knopf im Speichern-Reiter). Aktualisiert bei
+     Buehnen-Wechsel; nach Dialog-Antwort/Vergessen ziehen die Handler `ladeWahl`
+     direkt nach. */
+  useEffect(() => {
+    setLadeWahl(puckSeiteName ? (leseAnimLadenLatch(puckSeiteName)?.wahl ?? null) : null);
+  }, [puckSeiteName]);
+
+  /** Antwort auf die M15-Nachfrage: Wahl je Seite + Stand merken, dann
+   *  anwenden („laden" ersetzt, „behalten" laesst den Animator unveraendert). */
+  const beantworteLadeAnfrage = useCallback(
+    (wahl: AnimLadenWahl) => {
+      const anfrage = ladeAnfrage;
+      if (!anfrage) return;
+      schreibeAnimLadenLatch(anfrage.seite, wahl, anfrage.stand);
+      setLadeWahl(wahl);
+      if (wahl === "laden") {
+        uebernimmAnimation(anfrage.seite, anfrage.grafiken, anfrage.uebernommen);
+      } else {
+        setStatus(`Animator-Stand behalten — Seite „${anfrage.seite}“ nicht geladen.`);
+      }
+      setLadeAnfrage(null);
+    },
+    [ladeAnfrage, uebernimmAnimation],
+  );
+
+  /** Gemerkte Wahl der aktuellen Buehnen-Seite vergessen → beim naechsten
+   *  Oeffnen wird wieder gefragt (kleiner Weg, die Entscheidung zu aendern). */
+  const vergessLadeWahl = useCallback(() => {
+    if (!puckSeiteName) return;
+    loescheAnimLadenLatch(puckSeiteName);
+    setLadeWahl(null);
+    setStatus(`Merker gelöscht — beim nächsten Öffnen von „${puckSeiteName}“ wird wieder gefragt.`);
   }, [puckSeiteName]);
 
   /** OG-Element auswählen: Grafik-Auswahl + Fluss-Fokus räumen (Ausschluss),
@@ -971,9 +1169,12 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     [ctx, flussObjekt],
   );
 
-  /** „In den Builder holen" (nur bild|svg): erzeugt die Kopie über dem
-   *  Original (s. ogAlsGrafikErzeugen) und wählt sie als normale Grafik aus —
-   *  wodurch die OG-Auswahl über den Ausschluss-Effekt oben automatisch endet. */
+  /** „In den Builder holen": erzeugt die Kopie über dem Original
+   *  (s. ogAlsGrafikErzeugen — zieht bei Container-Elementen das enthaltene
+   *  <img>/<svg> selbst) und wählt sie als normale Grafik aus — wodurch die
+   *  OG-Auswahl über den Ausschluss-Effekt oben automatisch endet. Das Holen
+   *  ist eine Editier-Aktion → ctx.commit pusht den Undo-Befehl auf den Bus (R1),
+   *  bevor die Grafik hinzukommt (der Vor-Zustand wird ohne sie eingefangen). */
   const ogInBuilder = useCallback(
     (eintrag: OgEintrag) => {
       if (!ctx) return;
@@ -1504,9 +1705,11 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     [],
   );
 
-  /** Bibliothek aus dem verbundenen Ordner (neu) einlesen. */
+  /** Bibliothek aus dem verbundenen Ordner (neu) einlesen. Gibt die Anzahl der
+   *  gelesenen Ordner-Dateien zurück — der „⟳ Ordner neu einlesen"-Knopf nutzt
+   *  sie für sein sichtbares Feedback (M10). */
   const ordnerLesen = useCallback(
-    async (h: OrdnerHandle) => {
+    async (h: OrdnerHandle): Promise<number> => {
       const dateien = await ordnerDateien(h, MAX_ASSETS);
       /* NUR die Ordner-Dateien erneuern, nicht den ganzen Pool leeren:
          sonst wischt ein automatisch wieder verbundener Ordner beim Start
@@ -1517,9 +1720,32 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
       await inPool(dateien);
       setOrdner(h);
       setOrdnerWartet(false);
+      return dateien.length;
     },
     [inPool],
   );
+
+  /** M10-Fix: „⟳ Ordner neu einlesen" in der Bibliothek. Der Knopf las den
+   *  Ordner bisher still neu ein (`void ordnerLesen`) — bei unveränderten
+   *  Dateien passierte sichtbar nichts und ein Fehler (Zugriff entzogen) fiel
+   *  als unbehandelte Promise-Rejection unter den Tisch → wirkte „tot". Jetzt:
+   *  Zähl-Rückmeldung bei Erfolg, klare Meldung + Freischalt-Hinweis bei
+   *  fehlendem Zugriff. Reiner Refresh → bewusst kein Undo-Eintrag (wie schon
+   *  der programmatische Reload-Pfad, s. Kommentar bei poolMitUndo). */
+  const ordnerNeuEinlesen = async () => {
+    if (!ordner) return;
+    try {
+      const anzahl = await ordnerLesen(ordner);
+      setStatus(
+        `Bibliothek neu eingelesen: ${anzahl} Datei${anzahl === 1 ? "" : "en"} aus „${ordner.name}“`,
+      );
+    } catch {
+      /* Häufigster Fall: der Browser hat den Ordner-Zugriff nach Reload
+         entzogen → Freischalt-Knopf anbieten statt still zu scheitern. */
+      setOrdnerWartet(true);
+      setStatus(`„${ordner.name}" nicht lesbar — bitte Ordner erneut freischalten`);
+    }
+  };
 
   /** Ordner verbinden: Handle wird in IndexedDB gemerkt und übersteht den
    *  Neustart. Ohne die API (Firefox/Safari) Fallback auf Ordner-Upload. */
@@ -1612,18 +1838,34 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
    * Anwenden (Bibliothek) → an der aktuellen Position der gewählten Grafik
    * instanziieren. Reine Zusatz-Bibliothek, unabhängig von Grafik-Setups. */
 
-  /** Die Bewegung der AKTIVEN Grafik als Preset sichern (braucht ≥2 Keyframes —
-   *  eine Bewegung entsteht erst zwischen zwei Punkten). Namens-Prompt im
-   *  Hausmuster; leere Eingabe/Abbruch = nichts tun. */
-  const presetSpeichern = async () => {
+  /* Preset-Speichern in drei Schritten (M16: ersetzt window.prompt durch ein
+     Inline-Namensfeld im Panel — kein natives Dialogfenster mehr).
+     Öffnen → Feld erscheint neben dem Knopf, Enter/Speichern bestätigt,
+     ESC/Abbrechen schließt. Das eigentliche Persistieren macht weiterhin
+     presetsMitUndo (U5), d. h. Speichern bleibt per Strg+Z rückgängig — kein
+     zusätzlicher Undo-Eintrag nötig (nicht doppeln). */
+
+  /** Öffnet das Inline-Namensfeld, vorbelegt mit einem Vorschlag. Braucht die
+   *  aktive Grafik mit ≥2 Keyframes (eine Bewegung entsteht erst zwischen zwei
+   *  Punkten) — sonst passiert nichts (der Knopf ist ohnehin disabled). */
+  const presetSpeichernStarten = () => {
     if (!aktiv || aktiv.keyframes.length < 2) return;
-    const eingabe = window.prompt(
-      "Name für das Animations-Preset:",
-      `${aktiv.name}-Animation`,
-    );
-    if (eingabe === null) return; // Abgebrochen
-    const n = eingabe.trim();
-    if (!n) return;
+    setPresetNameEingabe(`${aktiv.name}-Animation`);
+  };
+
+  /** Schließt das Namensfeld ohne zu speichern (ESC/Abbrechen). */
+  const presetNamenAbbrechen = () => setPresetNameEingabe(null);
+
+  /** Bestätigt die Inline-Eingabe und sichert die Bewegung der AKTIVEN Grafik
+   *  als Preset. Leere Eingabe = nichts tun, Feld bleibt offen zur Korrektur.
+   *  Nach Erfolg schließt das Feld. */
+  const presetNamenBestaetigen = async () => {
+    if (!aktiv || aktiv.keyframes.length < 2) {
+      setPresetNameEingabe(null);
+      return;
+    }
+    const n = (presetNameEingabe ?? "").trim();
+    if (!n) return; // leere Eingabe: Feld offen lassen, nicht speichern
     const id = `p${Date.now().toString(36)}${Math.floor(performance.now() * 1000) % 997}`;
     const neu = presetAusGrafik(aktiv, id, n, new Date().toISOString());
     const liste = [...presets, neu];
@@ -1634,6 +1876,7 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
          macht den Schritt zusätzlich per Strg+Z rückgängig (inkl. IndexedDB). */
       await presetsMitUndo(liste, `Preset „${n}" gespeichert`);
       setStatus(`Preset „${n}" gespeichert (${neu.frames.length} Frames) — in der Bibliothek unter „Presets"`);
+      setPresetNameEingabe(null); // Feld nach erfolgreichem Speichern schließen
     } catch (error) {
       setStatus(
         `Preset konnte nicht gespeichert werden (${error instanceof Error ? error.message : "unbekannter Fehler"})`,
@@ -2567,6 +2810,14 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
         ctx.setAuswahl(null);
         ctx.setAuswahlMehr([]);
         ctx.setGelockt(false);
+        /* M14: Esc verlässt IMMER auch den Fluss-Fokus (zurück zu „nichts
+           fokussiert") — der einzige zentrale Ausweg, wenn keine Grafik
+           platziert ist und der Fluss den Fokus hält. Über flussObjektRef,
+           damit dieser Effekt (Deps ohne flussObjekt) nicht neu abonniert und
+           nicht mit einer veralteten Closure arbeitet. setFokus(false) räumt
+           über den Provider-Effekt zugleich einen eingeloggten Knoten aus.
+           Reine Selektion — keine Editier-Aktion, also kein Undo-Befehl. */
+        flussObjektRef.current?.setFokus(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
@@ -2873,7 +3124,10 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
           {ordner && !ordnerWartet && (
             <div className="gre-verbunden">
               📁 verbunden: <b>{ordner.name}</b>
-              <button onClick={() => void ordnerLesen(ordner)} title="Ordner neu einlesen">
+              <button
+                onClick={() => void ordnerNeuEinlesen()}
+                title="Ordner neu einlesen — Bibliothek frisch aus dem verbundenen Ordner aufbauen"
+              >
                 ⟳
               </button>
             </div>
@@ -3030,10 +3284,21 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
                   className={`gre-asset gre-fluss-eintrag${flussObjekt.fokus ? " gre-asset--aktiv" : ""}`}
                   aria-pressed={flussObjekt.fokus}
                   onClick={() => {
-                    flussObjekt.setFokus(true);
-                    ctx.setAuswahl(null);
-                    ctx.setAuswahlMehr([]);
-                    ctx.setGelockt(false);
+                    /* M14: Klick TOGGELT den Fluss-Fokus. Erneuter Klick auf
+                       den bereits fokussierten Eintrag hebt den Fokus wieder
+                       auf (zurück zu „nichts fokussiert") — auch ohne
+                       platzierte Grafik nie eine Sackgasse. Reine Selektion,
+                       kein Undo-Befehl. */
+                    const wirdFokussiert = !flussObjekt.fokus;
+                    flussObjekt.setFokus(wirdFokussiert);
+                    /* Nur beim Fokussieren die Grafik-Auswahl räumen
+                       (gegenseitiger Ausschluss, Bauvorlage §1); beim
+                       Ent-Fokussieren bleibt ohnehin nichts ausgewählt. */
+                    if (wirdFokussiert) {
+                      ctx.setAuswahl(null);
+                      ctx.setAuswahlMehr([]);
+                      ctx.setGelockt(false);
+                    }
                   }}
                   title="Fluss auswählen — Knoten auf der Seite bearbeiten; Wasser, Front, Nebel und Profile im Reiter Bild"
                 >
@@ -3143,7 +3408,21 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
             onWaehlen={(id) => ogWaehlen(id, true)}
             /* Welle 5c: die Bühne (aktive Puck-Seite) lädt asynchron — der
                Knopf liest die Ist-Stand-Liste bei Bedarf neu ein. */
-            onNeuEinlesen={() => setOgNeuEinlesenNonce((n) => n + 1)}
+            onNeuEinlesen={() => {
+              /* M10-Fix: sofort synchron scannen + Zähl-Feedback setzen, damit
+                 der Klick sichtbar wirkt — auch wenn die Liste inhaltlich gleich
+                 bleibt (Leons „tote Knöpfe"). Der Nonce-Bump startet zusätzlich
+                 das asynchrone 4-s-Nachfass-Fenster (s. OG-Scan-Effekt) für eine
+                 noch ladende Bühne. Reiner Refresh, kein Editier-Schritt →
+                 bewusst NICHT auf den Undo-Bus (R1 gilt für Editier-Aktionen). */
+              const liste = ogScannen();
+              setOgListe(liste);
+              setOgEinlesenStatus(
+                `Neu eingelesen: ${liste.length} Element${liste.length === 1 ? "" : "e"}`,
+              );
+              setOgNeuEinlesenNonce((n) => n + 1);
+            }}
+            neuEinlesenStatus={ogEinlesenStatus}
             /* Die Bühne trägt taggbare Elemente, wenn eine Seite darauf liegt:
                ein Puck-Seiten-Backdrop, ODER (kein expliziter Backdrop) die
                aktive Website als Default-Bühne, ODER gar kein Backdrop = Landing.
@@ -3169,16 +3448,22 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
         (ogAktiv ? (
           /* OG-Auswahl (Website-Ist-Stand): der „Bild"-Reiter zeigt die
              Basis-Infos des getaggten Original-Elements + „In den Builder
-             holen" (nur bild|svg). Vorrang, weil OG-Auswahl den Grafik-/
-             Fluss-Fokus ausschließt (s. ogWaehlen). */
+             holen". Vorrang, weil OG-Auswahl den Grafik-/Fluss-Fokus
+             ausschließt (s. ogWaehlen).
+
+             N11-Fix: onInBuilder wird IMMER durchgereicht (nicht mehr nur für
+             typ bild|svg). Ob das Holen möglich ist („holbar"), entscheidet
+             allein WebsiteOgObjekt — nur DORT ist per DOM-Messung bekannt, ob
+             ein Element ein übernehmbares <img> ENTHÄLT (Bens importierte Seite
+             taggt ganze Container als „deko"/„sektion", nicht die Einzelbilder).
+             Der frühere Typ-Filter hier war blind für diesen Normalfall → der
+             Knopf erschien aktiv, war aber dauerhaft ausgegraut. ogInBuilder →
+             ogAlsGrafikErzeugen zieht das innere Bild selbst und meldet einen
+             echten Nicht-holbar-Fall sauber per Status zurück. */
           <WebsiteOgObjekt
             eintrag={ogAktiv}
             status={ogStatus}
-            onInBuilder={
-              ogAktiv.typ === "bild" || ogAktiv.typ === "svg"
-                ? () => ogInBuilder(ogAktiv)
-                : undefined
-            }
+            onInBuilder={() => ogInBuilder(ogAktiv)}
           />
         ) : flussObjekt?.fokus && flussObjekt.steuerung ? (
           /* Fluss-Fokus (nur /editor): der „Bild"-Reiter ist kontextuell und
@@ -3523,17 +3808,55 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
                     />
                   </span>
                 </div>
-                <button
-                  onClick={() => void presetSpeichern()}
-                  disabled={aktiv.keyframes.length < 2}
-                  title={
-                    aktiv.keyframes.length < 2
-                      ? "Braucht mindestens 2 Keyframes — eine Bewegung entsteht erst zwischen zwei Punkten."
-                      : "Bewegung als wiederverwendbares Preset in der Bibliothek speichern"
-                  }
-                >
-                  💾 Als Preset speichern
-                </button>
+                {presetNameEingabe === null ? (
+                  <button
+                    onClick={presetSpeichernStarten}
+                    disabled={aktiv.keyframes.length < 2}
+                    title={
+                      aktiv.keyframes.length < 2
+                        ? "Braucht mindestens 2 Keyframes — eine Bewegung entsteht erst zwischen zwei Punkten."
+                        : "Bewegung als wiederverwendbares Preset in der Bibliothek speichern"
+                    }
+                  >
+                    💾 Als Preset speichern
+                  </button>
+                ) : (
+                  /* Inline-Namensfeld (M16, ersetzt window.prompt). Enter
+                     bestätigt, ESC bricht ab — beide gestoppt, damit sie keine
+                     globalen Editor-Tasten (ESC-Auswahl, Strg-Kürzel) auslösen. */
+                  <div className="gre-preset-namensfeld">
+                    <input
+                      autoFocus
+                      value={presetNameEingabe}
+                      onChange={(e) => setPresetNameEingabe(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          void presetNamenBestaetigen();
+                        } else if (e.key === "Escape") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          presetNamenAbbrechen();
+                        }
+                      }}
+                      placeholder="Name für das Preset"
+                      aria-label="Name für das Animations-Preset"
+                    />
+                    <div className="gre-row">
+                      <button
+                        onClick={() => void presetNamenBestaetigen()}
+                        disabled={!presetNameEingabe.trim()}
+                        title="Preset unter diesem Namen speichern (Enter)"
+                      >
+                        Speichern
+                      </button>
+                      <button onClick={presetNamenAbbrechen} title="Abbrechen (ESC)">
+                        Abbrechen
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -3669,6 +3992,27 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
                   Animation in Seite speichern
                 </button>
               </div>
+              {/* M15: gemerkte „Animation laden?"-Wahl dieser Bühne — Anzeige +
+                  kleiner Weg, sie zurückzusetzen (dann wird beim nächsten Öffnen
+                  wieder gefragt). Nur sichtbar, wenn überhaupt etwas gemerkt ist. */}
+              <div className="gre-hilfe">
+                {ladeWahl
+                  ? `Beim Öffnen dieser Bühne gemerkt: „${
+                      ladeWahl === "laden" ? "Animation laden" : "Animator-Stand behalten"
+                    }“ — es wird nicht erneut gefragt.`
+                  : "Bringt diese Bühne beim Öffnen eine gespeicherte Animation mit und der Animator ist nicht leer, wird einmalig gefragt (Wahl wird dann gemerkt)."}
+              </div>
+              {ladeWahl && (
+                <div className="gre-row">
+                  <button
+                    type="button"
+                    onClick={vergessLadeWahl}
+                    title="Gemerkte „Animation laden?“-Wahl dieser Bühne vergessen — beim nächsten Öffnen wird wieder gefragt"
+                  >
+                    Wieder fragen
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </>
@@ -3795,6 +4139,17 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
         Ebene, pointer-events:none, z-index unter dem Panel (s. WebsiteOg.tsx /
         grafik-editor.css). Nur bei OG-Auswahl. */}
     {ogAuswahl && <WebsiteOgOverlay ogId={ogAuswahl} />}
+    {/* M15: einmalige In-App-Nachfrage „gespeicherte Animation der Buehnen-Seite
+        laden?" (statt nativem confirm bei jedem Reload). Wird nur gesetzt, wenn
+        der Animator schon Grafiken traegt und keine passende Wahl gemerkt ist. */}
+    {ladeAnfrage && (
+      <AnimLadenDialog
+        seite={ladeAnfrage.seite}
+        anzahl={ladeAnfrage.grafiken.length}
+        onLaden={() => beantworteLadeAnfrage("laden")}
+        onBehalten={() => beantworteLadeAnfrage("behalten")}
+      />
+    )}
     <GrafikTutorial offen={tutorialOffen} onSchliessen={tutorialSchliessen} />
     {/* Phase 1/F5: Das Produkt-Onboarding (<ProduktTutorial>) ist auf
         Shell-Ebene (app/editor/page.tsx) gewandert — es feuert dort selbst auf

@@ -212,6 +212,18 @@
   padding: 2px;
 }
 
+/* Inline-Namensfeld fürs Preset-Speichern (M16, ersetzt window.prompt).
+   Rein strukturell: Feld über den Knöpfen stapeln, Feld volle Breite.
+   Farbe/Optik kommen mit Phase 6. */
+.gre-preset-namensfeld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gre-preset-namensfeld input {
+  width: 100%;
+}
+
 .gre-panel button.gre-lade {
   flex: 1;
   min-width: 0;
@@ -937,6 +949,14 @@
 
 .gre-panel button.gre-og-neu:hover {
   opacity: 1;
+}
+
+/* M10-Fix: Zähl-Rückmeldung direkt unter „⟳ Neu einlesen" — macht den Klick
+   sichtbar, auch wenn sich die Ist-Stand-Liste inhaltlich nicht ändert. */
+.gre-og-status {
+  margin-bottom: 6px;
+  font-size: 11.5px;
+  color: #9fd68a;
 }
 
 /* Bühnen-Overlay: Rahmen um das ausgewählte Original-Element. Eigene Ebene,

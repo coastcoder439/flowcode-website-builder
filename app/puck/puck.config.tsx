@@ -17,7 +17,8 @@
  */
 
 import { cloneElement, type ReactElement } from "react";
-import type { Config, Data, Slot } from "@puckeditor/core";
+import { AutoField, FieldLabel } from "@puckeditor/core";
+import type { Config, Data, Slot, TextareaField } from "@puckeditor/core";
 import type { OgTyp } from "@/components/grafik/WebsiteOg";
 import { ShapeAccent } from "@/components/ShapeAccent";
 import { GrafikMedium } from "@/components/grafik/GrafikMedium";
@@ -268,7 +269,51 @@ export const config: Config<PuckProps> = {
     HtmlBlock: {
       label: "HTML-Block (uebriges Markup)",
       fields: {
-        html: { type: "textarea", label: "HTML (wird entschaerft)" },
+        // N3-Fix: Pucks Feld-Panel wird DOPPELT gemountet — einmal die
+        // Desktop-Sidebar (SidebarSection > Fields) und einmal das
+        // `mobileOnly` Fields-Plugin (fieldsPlugin, desktopSideBar:"right"),
+        // das auf Desktop nur ausgeblendet (0x0) in der .PuckLayout haengt.
+        // Beide Mounts vergeben die von Puck DETERMINISTISCH aus
+        // `${itemId}_${feldtyp}_${feldname}` gebildete Feld-id (FieldsChildInner)
+        // → mit dem eingebauten `type:"textarea"` lagen so ZWEI <textarea> mit
+        // identischer id 'imp-…_textarea_html' im Dokument (ein sichtbares,
+        // ein unsichtbares). Ursache ist Puck-intern, NICHT unsere Config.
+        //
+        // Loesung ohne Funktionsverlust: eigenes Render aus zwei OEFFENTLICHEN
+        // Puck-Bausteinen.
+        //  (1) AutoField (public) rendert Pucks EIGENES Textarea-Feld — Styling,
+        //      Fokus-Schutz und Wertlogik 1:1 — und vergibt pro Mount via
+        //      `useSafeId()` (React.useId) eine EIGENE eindeutige id, die die von
+        //      Puck uebergebene deterministische id UEBERSCHREIBT. Dadurch sind
+        //      die beiden Panel-Mounts garantiert verschieden → keine doppelten
+        //      ids mehr. AutoField ersetzt intern aber das Feld-Label durch einen
+        //      leeren <div>-Wrapper (DefaultLabel), d.h. der Feld-Titel ginge
+        //      verloren — deshalb:
+        //  (2) FieldLabel (public) umschliesst das Feld mit Pucks echtem
+        //      <label>-Element inkl. Titel-Text ("HTML (wird entschaerft)").
+        //      Die <textarea> liegt damit IM <label> → gueltige, id-unabhaengige
+        //      (implizite) Label-Zuordnung fuer Screenreader, exakt wie bei
+        //      Pucks eingebauten Feldern.
+        // Kein neuer Undo-Befehl noetig: Tippen laeuft ueber die uebergebene
+        // Puck-`onChange` → Puck-Datenaenderung → Puck-History → PuckUndoBruecke,
+        // exakt wie beim vorherigen eingebauten Feld (R1).
+        html: {
+          type: "custom",
+          label: "HTML (wird entschaerft)",
+          render: ({ value, onChange, readOnly }) => (
+            <FieldLabel label="HTML (wird entschaerft)">
+              <AutoField
+                // Feld absichtlich OHNE label: den Titel liefert FieldLabel oben;
+                // ein label am Feld-Objekt wuerde von AutoFields DefaultLabel nur
+                // verschluckt. FieldNoLabel-Constraint → Cast auf TextareaField.
+                field={{ type: "textarea" } as TextareaField}
+                value={value ?? ""}
+                onChange={onChange}
+                readOnly={readOnly}
+              />
+            </FieldLabel>
+          ),
+        },
       },
       defaultProps: { html: "" },
       render: ({ html }) => (
