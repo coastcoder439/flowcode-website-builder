@@ -16,7 +16,7 @@
  * Arbeitsschritt am Ende der Kette, kein weiterer Editor-Zustand.
  *
  * WARUM DIREKT AUS localStorage lesen (kein Context/Provider): Der
- * Fluss-Editor (RiverKursEditor.tsx) speichert seine Verläufe schon dort
+ * Fluss-Editor (useFlussKnoten.ts) speichert seine Verläufe schon dort
  * unter demselben Schlüssel ("wee-fluss-verlaeufe") – ein zweiter
  * Lese-Layer wäre nur eine Kopie derselben Quelle.
  */
@@ -34,7 +34,7 @@ import { baueElementHtml, elementSlug } from "../embed/element-html-export";
 import type { Grafik } from "./grafik-types";
 import type { FlussVerlauf } from "../river/riverSnapshot";
 
-/** Identisch zu STORAGE_KEY in RiverKursEditor.tsx – MUSS mit dort
+/** Identisch zu STORAGE_KEY in useFlussKnoten.ts – MUSS mit dort
  *  übereinstimmen, sonst sieht dieser Reiter die im Fluss-Editor
  *  gespeicherten Verläufe nicht. */
 const FLUSS_STORAGE_KEY = "wee-fluss-verlaeufe";

@@ -776,7 +776,7 @@ export function GrafikEditor() {
        ein Klick darauf fände sein Element dann nicht mehr. Deshalb über die
        id-Signatur vergleichen. Der Zustand wird nur bei ECHTER Änderung
        geschrieben (Backdrop-Bild-Modus: dauerhaft leer → keine Re-Renders). */
-    let signatur = " ";
+    let signatur = " ";
     const scan = () => {
       if (abbruch) return;
       const liste = ogScannen();

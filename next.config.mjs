@@ -5,6 +5,10 @@ const nextConfig = {
   output: "export",
   images: { unoptimized: true },
   trailingSlash: true,
+  // trailingSlash gilt fuer die exportierten Seiten-URLs; ohne skip wuerde
+  // Next jeden API-POST ohne End-Schraegstrich erst per 308 umleiten
+  // (jede Liste-/Lade-/Loesch-Interaktion feuert doppelt).
+  skipTrailingSlashRedirect: true,
 
   // `next build` und `next dev` teilen sich sonst BEIDE den .next-Ordner —
   // ein Build neben einem laufenden Dev-Server ueberschreibt dessen Dateien

@@ -18,9 +18,9 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "WEE Titelkarte – Prototyp v1",
+  title: "Flowcode Website Builder",
   description:
-    "Gepinnte Scroll-Titelkarte (Vorhang-Effekt) für World Eden Era – eigenständiger Prototyp.",
+    "Self-hosted visueller Website-Builder: Seiten importieren, in Puck bauen, animieren, exportieren.",
 };
 
 export default function RootLayout({
