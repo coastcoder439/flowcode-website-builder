@@ -315,32 +315,122 @@ paths:
         public/import/), Groessenlimit (8 MB), Endungs-Whitelist (Bild).
         Welle 5a: zusaetzlich .css erlaubt (dann data:text/css und Ablage unter
         public/import/<slug>/css/) — Endung↔MIME sind eng gekoppelt.
+        I6 (Schritt VI): aktion="leeren" leert den Asset-Ordner eines Slugs
+        REVERSIBEL (Verschieben nach public/import/.papierkorb/<slug>-<ts>/) —
+        gegen Waisen aus einem frueheren Import vor einem Re-Import.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [slug, name, dataUrl]
+                  description: "Default (aktion=schreibe): Asset kopieren."
+                  properties:
+                    slug: { $ref: "#/components/schemas/SeitenName" }
+                    name:
+                      type: string
+                      description: Reiner Ziel-Dateiname mit Bild-, Font-, Medien- oder .css-Endung.
+                    dataUrl: { type: string, description: "data:image/...;base64,... oder data:text/css;base64,... (Welle 5a)" }
+                - type: object
+                  required: [aktion, slug]
+                  description: "I6: Asset-Ordner des Slugs reversibel leeren."
+                  properties:
+                    aktion: { type: string, enum: [leeren] }
+                    slug: { $ref: "#/components/schemas/SeitenName" }
+      responses:
+        "200":
+          description: Geschrieben (schreibe) bzw. geleert (leeren)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [slug, name, pfad, url]
+                    properties:
+                      slug: { type: string }
+                      name: { type: string }
+                      pfad: { type: string }
+                      url: { type: string }
+                  - type: object
+                    required: [slug, aktion, geleert, dateien]
+                    properties:
+                      slug: { type: string }
+                      aktion: { type: string, enum: [leeren] }
+                      geleert: { type: boolean }
+                      dateien: { type: integer }
+                      verschobenNach: { type: string }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
+  /api/import/freeze:
+    post:
+      operationId: importFreeze
+      summary: "Import-Endlevel E4: Seite(n) serverseitig einfrieren (Playwright)"
+      description: >-
+        Dev-only (I6/E4, docs/plan-webbuilder-umbau-gesamt.md E4). Fuehrt die
+        I1-Freeze-Kernlogik (scripts/freeze-seite.mjs) serverseitig aus, damit
+        der UI-Ordner-Import dieselbe Freeze-Qualitaet wie das Skript bekommt:
+        die Seite wird mit System-Chrome gerendert, Entrance-/Lazy-Animationen
+        in den Endzustand getrieben (getAnimations().finish()) und der SICHTBARE
+        End-DOM abgegriffen (0x opacity:0 an Texttraegern, M4). Quelle ist
+        entweder ein Direktpfad (ordnerPfad, Agent/CLI) ODER hochgereichte
+        Ordner-Inhalte (dateien, UI — werden in einen Temp-Ordner materialisiert
+        und danach aufgeraeumt). Playwright laeuft als externer Kindprozess, nie
+        im Produktkern.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [slug, name, dataUrl]
+              description: "Genau eines von ordnerPfad | dateien angeben."
               properties:
-                slug: { $ref: "#/components/schemas/SeitenName" }
-                name:
+                ordnerPfad:
                   type: string
-                  description: Reiner Ziel-Dateiname mit Bild- oder .css-Endung.
-                dataUrl: { type: string, description: "data:image/...;base64,... oder data:text/css;base64,... (Welle 5a)" }
+                  description: Direktpfad zu einem out/-Ordner auf der Autoren-Maschine.
+                dateien:
+                  type: array
+                  description: Hochgereichte Ordner-Inhalte (UI-Weg).
+                  items:
+                    type: object
+                    required: [pfad]
+                    properties:
+                      pfad: { type: string, description: Relativer Pfad im Ordner. }
+                      dataUrl: { type: string, description: "data:...;base64,... (Binaerdateien)." }
+                      text: { type: string, description: Text-Inhalt (Alternative zu dataUrl). }
+                seiten:
+                  type: array
+                  items: { type: string }
+                  description: >-
+                    Seiten-Pfade (".", "bildung", "bildung/aquaponik"). Default ["."].
       responses:
         "200":
-          description: Geschrieben
+          description: Freeze-Ergebnis je Seite
           content:
             application/json:
               schema:
                 type: object
-                required: [slug, name, pfad, url]
+                required: [modus, seiten]
                 properties:
-                  slug: { type: string }
-                  name: { type: string }
-                  pfad: { type: string }
-                  url: { type: string }
+                  modus: { type: string, enum: [ordnerPfad, dateien] }
+                  seiten:
+                    type: array
+                    items:
+                      type: object
+                      required: [seite, slug, ok]
+                      properties:
+                        seite: { type: string }
+                        slug: { type: string }
+                        ok: { type: boolean }
+                        html:
+                          type: string
+                          description: Gefrorene self-contained End-HTML (bei ok=true).
+                        protokoll:
+                          type: object
+                          description: Freeze-Protokoll (opacityVorher/Nachher, Dauer, Marker).
+                        fehler: { type: string }
         "400": { $ref: "#/components/responses/Ungueltig" }
         "403": { $ref: "#/components/responses/FremderUrsprung" }
 

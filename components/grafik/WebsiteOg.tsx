@@ -28,6 +28,34 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Grafik, GrafikKeyframe } from "./grafik-types";
+import { holeBuehneDoc } from "../backdrop/buehne-doc";
+
+/* ------------------------------------------------------------------ */
+/* Aktive Bühne: Editor-Dokument ODER lebendige iframe-Bühne (I8/M8)   */
+/* ------------------------------------------------------------------ */
+
+/** Das Dokument, gegen das der Anker-Mechanismus scannt/misst: das
+ *  contentDocument der lebendigen iframe-Bühne, falls eine geladen ist
+ *  (buehne-doc-Registry, s. Backdrop.tsx BackdropLebendeSeite) — sonst das
+ *  Editor-Dokument. Ohne lebendige Bühne (Inline-<Render>-Bühne, native Landing)
+ *  ist das Verhalten damit BYTE-gleich zu vorher (0 Regression). */
+function aktivDoc(): Document | null {
+  const b = holeBuehneDoc();
+  if (b) return b.doc;
+  return typeof document !== "undefined" ? document : null;
+}
+
+/** Versatz der lebendigen Bühne im Host-Viewport (iframe.getBoundingClientRect,
+ *  live gemessen — der iframe wandert beim Scrollen). {0,0} ohne lebendige Bühne,
+ *  dann liegen Anker-Rects bereits im Host-Koordinatensystem. Mit lebendiger
+ *  Bühne sind Element-Rects iframe-VIEWPORT-relativ; +Versatz macht daraus
+ *  Host-Viewport-Koordinaten (iframe scrollt nie intern → kein Scroll-Term). */
+function buehneVersatz(): { x: number; y: number } {
+  const b = holeBuehneDoc();
+  if (!b) return { x: 0, y: 0 };
+  const r = b.iframe.getBoundingClientRect();
+  return { x: r.left, y: r.top };
+}
 
 /** Typen exakt wie im data-og-typ-Attribut (s. Spec §8/3a). */
 export type OgTyp = "sektion" | "text" | "bild" | "svg" | "deko" | "hintergrund";
@@ -130,10 +158,11 @@ function gruppierung(e: OgEintrag): { schluessel: string; label: string; name: s
  *  (keine Zufalls-IDs, s. HomePageContent). Wird beim Editor-Start UND bei
  *  Backdrop-Wechsel neu aufgerufen (s. GrafikEditor). */
 export function ogScannen(): OgEintrag[] {
-  if (typeof document === "undefined") return [];
+  const doc = aktivDoc();
+  if (!doc) return [];
   const eintraege: OgEintrag[] = [];
   const gesehen = new Set<string>();
-  document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+  doc.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
     const id = el.getAttribute("data-og-id");
     if (!id || gesehen.has(id)) return;
     gesehen.add(id);
@@ -162,9 +191,10 @@ function istOgTyp(v: string | null): v is OgTyp {
 }
 
 /** Findet das getaggte Element wieder (nur über die id, die Anführungszeichen
- *  im Attribut-Selektor erlauben die Doppelpunkte im Schema problemlos). */
+ *  im Attribut-Selektor erlauben die Doppelpunkte im Schema problemlos). Sucht
+ *  im aktiven Bühnen-Dokument (lebendige iframe-Bühne ODER Editor-Dokument). */
 function ogElement(id: string): HTMLElement | null {
-  return document.querySelector<HTMLElement>(`[data-og-id="${id}"]`);
+  return aktivDoc()?.querySelector<HTMLElement>(`[data-og-id="${id}"]`) ?? null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -420,9 +450,13 @@ export function WebsiteOgOverlay({ ogId }: { ogId: string }) {
       if (kasten) {
         if (anker) {
           const r = anker.getBoundingClientRect();
+          /* +Bühnen-Versatz: bei lebendiger iframe-Bühne ist r iframe-Viewport-
+             relativ → auf Host-Viewport heben (fixed-Overlay). Ohne lebendige
+             Bühne ist der Versatz {0,0} → unverändert. */
+          const v = buehneVersatz();
           kasten.style.display = r.width > 0 && r.height > 0 ? "block" : "none";
-          kasten.style.left = `${r.left}px`;
-          kasten.style.top = `${r.top}px`;
+          kasten.style.left = `${r.left + v.x}px`;
+          kasten.style.top = `${r.top + v.y}px`;
           kasten.style.width = `${r.width}px`;
           kasten.style.height = `${r.height}px`;
         } else {
@@ -496,11 +530,19 @@ export function ogAlsGrafikErzeugen(eintrag: OgEintrag, naechstesZ: number): OgE
     return { fehler: `„${eintrag.element || eintrag.id}" hat aktuell keine sichtbare Größe.` };
   }
 
-  const deckkraft = parseFloat(getComputedStyle(quellEl).opacity);
+  /* getComputedStyle über das Fenster des EIGENEN Dokuments — bei lebendiger
+     iframe-Bühne ist quellEl aus dem contentDocument (das Host-window.getComputedStyle
+     würde für ein fremdes Dokument-Element leere Werte liefern). */
+  const eigenesFenster = quellEl.ownerDocument.defaultView ?? window;
+  const deckkraft = parseFloat(eigenesFenster.getComputedStyle(quellEl).opacity);
+  /* +Bühnen-Versatz auf Host-Dokument-Koordinaten (r ist iframe-Viewport-relativ
+     bei lebendiger Bühne; window.scroll* = Host-Scroll, der iframe scrollt nie
+     intern). Ohne lebendige Bühne ist der Versatz {0,0} → unverändert. */
+  const v = buehneVersatz();
   const kf: GrafikKeyframe = {
     scrollY: window.scrollY,
-    x: r.left + r.width / 2 + window.scrollX,
-    y: r.top + r.height / 2 + window.scrollY,
+    x: r.left + v.x + r.width / 2 + window.scrollX,
+    y: r.top + v.y + r.height / 2 + window.scrollY,
     scale: 1,
     opacity: Number.isFinite(deckkraft) ? deckkraft : 1,
     rotation: 0,

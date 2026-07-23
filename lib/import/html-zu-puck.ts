@@ -45,6 +45,9 @@
  */
 
 import type { ComponentData, Data, Slot } from "@puckeditor/core";
+import { entferneFremdkoerper, erkenntFramework, type FrameworkErkennung } from "./fremdkoerper-filter";
+import { baueOutlineMitElementen } from "./dom-outline";
+import { validiereSegmentierung, type BlockTyp, type Segmentierung } from "./gemma-contract";
 
 /* ---- Baustein-Prop-Typen (geteilte Wahrheit mit app/puck/puck.config.tsx) ----
  * puck.config.tsx importiert diese Typen (wie GrafikLayerBlockProps aus
@@ -120,6 +123,9 @@ export interface ImportBericht {
    *  dedupliziert. Nur gefuellt, wenn opts.styleUebernehmen. Der Aufrufer
    *  fasst sie zu EINER Datei zusammen (§10/5a). */
   inlineStyles: string[];
+  /** N15: erkanntes Framework (Marker /_next/static/) — Diagnose fuer den
+   *  Bericht, spaeter Strategie-Steuernd (fremdkoerper-filter.ts). */
+  framework: FrameworkErkennung;
 }
 
 /** Welle 5a: Sammelbehaelter fuer uebernommene Styles. Wird durch den
@@ -173,6 +179,18 @@ const FLAG_STYLE = "Styling nicht uebernommen";
 const FLAG_LINK = "Externes Stylesheet entfernt";
 const FLAG_ON_ATTR = "Ereignis-Attribut entfernt";
 const FLAG_JS_URL = "javascript:-URL entfernt";
+/* N15: bekannter Hosting-/Vorschau-Fremdkoerper (z.B. Passwort-Gate) — VOR dem
+   Mapping entfernt, damit er nicht als HtmlBlock mitexportiert wird. */
+const FLAG_FREMDKOERPER = "Fremdkoerper entfernt";
+/* Schritt IV: die Segmentierung passt nicht exakt zur frisch gebildeten Outline
+   (z.B. weil das gemappte HTML von dem der Segmentierung abweicht). Best-effort-
+   Mapping laeuft trotzdem — die Abweichung wird ehrlich gemeldet. */
+const FLAG_SEG_ABWEICHUNG = "Segmentierung weicht von der Outline ab";
+/* Schritt IV: eine Segment-ref liess sich nicht auf ein Element zurueckfuehren. */
+const FLAG_SEG_REF_FEHLT = "Segment-Knoten ohne Element";
+/* Schritt IV: Outline-Atome, die die Segmentierung nicht abgedeckt hat, wurden in
+   einer Rest-Sektion aufgefangen (Verlustschutz). */
+const FLAG_SEG_REST = "Nicht segmentierte Atome in Rest-Sektion";
 
 /** Deterministischer id-Zaehler pro Import (stabil bei identischer Eingabe). */
 class IdZaehler {
@@ -454,25 +472,22 @@ export function htmlZuPuck(
     htmlBildSrcs: new Set<string>(),
   };
 
-  const doc = new DOMParser().parseFromString(html, "text/html");
+  /* N15: Framework erkennen und Fremdkoerper (Passwort-Gate u.a.) VOR dem
+     Mapping aussortieren. Jeder Treffer wird als Flag transparent gemeldet —
+     rein/deterministisch, konservative benannte Selektor-Liste. */
+  const framework = erkenntFramework(html);
+  const gefiltert = entferneFremdkoerper(html);
+  for (const e of gefiltert.entfernt) {
+    ctx.flags.push({ grund: FLAG_FREMDKOERPER, detail: e.beschreibung });
+  }
+
+  const doc = new DOMParser().parseFromString(gefiltert.html, "text/html");
   const content: ComponentData[] = [];
 
   /* Kopf-Ebene: die eigentlichen Styling-Traeger (<style>, Stylesheets) liegen
      bei Next-Builds im <head>. Mit styleUebernehmen sammeln (§10/5a), sonst
      ehrlich flaggen (Stufe-C-light verliert das Styling). */
-  doc.head?.querySelectorAll("style").forEach((s) => {
-    const text = (s.textContent ?? "").trim();
-    if (ctx.stil) {
-      if (text) ctx.stil.inlineStyles.push(text);
-    } else {
-      ctx.flags.push({ grund: FLAG_STYLE, detail: "<style> im <head> verworfen" });
-    }
-  });
-  doc.head?.querySelectorAll('link[rel~="stylesheet"]').forEach((l) => {
-    const href = l.getAttribute("href") ?? "";
-    if (ctx.stil && href && istSelbeHerkunft(href)) ctx.stil.stylesheets.push(href);
-    else ctx.flags.push({ grund: FLAG_LINK, detail: href || "<link rel=stylesheet>" });
-  });
+  sammleKopfStyles(ctx, doc);
 
   for (const kind of Array.from(doc.body.childNodes)) {
     if (kind.nodeType === 3) {
@@ -510,6 +525,238 @@ export function htmlZuPuck(
     bilder: ctx.bilder,
     stylesheets: stil ? dedupliziereStrings(stil.stylesheets) : [],
     inlineStyles: stil ? dedupliziereStrings(stil.inlineStyles) : [],
+    framework,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Schritt IV — Puck-Mapping aus dem Modell-Urteil (M5)                 */
+/* ------------------------------------------------------------------ */
+
+/** Trimmt + kollabiert Whitespace (lokal, damit der Adapter dep-frei bleibt). */
+function normTextContent(el: Element): string {
+  return (el.textContent ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** Kopf-Ebene <style>/<link rel=stylesheet> sammeln (styleUebernehmen) bzw.
+ *  ehrlich flaggen. Geteilt von htmlZuPuck und htmlZuPuckMitSegmentierung. */
+function sammleKopfStyles(ctx: BauKontext, doc: Document | null): void {
+  if (!doc) return;
+  doc.head?.querySelectorAll("style").forEach((s) => {
+    const text = (s.textContent ?? "").trim();
+    if (ctx.stil) {
+      if (text) ctx.stil.inlineStyles.push(text);
+    } else {
+      ctx.flags.push({ grund: FLAG_STYLE, detail: "<style> im <head> verworfen" });
+    }
+  });
+  doc.head?.querySelectorAll('link[rel~="stylesheet"]').forEach((l) => {
+    const href = l.getAttribute("href") ?? "";
+    if (ctx.stil && href && istSelbeHerkunft(href)) ctx.stil.stylesheets.push(href);
+    else ctx.flags.push({ grund: FLAG_LINK, detail: href || "<link rel=stylesheet>" });
+  });
+}
+
+/** Skripte im ganzen Dokument als „nicht uebernommen" flaggen (Bausteine werden
+ *  keine daraus; Dedup fasst identische Details zusammen). */
+function flaggeSkripte(ctx: BauKontext, doc: Document | null): void {
+  if (!doc) return;
+  doc.querySelectorAll("script").forEach((s) => {
+    ctx.flags.push({ grund: FLAG_SCRIPT, detail: s.getAttribute("src") ?? "<script> (inline)" });
+  });
+}
+
+/** Ein „text"-Atom -> TextBlock (Variante aus dem Tag). Leerer Text -> lieber das
+ *  Markup als HtmlBlock behalten, statt einen leeren TextBlock zu erzeugen. */
+function textBausteinAusElement(ctx: BauKontext, el: Element): ComponentData | null {
+  const text = normTextContent(el);
+  if (!text) return htmlBlock(ctx, el);
+  const variante: TextVariante = UEBERSCHRIFT_TAGS.has(el.tagName)
+    ? ueberschriftVariante(el.tagName)
+    : "p";
+  return textBlock(ctx, text, variante);
+}
+
+/** Erzeugt einen BildBlock aus einer beliebigen Quelle (nicht nur <img>). Nur
+ *  aufloesbare LOKALE Quellen werden zur Asset-Aufloesung angemeldet; data:/http:/
+ *  (z.B. serialisiertes Inline-SVG) tragen ihre Quelle schon in sich. */
+function bildBlockAusSrc(ctx: BauKontext, src: string, alt: string): ComponentData {
+  ctx.statistik.bilder += 1;
+  const id = ctx.ids.naechste("bild");
+  const props: BildBlockProps = { id, src, alt, breiteProzent: 100 };
+  if (istLokaleBildQuelle(src)) ctx.bilder.push({ id, src, quelle: "bild" });
+  return { type: "BildBlock", props };
+}
+
+/** Serialisiert ein <svg> als self-contained data-URL-BildBlock. Ein Inline-SVG
+ *  IST ein Bild — als BildBlock ist es editierbar und braucht keinen HtmlBlock.
+ *  Sicher: BildBlock rendert die Quelle in <img src>, worin Browser SVG-Skripte
+ *  nie ausfuehren (kein aktiver Inhalt). */
+function svgBildBlock(ctx: BauKontext, svg: Element): ComponentData {
+  const klon = svg.cloneNode(true) as Element;
+  if (!klon.getAttribute("xmlns")) klon.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  const src = "data:image/svg+xml," + encodeURIComponent(klon.outerHTML);
+  return bildBlockAusSrc(ctx, src, klon.getAttribute("aria-label") ?? "");
+}
+
+/** Erste LOKALE url(...) im Inline-style (Hintergrundbild) — Grundlage, ein reines
+ *  Hintergrund-Element als BildBlock statt HtmlBlock abzubilden. */
+function hintergrundUrl(el: Element): string | null {
+  const style = el.getAttribute("style") || "";
+  for (const u of urlPfade(style)) {
+    if (istLokaleBildQuelle(u)) return u;
+  }
+  return null;
+}
+
+/** Ein „bild"-Atom -> BildBlock, wo eine echte Bildquelle vorliegt:
+ *  <img> · ein einzelnes eingebettetes <img> · Inline-SVG (als data-URL) ·
+ *  reines Inline-Hintergrundbild. Sonst (canvas/video/komplexe Deko mit Text)
+ *  HtmlBlock, der seinen Look ueber die inlinierte CSS-je-Baustein selbst traegt. */
+function bildBausteinAusElement(ctx: BauKontext, el: Element): ComponentData | null {
+  if (el.tagName === "IMG") return bildBlock(ctx, el as HTMLImageElement);
+  const leer = normTextContent(el) === "";
+  const innerImg = el.querySelector("img");
+  if (innerImg && leer) return bildBlock(ctx, innerImg as HTMLImageElement);
+  if (el.tagName === "SVG") return svgBildBlock(ctx, el);
+  const innerSvg = el.querySelector("svg");
+  if (innerSvg && leer) return svgBildBlock(ctx, innerSvg);
+  const bg = hintergrundUrl(el);
+  if (bg && leer) return bildBlockAusSrc(ctx, bg, el.getAttribute("aria-label") ?? "");
+  return htmlBlock(ctx, el);
+}
+
+/** Blocktyp -> passender Baustein. „html" bleibt der Rueckfall fuer echt
+ *  nicht-abbildbares Rest-Markup. */
+function bausteinFuerSegBlock(ctx: BauKontext, el: Element, typ: BlockTyp): ComponentData | null {
+  if (typ === "text") return textBausteinAusElement(ctx, el);
+  if (typ === "bild") return bildBausteinAusElement(ctx, el);
+  return htmlBlock(ctx, el);
+}
+
+/** Deterministischer Typ-Rat fuer die Verlustschutz-Rest-Sektion (nur benutzt,
+ *  wenn die Segmentierung ein Atom nicht abgedeckt hat). */
+function rateTyp(el: Element): BlockTyp {
+  const tag = el.tagName;
+  if (tag === "IMG" || tag === "PICTURE" || tag === "SVG" || tag === "VIDEO" || tag === "CANVAS") return "bild";
+  if (UEBERSCHRIFT_TAGS.has(tag) || tag === "P") return "text";
+  return "html";
+}
+
+/** Baut eine SektionBlock-Komponente aus fertigen Kind-Bausteinen (oder null,
+ *  wenn keine Kinder — leere Sektionen werden nicht mitgenommen). */
+function sektionAusKindern(ctx: BauKontext, kinder: ComponentData[]): ComponentData | null {
+  if (kinder.length === 0) return null;
+  ctx.statistik.sektionen += 1;
+  const props: SektionBlockProps = {
+    id: ctx.ids.naechste("sektion"),
+    hintergrund: "transparent",
+    kinder: kinder as Slot,
+  };
+  return { type: "SektionBlock", props };
+}
+
+/**
+ * HTML + Segmentierungs-Urteil (Schritt III) -> Puck-Data. Rein/deterministisch
+ * (nur DOMParser, kein Seiteneffekt). Ersetzt die Ein-Ebenen-Grobheuristik von
+ * `htmlZuPuck` durch das feine Modell-/Fallback-Urteil: jede gemma-Sektion wird
+ * ein SektionBlock, ihre Bloecke werden feine TextBlock/BildBlock/HtmlBlock-
+ * Kinder. `htmlZuPuck` bleibt als deterministischer Fallback bestehen.
+ *
+ * ERWARTUNG: `html` ist dasselbe (Freeze-)HTML, aus dem Schritt III seine Outline
+ * gebildet hat — die refs decken sich dann deterministisch. Fuer die CSS-je-
+ * Baustein („jeder Block traegt seinen Look selbst") inliniert der SKRIPT-Pfad
+ * (scripts/import-fein.mjs, devDep juice) die aufgeloesten CSS-Regeln VOR dem
+ * Mapping als style-Attribute; dieser reine Adapter liest sie nur mit (bleibt
+ * juice-frei) — jeder erzeugte HtmlBlock traegt die inlinierte CSS in seinem
+ * outerHTML und „zerfliegt" nicht mehr, wenn er aus seiner Vorfahren-Kette
+ * geloest wird. Ohne den Inline-Vorlauf funktioniert das Mapping weiterhin,
+ * nur ohne den Fidelity-Gewinn.
+ *
+ * `styleUebernehmen` (Welle 5a): sammelt same-origin Stylesheets + <style>-
+ * Bloecke im Bericht (stylesheets/inlineStyles), statt sie zu verwerfen.
+ */
+export function htmlZuPuckMitSegmentierung(
+  html: string,
+  segmentierung: Segmentierung,
+  opts: { idPraefix?: string; styleUebernehmen?: boolean } = {},
+): ImportBericht {
+  const stil: StilSammler | null = opts.styleUebernehmen ? { stylesheets: [], inlineStyles: [] } : null;
+  const ctx: BauKontext = {
+    ids: new IdZaehler(opts.idPraefix ? `${opts.idPraefix}-` : ""),
+    flags: [],
+    statistik: { sektionen: 0, texte: 0, bilder: 0, htmlBloecke: 0 },
+    bilder: [],
+    stil,
+    htmlBildSrcs: new Set<string>(),
+  };
+
+  const framework = erkenntFramework(html);
+
+  /* N15: Fremdkoerper VOR dem Mapping raus (deckt sich mit Schritt III, der
+     ebenfalls auf der gefilterten HTML segmentiert). */
+  const gefiltert = entferneFremdkoerper(html);
+  for (const e of gefiltert.entfernt) {
+    ctx.flags.push({ grund: FLAG_FREMDKOERPER, detail: e.beschreibung });
+  }
+
+  /* Outline + ref->Element aus GENAU dieser gefilterten HTML — dieselbe
+     Traversierung wie in Schritt III, also deckungsgleiche refs. */
+  const { knoten, elemente, doc } = baueOutlineMitElementen(gefiltert.html);
+  sammleKopfStyles(ctx, doc);
+  flaggeSkripte(ctx, doc);
+
+  /* Mechanische Selbstkontrolle: passt das Urteil zur frischen Outline? Bei
+     Abweichung wird best-effort gemappt (nie ein Absturz), Abweichung geflaggt. */
+  const geprueft = validiereSegmentierung(segmentierung, knoten);
+  if (!geprueft.ok) ctx.flags.push({ grund: FLAG_SEG_ABWEICHUNG, detail: geprueft.fehler });
+
+  const content: ComponentData[] = [];
+  const benutzt = new Set<string>();
+
+  for (const sektion of segmentierung.sektionen) {
+    const kinder: ComponentData[] = [];
+    for (const block of sektion.bloecke) {
+      const el = elemente.get(block.ref);
+      if (!el) {
+        ctx.flags.push({ grund: FLAG_SEG_REF_FEHLT, detail: block.ref });
+        continue;
+      }
+      benutzt.add(block.ref);
+      const baustein = bausteinFuerSegBlock(ctx, el, block.typ);
+      if (baustein) kinder.push(baustein);
+    }
+    const sektionBaustein = sektionAusKindern(ctx, kinder);
+    if (sektionBaustein) content.push(sektionBaustein);
+  }
+
+  /* Verlustschutz: von der Segmentierung nicht abgedeckte Outline-Atome (bei
+     valider Segmentierung leer) in einer Rest-Sektion auffangen — nie still
+     verloren. */
+  const rest = knoten.filter((k) => !benutzt.has(k.ref));
+  if (rest.length > 0) {
+    const kinder: ComponentData[] = [];
+    for (const k of rest) {
+      const el = elemente.get(k.ref);
+      if (!el) continue;
+      const baustein = bausteinFuerSegBlock(ctx, el, rateTyp(el));
+      if (baustein) kinder.push(baustein);
+    }
+    const sektionBaustein = sektionAusKindern(ctx, kinder);
+    if (sektionBaustein) {
+      ctx.flags.push({ grund: FLAG_SEG_REST, detail: `${rest.length} Atome ohne Sektion` });
+      content.push(sektionBaustein);
+    }
+  }
+
+  return {
+    data: { root: {}, content },
+    flags: dedupliziereFlags(ctx.flags),
+    statistik: ctx.statistik,
+    bilder: ctx.bilder,
+    stylesheets: stil ? dedupliziereStrings(stil.stylesheets) : [],
+    inlineStyles: stil ? dedupliziereStrings(stil.inlineStyles) : [],
+    framework,
   };
 }
 

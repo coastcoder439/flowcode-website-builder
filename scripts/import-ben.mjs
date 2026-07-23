@@ -17,6 +17,12 @@
  * daher einmal mit --experimental-transform-types neu (volle TS-Transform), statt
  * den geteilten Adapter fuers Skript umzuschreiben.
  *
+ * WARUM --import ts-ext-loader.mjs: Der Adapter importiert relativ+endungslos
+ * `./fremdkoerper-filter` (so verlangt es tsc/bundler + der Browser-Pfad). Nodes
+ * nativer Resolver macht keine Endungs-Probe → der Loader-Hook haengt fuer den
+ * Skript-Pfad `.ts` an (s. scripts/lib/ts-ext-loader.mjs). Nur dieser
+ * Node-Prozess sieht den Hook; tsc/Next/Browser bleiben unberuehrt.
+ *
  * WARUM happy-dom: Der Adapter braucht `DOMParser` (im Browser vorhanden). In
  * Node stellen wir ihn ueber das bereits installierte happy-dom bereit — reines
  * Parsen, kein Ausfuehren (wie im Browser: <script> im geparsten Dokument laeuft
@@ -28,9 +34,16 @@ import { fileURLToPath } from "node:url";
 
 /* ---- Selbst-Reexec mit voller TS-Transform (s. Dateikopf) ---- */
 if (!process.env.__BEN_IMPORT_REEXEC) {
+  const ladeHook = new URL("./lib/ts-ext-loader.mjs", import.meta.url).href;
   const r = spawnSync(
     process.execPath,
-    ["--experimental-transform-types", fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    [
+      "--experimental-transform-types",
+      "--import",
+      ladeHook,
+      fileURLToPath(import.meta.url),
+      ...process.argv.slice(2),
+    ],
     { stdio: "inherit", env: { ...process.env, __BEN_IMPORT_REEXEC: "1" } },
   );
   process.exit(r.status ?? 1);
@@ -42,7 +55,9 @@ const { join, resolve, dirname } = await import("node:path");
 /* happy-dom-DOMParser als Global bereitstellen, BEVOR der Adapter geladen wird
    (statische Imports wuerden vor dieser Zuweisung ausgewertet → dynamic import). */
 const { Window } = await import("happy-dom");
-globalThis.DOMParser = new Window().DOMParser;
+/* url noetig: ohne Basis wirft happy-dom bei relativen <link href>-Pfaden
+   (z.B. /_next/static/css/...) einen TypeError Invalid URL gegen about:blank. */
+globalThis.DOMParser = new Window({ url: "http://import.local/" }).DOMParser;
 
 const { htmlZuPuck, ersetzeBildQuellen } = await import("../lib/import/html-zu-puck.ts");
 
@@ -240,6 +255,9 @@ async function main() {
 
   /* --- Bericht --- */
   console.log("Import-Bericht:");
+  console.log(
+    `  Framework:    ${bericht.framework.typ}${bericht.framework.marker.length > 0 ? ` (${bericht.framework.marker.join(", ")})` : ""}`,
+  );
   console.log(`  Sektionen:    ${bericht.statistik.sektionen}`);
   console.log(`  Texte:        ${bericht.statistik.texte}`);
   console.log(`  Bilder:       ${bericht.statistik.bilder} (${bilderData} eingebettet, ${bilderKopiert} kopiert)`);

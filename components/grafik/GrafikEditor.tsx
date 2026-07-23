@@ -50,6 +50,7 @@ import {
   ogAlsGrafikErzeugen,
   type OgEintrag,
 } from "./WebsiteOg";
+import { holeBuehneDoc, abonniereBuehneDoc } from "../backdrop/buehne-doc";
 import { EasingKurve } from "./EasingKurve";
 import { EASING_DEFAULT } from "./easing";
 import {
@@ -226,19 +227,25 @@ function ankerFelderFuer(
   scrollYDoc: number,
 ): Pick<GrafikKeyframe, "ankerId" | "ankerDy" | "ankerScrollDy"> {
   if (typeof document === "undefined") return ANKER_LEER;
+  /* Lebendige iframe-Bühne (I8/M8): gegen ihr contentDocument ankern und die
+     iframe-Verschiebung addieren (Element-Rects sind dort iframe-Viewport-
+     relativ). Ohne lebendige Bühne: Editor-Dokument, Versatz 0 → unverändert. */
+  const buehne = holeBuehneDoc();
+  const doc = buehne?.doc ?? document;
+  const versatzTop = buehne ? buehne.iframe.getBoundingClientRect().top : 0;
   const sy = window.scrollY;
   const grenze = window.innerHeight * ANKER_MAX_ABSTAND_VH;
   let besteId: string | null = null;
   let besterTop = 0;
   let bestAbstand = Infinity;
   const gesehen = new Set<string>();
-  document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+  doc.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
     const id = el.getAttribute("data-og-id");
     if (!id || gesehen.has(id)) return;
     gesehen.add(id);
     const r = el.getBoundingClientRect();
     if (r.width <= 0 || r.height <= 0) return;
-    const top = r.top + sy;
+    const top = r.top + versatzTop + sy;
     const abstand = Math.abs(top - yDoc);
     if (abstand < bestAbstand) {
       bestAbstand = abstand;
@@ -992,6 +999,12 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     };
   }, [backdropCtx?.backdrop, aktiveSeite, ogNeuEinlesenNonce]);
 
+  /* I8/M8: lebendige iframe-Bühne an-/abgemeldet ODER gewechselt → OG-Ist-Stand
+     neu einlesen. Die getaggten Elemente liegen dann im contentDocument des
+     iframes; der Nonce-Bump stößt das 4-s-Nachfass-Scan-Fenster oben an, sobald
+     buehne.html geladen ist (Backdrop.tsx meldet die Bühne beim onLoad an). */
+  useEffect(() => abonniereBuehneDoc(() => setOgNeuEinlesenNonce((n) => n + 1)), []);
+
   /* Welle 5c: fällt das aktuell gewählte OG-Element aus der frisch eingelesenen
      Liste (Bühnen-Wechsel — die veralteten Landing-Einträge verschwinden), die
      Auswahl leeren. Sonst zeigten Objekt-Reiter und Bühnen-Overlay einen
@@ -1161,9 +1174,20 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
       setOgStatus("");
       setOgAuswahl(id);
       if (scroll) {
-        document
-          .querySelector<HTMLElement>(`[data-og-id="${id}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+        const buehne = holeBuehneDoc();
+        const el = (buehne?.doc ?? document).querySelector<HTMLElement>(`[data-og-id="${id}"]`);
+        if (buehne && el) {
+          /* Lebendige iframe-Bühne (I8/M8): NICHT scrollIntoView (das würde den
+             iframe INTERN scrollen — er ist aber voll-höhe und scrollt nie
+             intern). Stattdessen den HOST auf die Element-Mitte in Host-
+             Dokument-Koordinaten scrollen. */
+          const ir = buehne.iframe.getBoundingClientRect();
+          const er = el.getBoundingClientRect();
+          const zielDoc = er.top + ir.top + window.scrollY + er.height / 2 - window.innerHeight / 2;
+          window.scrollTo({ top: Math.max(0, zielDoc), behavior: "smooth" });
+        } else {
+          el?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
       }
     },
     [ctx, flussObjekt],

@@ -37,11 +37,22 @@ import { config } from "@/app/puck/puck.config";
 import { GescopteSeitenStyles } from "@/components/import/SeitenStyles";
 import type { Backdrop as BackdropDaten } from "./backdrop-types";
 import { ordnerBereitstellen, ordnerHolen } from "./ordner-serve";
+import { setzeBuehneDoc } from "./buehne-doc";
 import "./backdrop.css";
 
 /** Platzhalter-Hoehe, bis die erste Messung nach dem iframe-Laden eintrifft —
  *  verhindert einen Null-Hoehe-Sprung (Fluss-Zone waere sonst kurz 0px hoch). */
 const IFRAME_STARTHOEHE_PX = 600;
+
+/** Harte Obergrenze fuer die Voll-Hoehe-Buehne (I8-FIX, Runaway-Schutz).
+ *  Die eigentliche Ursache (vh-Einheiten im Voll-Hoehe-iframe) ist an der Quelle
+ *  behoben — buehne-schreiben.mjs fixiert Hoehen-Viewport-Einheiten auf px. Diese
+ *  Grenze ist die zweite Verteidigungslinie: sollte je eine Seite (fremde Import-
+ *  quelle, spaeteres JS) die Inhaltshoehe unkontrolliert wachsen lassen, wird die
+ *  gemessene Hoehe hart gedeckelt, statt in Chromiums 2^25-px-Limit (33.554.428px)
+ *  zu laufen und die Seite unbedienbar zu machen. Grosszuegig gewaehlt (weit ueber
+ *  jeder realen Seitenhoehe, weit unter dem Browser-Limit). */
+const BUEHNE_MAX_HOEHE_PX = 200_000;
 
 /** Fuegt <base target="_blank"> in den HTML-Text ein, damit Links im
  *  Backdrop (falls doch einmal ein Klick durchkommt) ein neues Tab oeffnen
@@ -175,19 +186,139 @@ function BackdropOrdner() {
   );
 }
 
-type PuckStatus = "laedt" | "bereit" | "leer" | "fehler";
+type LebendigStatus = "pruefe" | "lebendig" | "render";
 
-/** Puck-Seiten-Backdrop (Welle 4c, docs/editor-vereinheitlichung.md §9/4c(2)):
- *  laedt seiten/<name>.json ueber /api/puck-seite/lade und rendert sie per
- *  <Render> INLINE als Buehne des Animators — kein iframe (anders als HTML/
- *  Ordner), damit die data-og-id="puck:<id>"-Anker der Bausteine im SELBEN
- *  Dokument liegen und der 3b-Anker-Mechanismus (GrafikLayer) sie findet.
+/** Puck-Seiten-Backdrop mit QUELLEN-WEICHE (I8/M8, lens-import.md §2-Ziel):
+ *
+ *  Liegt zur Seite eine eingefrorene, NICHT-entkernte Original-Fassung als
+ *  public/import/<name>/buehne.html vor (der Import legt sie beim Freeze ab —
+ *  MIT den Original-Animationen, JS/CSS der Quellseite intakt), wird DIESE als
+ *  lebendige iframe-Bühne gerendert (BackdropLebendeSeite). Sonst — native
+ *  Puck-Seiten ohne Import, oder Import ohne buehne.html — bleibt es beim
+ *  bisherigen <Render>-Pfad (BackdropPuckRender): kein Feature-Verlust.
+ *
+ *  Die Weiche fragt die Existenz über POST /api/import/buehne { slug } ab (JSON
+ *  { vorhanden }, IMMER HTTP 200). BEWUSST NICHT per direktem GET auf die Datei:
+ *  ein 404 auf /import/<slug>/buehne.html (der Normalfall bei nativen Seiten ohne
+ *  Bühne) würde der Browser als Konsolen-Fehler protokollieren — der Existenz-
+ *  Endpoint vermeidet das (I8-FIX „0 Konsolen-Errors"). POST folgt der Routen-
+ *  Konvention des Projekts (output:"export" verträgt keine dynamischen GET-Routen;
+ *  vgl. puck-seite/lade). Während der Prüfung zeigt sie den Lade-Hinweis der
+ *  Render-Bühne, damit kein Aufblitzen entsteht. */
+function BackdropPuckSeite({ name }: { name: string }) {
+  const [modus, setModus] = useState<LebendigStatus>("pruefe");
+
+  useEffect(() => {
+    let tot = false;
+    setModus("pruefe");
+    void (async () => {
+      try {
+        const res = await fetch("/api/import/buehne", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ slug: name }),
+          cache: "no-store",
+        });
+        const json = (await res.json()) as { vorhanden?: boolean };
+        if (!tot) setModus(res.ok && json.vorhanden === true ? "lebendig" : "render");
+      } catch {
+        /* Netzfehler → sicherer Fallback auf die bestehende Render-Bühne. */
+        if (!tot) setModus("render");
+      }
+    })();
+    return () => {
+      tot = true;
+    };
+  }, [name]);
+
+  if (modus === "pruefe") {
+    return <div className="hg-backdrop-hinweis">Prüfe Bühne „{name}“…</div>;
+  }
+  if (modus === "lebendig") {
+    return <BackdropLebendeSeite slug={name} />;
+  }
+  return <BackdropPuckRender name={name} />;
+}
+
+/** Lebendige iframe-Bühne (I8/M8): rendert public/import/<slug>/buehne.html —
+ *  die eingefrorene, NICHT-entkernte Original-Seite MIT ihren Animationen (JS/
+ *  CSS der Quelle intakt) — als same-origin <iframe>. VOLL-HÖHE-Modell wie der
+ *  Ordner-Backdrop: die iframe-Höhe wird auf die Inhalts-Höhe gesetzt, sie
+ *  scrollt also NIE intern — die Host-Seite scrollt sie als einen Block. Dadurch
+ *  ist die Scroll-Kopplung iframe↔Overlay INHÄRENT (nicht nachträglich
+ *  synchronisiert): ein Element bei iframe-lokal rect.top steht im Host bei
+ *  iframe.rect.top + rect.top (iframe-Intern-Scroll immer 0).
+ *
+ *  Der Anker-Mechanismus (WebsiteOg/GrafikEditor) greift auf das
+ *  contentDocument zu — beim Laden meldet die Bühne es an der buehne-doc-
+ *  Registry an (setzeBuehneDoc), beim Unmount/Wechsel wieder ab. pointer-events:
+ *  none wie alle Backdrop-Modi. */
+function BackdropLebendeSeite({ slug }: { slug: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
+  const [hoehe, setHoehe] = useState(IFRAME_STARTHOEHE_PX);
+
+  const syncHoehe = useCallback(() => {
+    const doc = iframeRef.current?.contentDocument;
+    const el = doc?.documentElement;
+    if (!el) return;
+    const roh = Math.max(el.scrollHeight, doc?.body?.scrollHeight ?? 0);
+    /* Runaway-Schutz (I8-FIX): hart deckeln, damit ein eventuell doch noch
+       hoehen-relativ wachsender Inhalt nie in Chromiums 2^25-Limit laeuft. */
+    const h = Math.min(roh, BUEHNE_MAX_HOEHE_PX);
+    if (h > 0) setHoehe(h);
+  }, []);
+
+  const onLoad = useCallback(() => {
+    syncHoehe();
+    roRef.current?.disconnect();
+    const iframe = iframeRef.current;
+    const doc = iframe?.contentDocument;
+    if (!iframe || !doc?.body) return;
+    const ro = new ResizeObserver(syncHoehe);
+    ro.observe(doc.body);
+    roRef.current = ro;
+    /* Lebendige Bühne anmelden: ab jetzt scannt/misst der OG-Anker-Mechanismus
+       gegen dieses Dokument (mit iframe-Versatz), s. buehne-doc.ts. */
+    setzeBuehneDoc({ doc, iframe });
+  }, [syncHoehe]);
+
+  useEffect(
+    () => () => {
+      roRef.current?.disconnect();
+      setzeBuehneDoc(null);
+    },
+    [],
+  );
+
+  return (
+    <div className="hg-backdrop-lebendig" data-fc-buehne-lebendig>
+      <iframe
+        ref={iframeRef}
+        src={`/import/${encodeURIComponent(slug)}/buehne.html`}
+        onLoad={onLoad}
+        title="Eigene Website (lebendige Bühne)"
+        className="hg-backdrop-html"
+        style={{ height: hoehe }}
+      />
+    </div>
+  );
+}
+
+/** Puck-Seiten-Backdrop, RENDER-Pfad (Welle 4c, docs/editor-vereinheitlichung.md
+ *  §9/4c(2)): laedt seiten/<name>.json ueber /api/puck-seite/lade und rendert sie
+ *  per <Render> INLINE als Buehne des Animators — kein iframe, damit die
+ *  data-og-id="puck:<id>"-Anker der Bausteine im SELBEN Dokument liegen und der
+ *  3b-Anker-Mechanismus (GrafikLayer) sie findet. Fallback der Quellen-Weiche
+ *  (BackdropPuckSeite), wenn keine lebendige buehne.html vorliegt.
  *
  *  Das aeussere data-fc-puck-buehne markiert den Buehnen-Container: der
  *  Export-Reiter greift dessen innerHTML ab, um Seite + Animation in EIN
  *  Dokument zu fusionieren (Welle 4c(4), GrafikExportPanel). pointer-events:
  *  none wie alle Backdrop-Modi — der Animator-Overlay bedient sich selbst. */
-function BackdropPuckSeite({ name }: { name: string }) {
+type PuckStatus = "laedt" | "bereit" | "leer" | "fehler";
+
+function BackdropPuckRender({ name }: { name: string }) {
   const [status, setStatus] = useState<PuckStatus>("laedt");
   const [data, setData] = useState<Data | null>(null);
   /* Welle 5a: uebernommene Stylesheet-URLs der Seite — gescoped auf die Bühne. */

@@ -35,6 +35,18 @@
   pointer-events: none;
 }
 
+/* Lebendige iframe-Buehne (Backdrop.tsx BackdropLebendeSeite, I8/M8): die
+   eingefrorene Original-Seite (public/import/<slug>/buehne.html) MIT ihren
+   Animationen. Voll-Hoehe-iframe (Hoehe = Inhaltshoehe) → die Host-Seite
+   scrollt sie als einen Block, der iframe scrollt nie intern. pointer-events:
+   none wie alle Backdrop-Modi; der Anker-/Overlay-Mechanismus misst gegen das
+   contentDocument (s. buehne-doc.ts). */
+.hg-backdrop-lebendig {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+}
+
 /* Platzhalter-Hinweis des Ordner-Backdrops (BackdropOrdner in Backdrop.tsx),
    solange der Cache noch befuellt wird bzw. bei fehlendem Zugriff — bewusst
    NICHT interaktiv (pointer-events:none wie alles in Backdrop.tsx): der

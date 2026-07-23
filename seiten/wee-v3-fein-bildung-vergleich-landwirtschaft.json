@@ -1,0 +1,861 @@
+{
+  "$doc": "Vom Flowcode-Builder gespeicherte Puck-Seite (lib/api/seiten-speicher.ts). data = Puck-Datenmodell {root, content[], ...} der registrierten Komponenten (lib/puck-registry.ts). Geschrieben ueber POST /api/puck-seite/speichere oder den Import-Endpunkt; der Puck-Editor/Render liest exakt dieses data-Feld.",
+  "version": 1,
+  "name": "wee-v3-fein-bildung-vergleich-landwirtschaft",
+  "gespeichert": "2026-07-23T11:15:43.684Z",
+  "data": {
+    "root": {},
+    "content": [
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-27",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-1",
+                "text": "Zum Inhalt springen",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-2",
+                "text": "Visuelle Assistenzsoftware und Vorlesefunktion Eye-Able öffnen. Mit der Tastatur erreichbar über ALT + 1",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "HtmlBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-html-4",
+                "html": "<a class=\"site-header__brand\" aria-label=\"World Eden Era – Startseite\" href=\"/\" style=\"box-sizing: border-box; text-decoration: none; display: inline-flex; align-items: center; gap: .6rem; font-family: 'Syne','Syne Fallback','Syne','Trebuchet MS',system-ui,sans-serif; font-weight: 800; font-size: 1.125rem; color: #16201A; white-space: nowrap;\"><img class=\"site-header__logo\" src=\"/import/wee-v3-fein-bildung-vergleich-landwirtschaft/logo-bunt.png\" alt=\"\" style=\"box-sizing: border-box; max-width: 100%; display: block; height: 34px; width: auto;\" width=\"auto\" height=\"34\"><span style=\"box-sizing: border-box;\">World Eden Era</span></a>"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-5",
+                "text": "Startseite",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-6",
+                "text": "Project Oasis",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-7",
+                "text": "Pilot Projekt",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-8",
+                "text": "Bildung",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-9",
+                "text": "Übersicht: BildungAquaponikPermakulturWissenschaftliche GrundlageLandwirtschaft im Vergleich",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-10",
+                "text": "Die Organisation",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-11",
+                "text": "Übersicht: Die OrganisationUnsere GrundsätzeUnser Team",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-12",
+                "text": "FAQ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-13",
+                "text": "Spenden",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-14",
+                "text": "Startseite",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-15",
+                "text": "Project Oasis",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-16",
+                "text": "Pilot Projekt",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-17",
+                "text": "Bildung",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-18",
+                "text": "Aquaponik",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-19",
+                "text": "Permakultur",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-20",
+                "text": "Wissenschaftliche Grundlage",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-21",
+                "text": "Landwirtschaft im Vergleich",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-22",
+                "text": "Die Organisation",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-23",
+                "text": "Unsere Grundsätze",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-24",
+                "text": "Unser Team",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-25",
+                "text": "FAQ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-26",
+                "text": "Spenden",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-33",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-28",
+                "src": "/import/wee-v3-fein-bildung-vergleich-landwirtschaft/hero-fields-aerial.jpg",
+                "alt": "Luftaufnahme traditioneller Reisterrassen: unterschiedlich geformte Ackerflächen, durch einen Weg voneinander getrennt.",
+                "breiteProzent": 100
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-29",
+                "text": "Bildung · Landwirtschaft im Vergleich",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-30",
+                "text": "Zwei Wege, Nahrung zu erzeugen.",
+                "variante": "h1"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-31",
+                "text": "Aquaponik verstehen",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-32",
+                "text": "Unterstütze uns hier",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-47",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-34",
+                "text": "Auf einen Blick",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "HtmlBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-html-35",
+                "html": "<h2 class=\"heading heading--underline\" style=\"box-sizing: border-box; font-family: 'Syne','Syne Fallback','Syne','Trebuchet MS',system-ui,sans-serif; color: #16201A; line-height: 1.18; margin: 0 0 .5em; font-weight: 700; position: relative; display: inline-block; margin-bottom: 1.25rem; font-size: clamp(1.9rem,3.6vw,3rem); letter-spacing: -0.02em;\">Vier Dimensionen im <span class=\"heading__accent\" style=\"box-sizing: border-box;\">Vergleich</span><svg class=\"heading__underline\" viewBox=\"0 0 200 16\" preserveAspectRatio=\"none\" aria-hidden=\"true\" style=\"box-sizing: border-box; position: absolute; left: 0; bottom: -.4em; width: 100%; height: .5em; overflow: visible;\"><path d=\"M2,6 C30,13 65,1 100,8 C138,15 170,2 198,9\" fill=\"none\" pathLength=\"1\" stroke-dashoffset=\"0\" stroke-dasharray=\"0 1\" style=\"box-sizing: border-box; stroke: #EA8914; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .85;\"></path></svg></h2>"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-36",
+                "text": "Die Balken zeigen die relative Größenordnung je Dimension, nicht ein Werturteil. Höhere Werte sind nicht automatisch „besser“. Jede Angabe ist unten mit einer Quelle belegt. Die Einordnung darunter erklärt Kontext und Grenzen.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-37",
+                "text": "7",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-38",
+                "text": "Illustration 7: Split-Illustration: traditioneller Freilandanbau links vs. geschlossenes Aquaponik-System rechts, gleiche Bildsprache für direkten Vergleich.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-39",
+                "text": "Traditionelle LandwirtschaftAquaponik",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-40",
+                "text": "Frischwasserverbrauch (relativ zum Bodenanbau)[1]",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-41",
+                "text": "100%",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-42",
+                "text": "20%",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-43",
+                "text": "Wasser-Wiederverwendung im Kreislauf[2]",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-44",
+                "text": "0% rückgeführt",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-45",
+                "text": "97% rückgeführt",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-46",
+                "text": "Abhängigkeit von fruchtbarem Ackerboden[4]",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-54",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-48",
+                "text": "100 relativ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-49",
+                "text": "5 relativ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-50",
+                "text": "Anfangsinvestition & Technikbedarf[3]",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-51",
+                "text": "30 relativ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-52",
+                "text": "100 relativ",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-53",
+                "text": "Einordnung",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-61",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-55",
+                "text": "Was die Zahlen bedeuten",
+                "variante": "h2"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-56",
+                "text": "Wasser: Weil Aquaponik das Wasser im Kreislauf führt, muss nur ein kleiner Teil ersetzt werden. Bodenlose Kultursysteme benötigen laut FAO weniger als 20 % des Wassers des bodengebundenen Anbaus; im Kreislaufsystem INAPRO lag der tägliche Frischwasserbedarf sogar bei unter 3 % des Systemvolumens. In wasserarmen Regionen ist das ein entscheidender Vorteil.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-57",
+                "text": "Boden: Traditionelle Landwirtschaft ist auf fruchtbaren Boden angewiesen, eine zunehmend knappe Ressource. Laut FAO sind rund 33 % der weltweiten Landflächen mäßig bis stark degradiert. Aquaponik kommt ohne Ackerboden aus und kann daher auch auf degradierten oder versiegelten Flächen betrieben werden.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-58",
+                "text": "Wirtschaftlichkeit: Hier liegt eine klare Schwäche der Aquaponik. Die Forschung zeigt, dass aquaponische Anlagen erst ab einer ausreichenden Größe wirtschaftlich tragfähig werden; im untersuchten Fall wurde die Gewinnschwelle erst nach rund zwölf Jahren erreicht. Traditionelle Landwirtschaft ist in vielen Kontexten mit deutlich geringerem technischem und finanziellem Aufwand betreibbar.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-59",
+                "text": "33 %der weltweiten Landflächen sind mäßig bis stark degradiert (FAO)",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-60",
+                "text": "Ausgewogenheit",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-67",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "HtmlBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-html-62",
+                "html": "<h2 class=\"heading heading--underline\" style=\"box-sizing: border-box; font-family: 'Syne','Syne Fallback','Syne','Trebuchet MS',system-ui,sans-serif; color: #16201A; line-height: 1.18; margin: 0 0 .5em; font-weight: 700; position: relative; display: inline-block; margin-bottom: 1.25rem; font-size: clamp(1.9rem,3.6vw,3rem); letter-spacing: -0.02em;\">Die <span class=\"heading__accent\" style=\"box-sizing: border-box;\">Grenzen</span> der Aquaponik: ehrlich benannt<svg class=\"heading__underline\" viewBox=\"0 0 200 16\" preserveAspectRatio=\"none\" aria-hidden=\"true\" style=\"box-sizing: border-box; position: absolute; left: 0; bottom: -.4em; width: 100%; height: .5em; overflow: visible;\"><path d=\"M2,9 C40,3 80,15 120,7 C150,2 180,11 198,5\" fill=\"none\" pathLength=\"1\" stroke-dashoffset=\"0\" stroke-dasharray=\"0.07294004914245228 1\" style=\"box-sizing: border-box; stroke: #EA8914; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .85;\"></path></svg></h2>"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-63",
+                "text": "Aquaponik ist kein Allheilmittel. Ihre größten Schwächen sind die hohe Anfangsinvestition, die technische Komplexität und vor allem die Energieabhängigkeit: Pumpen, Belüftung und, je nach Klima, Heizung oder Kühlung müssen zuverlässig mit Energie versorgt werden. Fällt die Energieversorgung aus, ist der gesamte Kreislauf gefährdet.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-64",
+                "text": "Zudem verlangt der Betrieb Fachwissen aus zwei Welten zugleich, Fischhaltung und Pflanzenbau, sowie sorgfältiges Monitoring. Traditionelle Landwirtschaft hat demgegenüber unbestreitbare Stärken: geringere Einstiegshürden, etablierte Wertschöpfungsketten und bei regenerativen Methoden wie Permakultur einen nachweislich positiven Effekt auf Böden und Biodiversität.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-65",
+                "text": "Für uns folgt daraus kein Entweder-oder. Aquaponik spielt ihre Stärken dort aus, wo Wasser und fruchtbarer Boden knapp sind und Standortunabhängigkeit zählt. Regenerative Landnutzung wirkt dort, wo Böden vorhanden sind und aufgebaut werden können. Project Oasis kombiniert beides bewusst.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-66",
+                "text": "So kombinieren wir beides: Project Oasis",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-71",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-68",
+                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20200%20200%22%20fill%3D%22none%22%20style%3D%22box-sizing%3A%20border-box%3B%20width%3A%20100%25%3B%20height%3A%20100%25%3B%20display%3A%20block%3B%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M52%2024C86%206%20142%2014%20166%2052C190%2090%20182%20142%20148%20168C114%20194%2062%20190%2034%20158C6%20126%204%2050%2052%2024Z%22%20fill%3D%22var(--accent-500)%22%20style%3D%22box-sizing%3A%20border-box%3B%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
+                "alt": "",
+                "breiteProzent": 100
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-69",
+                "text": "Aquaponik ist kein Allheilmittel. Ihre Energieabhängigkeit und hohen Anfangskosten benennen wir bewusst.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-70",
+                "text": "Quellen",
+                "variante": "h2"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-77",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-72",
+                "text": "Somerville, C. et al. (2014): Small-scale aquaponic food production – Integrated fish and plant farming. FAO Fisheries and Aquaculture Technical Paper No. 589. — Bodenlose Kultur benötigt weniger als 20 % des Wassers des bodengebundenen Anbaus.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-73",
+                "text": "INAPRO: Sustainable food production through aquaponics (Leibniz-IGB, EU Horizon 2020). CORDIS / Projektseite. — Täglicher Frischwasserbedarf unter 3 % des Systemvolumens durch Kreislaufführung (Wasser-Wiederverwendung ~97 %).",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-74",
+                "text": "Baganz, G. et al. (2020): Profitability of multi-loop aquaponics: Year-long production data, economic scenarios and a comprehensive model case. Aquaculture Research 51, 2711–2724. — Wirtschaftlichkeit erst bei ausreichend großen Anlagen; Gewinnschwelle im Modellfall nach rund 12 Jahren; hohe Investitions- und Energiekosten.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-75",
+                "text": "FAO & ITPS (2015): Status of the World's Soil Resources – Main Report. — Rund 33 % der weltweiten Landflächen sind mäßig bis stark degradiert.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-76",
+                "text": "Permaculture enhances carbon stocks, soil quality and biodiversity in Central Europe (2024). Communications Earth & Environment (Nature Portfolio). — Beleg für den positiven Effekt regenerativer Landnutzung (Permakultur) auf Böden und Biodiversität.",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-81",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "HtmlBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-html-78",
+                "html": "<h2 class=\"heading heading--underline\" style=\"box-sizing: border-box; font-family: 'Syne','Syne Fallback','Syne','Trebuchet MS',system-ui,sans-serif; color: #16201A; line-height: 1.18; margin: 0 0 .5em; font-weight: 700; position: relative; display: inline-block; margin-bottom: 1.25rem; font-size: clamp(1.9rem,3.6vw,3rem); letter-spacing: -0.02em;\">Werde selbst <span class=\"heading__accent\" style=\"box-sizing: border-box;\">aktiv</span><svg class=\"heading__underline\" viewBox=\"0 0 200 16\" preserveAspectRatio=\"none\" aria-hidden=\"true\" style=\"box-sizing: border-box; position: absolute; left: 0; bottom: -.4em; width: 100%; height: .5em; overflow: visible;\"><path d=\"M2,10 C50,3 90,13 140,4 C167,0 185,7 198,3\" fill=\"none\" pathLength=\"1\" stroke-dashoffset=\"0\" stroke-dasharray=\"0.025617204252643577 1\" style=\"box-sizing: border-box; stroke: #EA8914; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; opacity: .85;\"></path></svg></h2>"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-79",
+                "text": "Es gibt viele Möglichkeiten wie du unsere Mission unterstützen kannst. Jeder Beitrag macht einen Unterschied.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-80",
+                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%20200%20200%22%20fill%3D%22none%22%20style%3D%22box-sizing%3A%20border-box%3B%20width%3A%20100%25%3B%20height%3A%20100%25%3B%20display%3A%20block%3B%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M70%2014C110%204%20176%2030%20182%2082C188%20134%20148%20190%2096%20186C44%20182%2012%20138%2018%2090C22%2054%2040%2022%2070%2014Z%22%20fill%3D%22var(--accent-500)%22%20style%3D%22box-sizing%3A%20border-box%3B%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
+                "alt": "",
+                "breiteProzent": 100
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-90",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-82",
+                "text": "Sorge dafür, dass Projekte Realität werden.",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-83",
+                "text": "Mit deiner Patenschaft finanzierst du direkt Project Oasis, um Menschen in Not unabhängig zu machen.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-84",
+                "text": "Jetzt spenden",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-85",
+                "text": "Pack mit an, statt nur zuzusehen.",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-86",
+                "text": "Ob freiwillig oder als Partner: gemeinsam entwickeln wir Lösungen, die wirklich funktionieren.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-87",
+                "text": "Teilen. Inspirieren. Wirken.",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-88",
+                "text": "Folge uns, teile unsere Inhalte und verbreite unsere Vision. Schon ein Klick kann Bewusstsein schaffen und Projekte sichtbar machen.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-89",
+                "text": "Folge uns",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "SektionBlock",
+        "props": {
+          "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-sektion-105",
+          "hintergrund": "transparent",
+          "kinder": [
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-91",
+                "text": "Spendenkonto",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-92",
+                "text": "Spenden-SEPA-FormularIBAN: DE03 3702 0500 0020 2370 91BIC: BFSWDE33XXX",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-93",
+                "text": "Kontakt",
+                "variante": "h3"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-94",
+                "text": "info@world-eden-era.orgWorld Eden Era gUG (haftungsbeschränkt)Täubchenweg 8504317 LeipzigDeutschland",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-95",
+                "src": "data:image/png;base64,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",
+                "alt": "World Eden Era",
+                "breiteProzent": 100
+              }
+            },
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-96",
+                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22currentColor%22%20aria-hidden%3D%22true%22%20style%3D%22box-sizing%3A%20border-box%3B%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M12%202.16c3.2%200%203.58.01%204.85.07%201.17.05%201.8.25%202.23.41.56.22.96.48%201.38.9.42.42.68.82.9%201.38.16.42.36%201.06.41%202.23.06%201.27.07%201.65.07%204.85s-.01%203.58-.07%204.85c-.05%201.17-.25%201.8-.41%202.23-.22.56-.48.96-.9%201.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7%203.7%200%200%201-1.38-.9%203.7%203.7%200%200%201-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17%2015.58%202.16%2015.2%202.16%2012s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68%201.38-.9.42-.16%201.06-.36%202.23-.41C8.42%202.17%208.8%202.16%2012%202.16zM12%200C8.74%200%208.33.01%207.05.07%205.78.13%204.9.33%204.14.63c-.79.3-1.46.72-2.12%201.38A5.86%205.86%200%200%200%20.63%204.14c-.3.76-.5%201.64-.56%202.9C.01%208.33%200%208.74%200%2012s.01%203.67.07%204.95c.06%201.27.26%202.15.56%202.91.3.79.72%201.46%201.38%202.12.66.66%201.33%201.08%202.12%201.38.76.3%201.64.5%202.9.56C8.34%2023.99%208.75%2024%2012%2024s3.67-.01%204.95-.07c1.27-.06%202.15-.26%202.91-.56a5.86%205.86%200%200%200%202.12-1.38%205.86%205.86%200%200%200%201.38-2.12c.3-.76.5-1.64.56-2.9.06-1.29.07-1.7.07-4.96s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91a5.86%205.86%200%200%200-1.38-2.12A5.86%205.86%200%200%200%2019.86.63c-.76-.3-1.64-.5-2.9-.56C15.66.01%2015.26%200%2012%200zm0%205.84a6.16%206.16%200%201%200%200%2012.32%206.16%206.16%200%200%200%200-12.32zM12%2016a4%204%200%201%201%200-8%204%204%200%200%201%200%208zm6.4-10.85a1.44%201.44%200%201%200%200%202.88%201.44%201.44%200%200%200%200-2.88z%22%20style%3D%22box-sizing%3A%20border-box%3B%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
+                "alt": "",
+                "breiteProzent": 100
+              }
+            },
+            {
+              "type": "BildBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-bild-97",
+                "src": "data:image/svg+xml,%3Csvg%20viewBox%3D%220%200%2024%2024%22%20width%3D%2220%22%20height%3D%2220%22%20fill%3D%22currentColor%22%20aria-hidden%3D%22true%22%20style%3D%22box-sizing%3A%20border-box%3B%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22M20.45%2020.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85%200-2.14%201.45-2.14%202.94v5.67H9.35V9h3.42v1.56h.05c.48-.9%201.64-1.85%203.37-1.85%203.6%200%204.27%202.37%204.27%205.46v6.28zM5.34%207.43a2.06%202.06%200%201%201%200-4.13%202.06%202.06%200%200%201%200%204.13zM7.12%2020.45H3.55V9h3.57v11.45zM22.22%200H1.77C.79%200%200%20.77%200%201.73v20.54C0%2023.22.79%2024%201.77%2024h20.45c.98%200%201.78-.78%201.78-1.73V1.73C24%20.77%2023.2%200%2022.22%200z%22%20style%3D%22box-sizing%3A%20border-box%3B%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E",
+                "alt": "",
+                "breiteProzent": 100
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-98",
+                "text": "Impressum",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-99",
+                "text": "Datenschutz",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-100",
+                "text": "Barrierefreiheit",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-101",
+                "text": "© 2026 World Eden Era gUG (haftungsbeschränkt)",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-102",
+                "text": "✓ cookielos",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-103",
+                "text": "Gut zu wissen: Diese Seite nutzt keine Tracking-Cookies und kein Google Analytics. Wir messen Besuche nur anonym und cookielos – mehr in der Datenschutzerklärung.",
+                "variante": "p"
+              }
+            },
+            {
+              "type": "TextBlock",
+              "props": {
+                "id": "imp-wee-v3-fein-bildung-vergleich-landwirtschaft-text-104",
+                "text": "Verstanden",
+                "variante": "p"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "styles": [
+    "/import/wee-v3-fein-bildung-vergleich-landwirtschaft/css/ab46371bceea4ec2.css",
+    "/import/wee-v3-fein-bildung-vergleich-landwirtschaft/css/722cd78294f69505.css",
+    "/import/wee-v3-fein-bildung-vergleich-landwirtschaft/css/wee-v3-fein-bildung-vergleich-landwirtschaft-inline.css"
+  ]
+}

@@ -38,13 +38,13 @@
  */
 
 import { useEffect, useState } from "react";
+import { rootAufScope } from "@/lib/import/css-rewrite";
 
-/** Verlegt Token-Definitionen von :root auf den Bühnen-Container, damit sie
- *  unter @scope kaskadieren (s. Dateikopf). Reiner Selektor-Ersatz; in
- *  Property-Werten kommt `:root` nicht vor. */
-function rootAufScope(css: string): string {
-  return css.replace(/:root\b/g, ":scope");
-}
+/* rootAufScope (Verlegen von :root auf den Bühnen-Container, damit Token unter
+ * @scope kaskadieren) kommt jetzt AST-basiert aus lib/import/css-rewrite.ts.
+ * Die alte `css.replace(/:root\b/g,…)`-Kaskade hier war die bekannte Regex-Grenze:
+ * sie traf `:root` auch in `content:"…"`, `url()` und Kommentaren. Die AST-Fassung
+ * ersetzt ausschliesslich Selektor-Pseudos. */
 
 /** @scope wird ab Chromium 118 unterstuetzt; Feature-Erkennung ueber das
  *  zugehoerige CSSOM-Interface (praezise, ohne CSS.supports-Raterei). */

@@ -8,6 +8,15 @@ next-env.d.ts
 # neu erzeugbar via: npx tsx scripts/test-vektor.ts).
 .vektor-test/
 
+# Freeze-Artefakte des Import-Endlevels (I1): gefrorene End-HTML + Protokoll,
+# jederzeit neu erzeugbar via: node scripts/freeze-seite.mjs.
+scripts/.freeze-out/
+
+# Freeze-Materialisierung der E4-Route (I6): hochgereichte Ordner-Inhalte des
+# UI-Imports werden hier temporaer materialisiert, damit die serverseitige
+# Freeze-Kernlogik sie rendern kann. Wird nach jedem Lauf aufgeraeumt.
+scripts/.freeze-tmp/
+
 # Zugangsdaten (Canva client_secret o.ä.) — duerfen NIE ins Repo.
 # .env.local.example bleibt bewusst getrackt: nur Variablennamen, keine Werte.
 .env
@@ -32,3 +41,8 @@ test-sites/
 # seiten/ selbst ist getrackt (wee-website-v3.json), der Papierkorb NICHT —
 # das sind fluechtige Loesch-/Undo-Reste, kein Quellstand.
 seiten/.papierkorb/
+
+# Asset-Papierkorb des Re-Imports (I6, /api/import/asset aktion="leeren"):
+# vor einem Re-Import geleerte public/import/<slug>/-Ordner wandern reversibel
+# hierher — fluechtige Undo-Reste, kein Quellstand.
+public/import/.papierkorb/

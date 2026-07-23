@@ -18,6 +18,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useGrafiken } from "./GrafikContext";
 import { GrafikMedium, type MediumHandle } from "./GrafikMedium";
+import { holeBuehneDoc, abonniereBuehneDoc } from "../backdrop/buehne-doc";
 import {
   effektiveQuelle,
   grafikenFuerRendering,
@@ -86,11 +87,20 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
   const ankerMapBauen = useCallback(() => {
     const map = new Map<string, number>();
     const sy = window.scrollY;
-    document.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
+    /* Lebendige iframe-Bühne (I8/M8): die Anker liegen im contentDocument, ihre
+       Rects sind iframe-Viewport-relativ → +iframe-Oberkante ergibt die Host-
+       Dokument-Oberkante (der iframe scrollt nie intern, s. Backdrop.tsx). Ohne
+       lebendige Bühne (Landing/Embed/Inline-Render): document, Versatz 0. So
+       löst ein an ein Bühnen-Element geankerter Keyframe auf DERSELBEN Grundlage
+       auf, gegen die er in ankerFelderFuer gesetzt wurde. */
+    const buehne = holeBuehneDoc();
+    const doc = buehne?.doc ?? document;
+    const versatzTop = buehne ? buehne.iframe.getBoundingClientRect().top : 0;
+    doc.querySelectorAll<HTMLElement>("[data-og-id]").forEach((el) => {
       const id = el.getAttribute("data-og-id");
       if (!id || map.has(id)) return;
       const r = el.getBoundingClientRect();
-      map.set(id, r.top + sy);
+      map.set(id, r.top + versatzTop + sy);
     });
     ankerMapRef.current = map;
     setAnkerVersion((v) => v + 1);
@@ -110,10 +120,14 @@ export function GrafikLayer({ grafiken, authoredDocH }: GrafikLayerProps) {
     window.addEventListener("resize", anstossen);
     const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(anstossen) : null;
     if (ro && document.body) ro.observe(document.body);
+    /* Lebendige Bühne an-/abgemeldet ODER gewechselt → Anker-Map neu bauen
+       (die getaggten Elemente liegen dann in einem anderen Dokument). */
+    const abmelden = abonniereBuehneDoc(anstossen);
     return () => {
       if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("resize", anstossen);
       ro?.disconnect();
+      abmelden();
     };
   }, [ankerMapBauen]);
 

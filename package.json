@@ -25,6 +25,11 @@
     "@types/react-dom": "19.0.2",
     "esbuild": "^0.28.1",
     "happy-dom": "^20.11.0",
+    "juice": "^12.1.1",
+    "playwright-core": "^1.61.1",
+    "postcss": "^8.5.22",
+    "postcss-selector-parser": "^7.1.4",
+    "postcss-value-parser": "^4.2.0",
     "typescript": "5.7.2"
   }
 }
