@@ -9,11 +9,40 @@
  * Exit 0 = alle Pruefungen gruen; Exit 1 = mindestens eine rot.
  */
 
+import { readdir, unlink } from "node:fs/promises";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 const BASIS = "http://127.0.0.1:3113";
 const TEST_SEITE = "roundtrip-testseite";
 const TEST_IMPORT = "roundtrip-import";
 const TEST_ANIM = "roundtrip-anim";
 const TEST_STYLES = "roundtrip-styles";
+const TEST_PAPIERKORB = "roundtrip-papierkorb";
+
+/* Verzeichnisse relativ zum Skript (nicht zum cwd), damit die fs-Aufraeumung
+   den Papierkorb auch dann findet, wenn der Roundtrip aus einem Unterordner
+   gestartet wird. Kein "hard delete"-Endpunkt existiert bewusst (U7/N2) — die
+   Test-Reste im Papierkorb muessen deshalb per fs entfernt werden. */
+const SEITEN_DIR = fileURLToPath(new URL("../seiten", import.meta.url));
+const PAPIERKORB_DIR = join(SEITEN_DIR, ".papierkorb");
+
+/** Entfernt Papierkorb-Dateien (und optionale wiederhergestellte Seiten) der
+ *  Testlaeufe — nur exakt Praefix-<zeitstempel>, fremde Trash-Eintraege bleiben
+ *  unberuehrt. */
+async function raeumeTestReste(praefixe) {
+  try {
+    for (const f of await readdir(PAPIERKORB_DIR)) {
+      if (praefixe.some((p) => f.startsWith(`${p}-`))) {
+        await unlink(join(PAPIERKORB_DIR, f)).catch(() => {});
+      }
+    }
+  } catch {
+    /* Kein Papierkorb angelegt → nichts zu tun. */
+  }
+  /* eine ggf. wiederhergestellte Testseite direkt entfernen (kein Trash-Umweg). */
+  await unlink(join(SEITEN_DIR, `${TEST_PAPIERKORB}.json`)).catch(() => {});
+}
 
 let gruen = 0;
 let rot = 0;
@@ -319,6 +348,56 @@ let gespeichertStand = "";
   ok("import/asset: Bild-Endung mit CSS-MIME -> 400", bildMitCssMime.status === 400, `status=${bildMitCssMime.status}`);
 }
 
+/* 6g — Papierkorb + Wiederherstellen (U7/N2) + Stale-Save-409 (N18).
+   Loeschen ist reversibel: die Seite wandert in den Papierkorb (lade -> 404),
+   Wiederherstellen holt die juengste Fassung zurueck (lade -> 200). Ein
+   Speichern MIT erwartetGespeichert auf eine geloeschte Seite ist ein Konflikt
+   (409), keine stumme Neuanlage. Und: Wiederherstellen bei bereits wieder
+   existierender Ziel-Seite -> 409 (R-e). */
+{
+  const anlegen = await post("/api/puck-seite/speichere", { name: TEST_PAPIERKORB, data: beispielData });
+  ok("papierkorb: Testseite anlegen -> 200", anlegen.status === 200, `status=${anlegen.status}`);
+  const stand = anlegen.json?.gespeichert ?? "";
+
+  const gel = await post("/api/puck-seite/loesche", { name: TEST_PAPIERKORB });
+  ok(
+    "papierkorb: loeschen -> 200 + papierkorb-Name",
+    gel.status === 200 && typeof gel.json?.papierkorb === "string" && gel.json.papierkorb.startsWith(`${TEST_PAPIERKORB}-`),
+    `status=${gel.status} ${JSON.stringify(gel.json)}`,
+  );
+  const nachGel = await post("/api/puck-seite/lade", { name: TEST_PAPIERKORB });
+  ok("papierkorb: nach loeschen lade -> 404", nachGel.status === 404, `status=${nachGel.status}`);
+
+  const stale = await post("/api/puck-seite/speichere", {
+    name: TEST_PAPIERKORB,
+    data: beispielData,
+    erwartetGespeichert: stand,
+  });
+  ok("N18: Stale-Save auf geloeschte Seite -> 409", stale.status === 409, `status=${stale.status}`);
+
+  const wieder = await post("/api/puck-seite/wiederherstelle", { name: TEST_PAPIERKORB });
+  ok(
+    "papierkorb: wiederherstellen -> 200",
+    wieder.status === 200 && wieder.json?.wiederhergestellt === true,
+    `status=${wieder.status} ${JSON.stringify(wieder.json)}`,
+  );
+  const nachWieder = await post("/api/puck-seite/lade", { name: TEST_PAPIERKORB });
+  ok("papierkorb: nach wiederherstellen lade -> 200", nachWieder.status === 200, `status=${nachWieder.status}`);
+
+  const leer = await post("/api/puck-seite/wiederherstelle", { name: TEST_PAPIERKORB });
+  ok("papierkorb: erneut wiederherstellen (leer) -> 404", leer.status === 404, `status=${leer.status}`);
+
+  /* R-e: Papierkorb-Eintrag existiert, Ziel-Seite aber wieder da -> 409. */
+  const gel2 = await post("/api/puck-seite/loesche", { name: TEST_PAPIERKORB });
+  const neu = await post("/api/puck-seite/speichere", { name: TEST_PAPIERKORB, data: beispielData });
+  const konflikt = await post("/api/puck-seite/wiederherstelle", { name: TEST_PAPIERKORB });
+  ok(
+    "R-e: wiederherstellen bei existierendem Ziel -> 409",
+    gel2.status === 200 && neu.status === 200 && konflikt.status === 409,
+    `gel2=${gel2.status} neu=${neu.status} konflikt=${konflikt.status}`,
+  );
+}
+
 /* 7 — Aufraeumen */
 {
   const l1 = await post("/api/puck-seite/loesche", { name: TEST_SEITE });
@@ -328,6 +407,10 @@ let gespeichertStand = "";
   ok("loesche: alle Testseiten entfernt", l1.status === 200 && l2.status === 200 && l3.status === 200 && l4.status === 200);
   const nochmal = await post("/api/puck-seite/lade", { name: TEST_SEITE });
   ok("lade nach loesche: 404", nochmal.status === 404, `status=${nochmal.status}`);
+
+  /* Papierkorb-Reste ALLER Testseiten per fs entfernen (kein Hard-Delete-
+     Endpunkt) — nur die Test-Praefixe, fremde Trash-Eintraege bleiben. */
+  await raeumeTestReste([TEST_SEITE, TEST_IMPORT, TEST_ANIM, TEST_STYLES, TEST_PAPIERKORB]);
 }
 
 console.log(`\nErgebnis: ${gruen} grün, ${rot} rot`);

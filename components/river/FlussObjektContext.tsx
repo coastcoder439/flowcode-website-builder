@@ -29,6 +29,7 @@ import {
   type ReactNode,
 } from "react";
 import { useFlussKnoten, type FlussKnotenSteuerung } from "./useFlussKnoten";
+import { sollUndoShortcutGreifen } from "@/components/undo/UndoBus";
 
 interface FlussObjektCtx {
   /** Hat das Fluss-Objekt den Bearbeitungs-Fokus? */
@@ -44,15 +45,6 @@ const Ctx = createContext<FlussObjektCtx | null>(null);
  *  Landing) — Aufrufer behandeln das als „kein Fluss-Objekt vorhanden". */
 export function useFlussObjekt(): FlussObjektCtx | null {
   return useContext(Ctx);
-}
-
-/** true, wenn GERADE in einem Textfeld getippt wird — die Entf-Taste darf dann
- *  keinen Knoten löschen (bewusst dieselbe Regel wie istEingabeFokussiert im
- *  Grafik-Editor; hier klein dupliziert, um dessen großen Datei-Umbau zu
- *  vermeiden). */
-function inEingabefeld(t: EventTarget | null): boolean {
-  if (!(t instanceof HTMLElement)) return false;
-  return t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable;
 }
 
 export function FlussObjektProvider({ children }: { children: ReactNode }) {
@@ -85,7 +77,9 @@ export function FlussObjektProvider({ children }: { children: ReactNode }) {
     if (!fokus) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Delete" && e.key !== "Backspace") return;
-      if (inEingabefeld(e.target)) return;
+      /* In einem Textfeld löscht Entf ein Zeichen, keinen Knoten — zentraler
+         Guard (U3, §2.4): Textfeld → nativ, Slider/Bühne → Knoten löschen. */
+      if (!sollUndoShortcutGreifen(e.target)) return;
       const s = steuerungRef.current;
       if (!s || s.gelockt === null) return;
       e.preventDefault();

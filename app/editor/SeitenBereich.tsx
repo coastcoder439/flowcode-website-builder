@@ -33,6 +33,9 @@ import {
 import { Puck, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 import { config } from "../puck/puck.config";
+import { PuckUndoBruecke } from "@/components/undo/PuckUndoBruecke";
+import { useUndoBus } from "@/components/undo/UndoBus";
+import { backdropLaden, backdropSpeichern } from "@/components/backdrop/backdrop-store";
 import { SeitenVorschau } from "./SeitenVorschau";
 import type { Station, Sub } from "./stationen";
 import { entferneAktiveSeite, setzeAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
@@ -192,6 +195,12 @@ export function SeitenBereich({
   /* Welle 5b: aktive Website (Default-Buehne des Animators) — hier zum
      Markieren/Setzen je Seite. */
   const aktiveSeite = useAktiveSeite();
+
+  /* U8 (lens-undo.md §2.5): der gemeinsame Undo-Bus. Der Loesch-Schritt wird als
+     undo-barer Befehl auf den aktiven „bauen"-Scope gelegt (BauenUndoScope,
+     app/editor/page.tsx). null, wenn kein Provider darueber haengt → dann bleibt
+     das Loeschen einmalig (kein Strg+Z), defensiv fuer Nicht-Editor-Mounts. */
+  const bus = useUndoBus();
 
   /* F2: Vorschau oeffnen/schliessen laufen ueber den zentralen Reducer der
      Shell. Oeffnen = neuer History-Eintrag (Sub „vorschau"); Schliessen =
@@ -393,23 +402,79 @@ export function SeitenBereich({
     [neuName, ladeListe, navigiere],
   );
 
-  /* --- Seite loeschen --- */
-  const loesche = useCallback(
-    async (name: string) => {
-      if (!window.confirm(`Seite „${name}" wirklich loeschen? Das laesst sich nicht rueckgaengig machen.`)) {
-        return;
-      }
+  /* --- Seite loeschen: rohe Aktion (Server verschiebt in den Papierkorb, U7/N2)
+     + lokale Aufraeumung. Liefert true bei Erfolg. Von loesche() beim ersten Mal
+     UND vom Redo (erneut loeschen) genutzt. offeneNameRef statt offeneSeite haelt
+     die Funktion stabil und schleifenfrei (auch fuer den Redo-Closure). --- */
+  const loescheEinmal = useCallback(
+    async (name: string): Promise<boolean> => {
       const r = await postJson<{ name: string; geloescht: boolean }>("/api/puck-seite/loesche", { name });
       if (!r.ok) {
         setListeFehler((r.json as FehlerAntwort | null)?.fehler ?? "Loeschen fehlgeschlagen.");
-        return;
+        return false;
       }
       /* Welle 5b: war das die aktive Website, ist sie jetzt weg → vergessen. */
       if (aktiveSeite === name) entferneAktiveSeite();
-      if (offeneSeite?.name === name) schliesse();
+      if (offeneNameRef.current === name) schliesse();
+      /* N19 (lens-undo.md §2.5): zeigt der gemerkte Backdrop auf die geloeschte
+         Seite, ihn direkt (persistent, NICHT undo-bar) leeren — sonst laedt der
+         Animator spaeter eine 404-Buehne. Der effektiverBackdrop-Selektor
+         (page.tsx) faengt es zusaetzlich ab (Verteidigung in der Tiefe). Der
+         Heal ist best-effort: ein Persistenz-Fehler darf das Loeschen nicht
+         scheitern lassen. */
+      try {
+        const b = await backdropLaden();
+        if (b && b.art === "puck-seite" && b.quelle === name) await backdropSpeichern(null);
+      } catch {
+        /* Backdrop-Heilung ist best-effort */
+      }
+      void ladeListe();
+      return true;
+    },
+    [aktiveSeite, schliesse, ladeListe],
+  );
+
+  /* Papierkorb-Fassung wiederherstellen (Undo des Loeschens) + Liste neu laden. */
+  const stelleWieder = useCallback(
+    async (name: string): Promise<void> => {
+      const r = await postJson<{ name: string; wiederhergestellt: boolean }>(
+        "/api/puck-seite/wiederherstelle",
+        { name },
+      );
+      if (!r.ok) {
+        setListeFehler(
+          (r.json as FehlerAntwort | null)?.fehler ?? `„${name}" konnte nicht wiederhergestellt werden.`,
+        );
+        return;
+      }
       void ladeListe();
     },
-    [offeneSeite, schliesse, ladeListe, aktiveSeite],
+    [ladeListe],
+  );
+
+  const loesche = useCallback(
+    async (name: string) => {
+      if (
+        !window.confirm(
+          `Seite „${name}" wirklich löschen? Sie wird in den Papierkorb verschoben (Strg+Z macht es rückgängig).`,
+        )
+      ) {
+        return;
+      }
+      const ok = await loescheEinmal(name);
+      if (!ok) return;
+      /* U8 (lens-undo.md §3-U8, fixt N2-Client): den Loesch-Schritt als undo-baren
+         Befehl auf den Bauen-Stations-Scope legen (bus.push landet im aktiven
+         „bauen"-Scope, BauenUndoScope in page.tsx haengt Strg+Z daran). undo =
+         Papierkorb-Fassung wiederherstellen; redo = erneut loeschen. Ohne Bus
+         (kein Provider) bleibt es beim einmaligen Loeschen. */
+      bus?.push({
+        label: `Seite „${name}" gelöscht`,
+        undo: () => void stelleWieder(name),
+        redo: () => void loescheEinmal(name),
+      });
+    },
+    [bus, loescheEinmal, stelleWieder],
   );
 
   /* F2: der Sub-Zustand aus der Shell (URL-Wahrheit) bestimmt die Ansicht.
@@ -504,6 +569,14 @@ export function SeitenBereich({
             config={config}
             data={offeneSeite.data}
             overrides={{
+              /* U6 (lens-undo.md §2.3, fixt N4): Puck-History-Bridge. STABILE
+                 Modul-Komponente (nicht inline!) — Puck merkt sich overrides.puck
+                 via useMemo und rendert es als Komponenten-Typ; eine neue
+                 Funktions-Identitaet pro Render wuerde die Bruecke bei jedem Render
+                 neu mounten und den pushScope/popScope-Effekt durchpruegeln. Die
+                 Bruecke reicht Pucks Default-Chrome unveraendert durch und meldet
+                 dem Bus nur, dass Station 2 an Pucks Historie delegiert. */
+              puck: PuckUndoBruecke,
               /* Welle 5a: uebernommene Seiten-Styles ins iframe-Preview-Dokument
                  haengen (iframe isoliert → kein @scope noetig, s.
                  PuckIframeMitStyles). */
@@ -701,7 +774,8 @@ function SeitenHilfeDialog({ onClose }: { onClose: () => void }) {
         <h3>Anlegen, Oeffnen, Loeschen</h3>
         <p>
           „Neu" legt eine leere Seite an und oeffnet sie direkt. „Oeffnen" laedt eine bestehende
-          Seite in den Editor. „Loeschen" entfernt die Datei (mit Rueckfrage, nicht umkehrbar).
+          Seite in den Editor. „Loeschen" verschiebt die Seite (mit Rueckfrage) in den Papierkorb —
+          direkt danach macht <strong>Strg+Z</strong> das Loeschen rueckgaengig.
         </p>
         <h3>Aktive Website</h3>
         <p>

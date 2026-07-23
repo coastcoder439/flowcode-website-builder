@@ -115,21 +115,24 @@ export function BackdropAuswahl() {
   }, []);
 
   if (!ctx) return null;
-  const { backdrop, setBackdrop, laedt } = ctx;
+  /* Nutzer-Wechsel laufen ueber setBackdropMitUndo (U4/M12): jeder Klick hier ist
+     eine bewusste Geste und soll per Strg+Z rueckgaengig sein. setBackdrop (ohne
+     Historie) bleibt dem Self-Heal/Fallback vorbehalten. */
+  const { backdrop, setBackdropMitUndo, laedt } = ctx;
 
   /* Ist die aktive Website eine wirklich existierende Seite? (Nur dann ist sie
      die Default-Buehne; sonst faellt der Animator auf die Demo-Landing zurueck.) */
   const aktiveExistiert = aktiveSeite ? seiten.some((s) => s.name === aktiveSeite) : false;
 
   const seiteWaehlen = (name: string) => {
-    setBackdrop({ art: "puck-seite", quelle: name, name });
+    setBackdropMitUndo({ art: "puck-seite", quelle: name, name }, `Seite „${name}“ als Bühne`);
     setStatus(`Seite „${name}“ als Buehne gesetzt — Animator liegt jetzt darueber`);
   };
 
   /* Welle 5b: die eingebaute WEE-Demo-Landing ausdruecklich als Buehne holen
      (Sentinel-Backdrop; EditorInner bildet ihn auf die echte Landing ab). */
   const demoLandingWaehlen = () => {
-    setBackdrop({ art: "demo-landing", quelle: "", name: "Demo-Landing (WEE)" });
+    setBackdropMitUndo({ art: "demo-landing", quelle: "", name: "Demo-Landing (WEE)" }, "Demo-Landing als Bühne");
     setStatus("Demo-Landing (WEE) als Buehne gesetzt");
   };
 
@@ -143,7 +146,7 @@ export function BackdropAuswahl() {
     }
     try {
       const quelle = await alsDataUrl(f);
-      setBackdrop({ art: "bild", quelle, name: f.name });
+      setBackdropMitUndo({ art: "bild", quelle, name: f.name }, `Screenshot „${f.name}“`);
       setStatus(`„${f.name}" als Hintergrund gesetzt — Positionen neu setzen`);
     } catch {
       setStatus(`„${f.name}" konnte nicht gelesen werden`);
@@ -160,7 +163,7 @@ export function BackdropAuswahl() {
     }
     try {
       const quelle = await alsText(f);
-      setBackdrop({ art: "html", quelle, name: f.name });
+      setBackdropMitUndo({ art: "html", quelle, name: f.name }, `HTML „${f.name}“`);
       setStatus(`„${f.name}" als Hintergrund gesetzt — Positionen neu setzen`);
     } catch {
       setStatus(`„${f.name}" konnte nicht gelesen werden`);
@@ -174,7 +177,7 @@ export function BackdropAuswahl() {
     setOrdnerLaedt(true);
     try {
       const anzahl = await ordnerBereitstellen(handle);
-      setBackdrop({ art: "ordner", quelle: handle.name, name: handle.name });
+      setBackdropMitUndo({ art: "ordner", quelle: handle.name, name: handle.name }, `Ordner „${handle.name}“`);
       setOrdnerWartet(false);
       setStatus(
         `„${handle.name}" eingelesen (${anzahl} Datei${anzahl === 1 ? "" : "en"}) — Positionen neu setzen`,
@@ -215,7 +218,7 @@ export function BackdropAuswahl() {
   };
 
   const zurueck = () => {
-    setBackdrop(null);
+    setBackdropMitUndo(null, "Hintergrund entfernt");
     setStatus(
       aktiveSeite && aktiveExistiert
         ? `Zurück zur aktiven Website „${aktiveSeite}“`

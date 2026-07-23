@@ -11,6 +11,8 @@
 import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import grafikConfig from "../../grafik.config.json";
 import type { Grafik } from "./grafik-types";
+import { useUndoBus, type Befehl } from "../undo/UndoBus";
+import { VERLAUF_COALESCE_MS } from "../undo/coalesce";
 
 /** Fest hinterlegtes Setup der Landing (grafik.config.json). Der Editor
  *  startet damit, damit Leon den LIVE-Stand weiterbearbeitet statt bei Null
@@ -36,39 +38,33 @@ export const KONFIG_GRAFIKEN_DOC_H =
 export const KONFIG_UEBERNOMMEN =
   (grafikConfig as unknown as { uebernommen?: string[] }).uebernommen ?? [];
 
-/* --- Verlauf (Undo/Redo) --------------------------------------------
- * Lebt HIER statt in der UI (GrafikEditor.tsx), weil genau der Zustand, den
- * er sichert (grafiken + uebernommen), ebenfalls hier lebt — s. „Baum
- * übernehmen" in GrafikSeiteTab.tsx, das BEIDE Felder in einem Zug ändert
- * und deshalb auch als EIN Verlaufsschritt rückgängig gemacht werden muss.
+/* --- Verlauf (Undo/Redo) über den zentralen Undo-Bus -----------------
+ * FRÜHER hielt dieser Context zwei EIGENE Snapshot-Stapel (Rückgängig/
+ * Wiederholen). Seit U1 (docs/plan-analyse/lens-undo.md §2.2) ist Grafik nur
+ * noch PRODUZENT: `commit` erzeugt einen domänenunabhängigen `Befehl`
+ * (Snapshot-Closures über {grafiken, uebernommen}) und legt ihn auf den
+ * gemeinsamen UndoBus; `undo/redo/canUndo/canRedo/resetHistory` delegieren
+ * dorthin. Das VERHALTEN bleibt exakt wie zuvor (Regressions-Anker) — die
+ * Coalesce-/Limit-/Gruppen-Mechanik ist unverändert, nur zentral nach
+ * components/undo/coalesce.ts umgezogen.
  *
- * Snapshots halten nur ARRAY-REFERENZEN, keine Deep-Clones: der bestehende
- * Code aendert grafiken/uebernommen ohnehin nie in-place (map/filter =
- * neue Arrays/Objekte, s. GrafikEditor.tsx), Bild-BYTES stecken nur als
- * Referenz in Grafik.src (JS-Strings werden nicht dupliziert) — ein
- * Snapshot ist daher billig, auch 50 Stueck tief. */
-const VERLAUF_LIMIT = 50;
-/** Aenderungen an DERSELBEN Grafik/demselben Feld (Regler ziehen, tippen)
- *  werden innerhalb dieses Fensters zu EINEM Verlaufseintrag zusammengefasst
- *  — sonst waere ein Opacity-Slider-Zug hunderte Schritte lang. Der Canvas-
- *  Zug (verschieben) braucht das NICHT: der committet ohne Gruppe explizit
- *  genau einmal beim Loslassen (s. GrafikEditor.tsx onUp). */
-const VERLAUF_COALESCE_MS = 600;
+ * Sichert genau {grafiken, uebernommen}: „Baum übernehmen" (GrafikSeiteTab.tsx)
+ * ändert BEIDE Felder in einem Zug und muss deshalb als EIN Schritt rückgängig
+ * gemacht werden. Snapshots halten nur ARRAY-REFERENZEN, keine Deep-Clones: der
+ * bestehende Code ändert grafiken/uebernommen ohnehin nie in-place (map/filter =
+ * neue Arrays/Objekte), Bild-BYTES stecken nur als Referenz in Grafik.src — ein
+ * Snapshot ist daher billig.
+ *
+ * WARUM ein GEMEINSAMER Redo-Halter je Geste (s. commit): Der Nach-Zustand
+ * wird — wie in der alten Mechanik — erst BEIM Undo live eingefangen. Der Bus
+ * behält beim Zusammenfassen (Coalesce) das `undo` des ERSTEN Befehls, übernimmt
+ * aber das `redo` des NEUESTEN. Damit das überlebende `redo` denselben
+ * eingefangenen Stand liest, teilen sich alle Befehle EINER Geste EINEN Halter
+ * (sonst läse das überlebende redo einen nie gefüllten Halter → Redo-No-Op). */
 
 interface VerlaufZustand {
   grafiken: Grafik[];
   uebernommen: string[];
-}
-
-interface VerlaufEintrag extends VerlaufZustand {
-  /** Kurzbeschreibung fuer die Statuszeile ("Rückgängig: <label>"). */
-  label: string;
-  /** Gruppierungsschluessel zum Zusammenfassen schneller Folgeaenderungen
-   *  (z.B. "opacity:<id>:<kfIndex>"). Ohne Gruppe: immer ein eigener
-   *  Eintrag (diskrete Aktionen wie Löschen/Duplizieren). */
-  gruppe?: string;
-  /** Zeitstempel (ms) des letzten Commits in dieser Gruppe. */
-  zeit: number;
 }
 
 interface GrafikCtx {
@@ -131,79 +127,96 @@ export function GrafikProvider({ children }: { children: ReactNode }) {
   const [gelockt, setGelockt] = useState(false);
   const [uebernommen, setUebernommen] = useState<string[]>(() => [...KONFIG_UEBERNOMMEN]);
 
-  /* Stapel liegen in Refs (nicht useState): sie aendern sich oft (jeder
-     Regler-Tick), sollen aber NICHT bei jeder Aenderung neu rendern — nur
-     die zwei Verfuegbarkeits-Booleans unten sind fuers UI (Knopf-Zustand)
-     relevant und daher echter State. */
-  const rueckgaengigStapel = useRef<VerlaufEintrag[]>([]);
-  const wiederholenStapel = useRef<VerlaufEintrag[]>([]);
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
+  /* Der gemeinsame Undo-Bus (in /editor über der Shell gemountet, aktiver
+     Scope „animator"). null, falls kein Provider darüber hängt — dann bleibt
+     Grafik ohne Historie (commit/undo werden zu No-Ops); passiert im Editor
+     nicht, ist aber ein defensiver Schutz. */
+  const bus = useUndoBus();
 
-  function aktualisiereVerfuegbarkeit() {
-    setCanUndo(rueckgaengigStapel.current.length > 0);
-    setCanRedo(wiederholenStapel.current.length > 0);
-  }
+  /* Live-Spiegel des aktuellen Verlaufs-Zustands für die Befehl-Closures:
+     `undo` stellt den Vor-Zustand her, `redo` den beim Undo eingefangenen
+     Nach-Zustand. Zuweisung im Render-Body (reiner Spiegel, wie zustandRef in
+     app/editor/page.tsx) — so lesen die Closures IMMER den jüngsten Stand. */
+  const liveRef = useRef<VerlaufZustand>({ grafiken, uebernommen });
+  liveRef.current = { grafiken, uebernommen };
 
+  /* Gemeinsamer Redo-Halter der laufenden Coalesce-Geste (gleiche Gruppe im
+     600-ms-Fenster) — s. Block-Kommentar oben. Fenster/Konstante identisch zum
+     Bus (VERLAUF_COALESCE_MS aus coalesce.ts), damit Halter-Wiederverwendung
+     und Bus-Zusammenfassung deckungsgleich bleiben. */
+  const gestenHalterRef = useRef<{
+    gruppe: string;
+    zeit: number;
+    halter: { nach: VerlaufZustand | null };
+  } | null>(null);
+
+  /* Sichert den AKTUELLEN (Vor-Änderungs-)Zustand als Befehl auf dem Bus.
+     API-kompatibel zu ALLEN heutigen Aufrufern: IMMER VOR der eigentlichen
+     Änderung rufen. `gruppe` gesetzt + letzter Commit derselben Gruppe < 600ms
+     her → der Bus fasst zusammen (die laufende Geste zählt weiter als EIN
+     Schritt). `zustand` überschreibt den live gelesenen Vor-Zustand — für den
+     Canvas-Zug, der erst beim Loslassen mit dem am Zug-Start gemerkten Stand
+     committet. */
   function commit(label: string, gruppe?: string, zustand?: VerlaufZustand) {
-    const basis = zustand ?? { grafiken, uebernommen };
+    if (!bus) return;
+    const vor = zustand ?? liveRef.current;
     const jetzt = Date.now();
-    const stapel = rueckgaengigStapel.current;
-    const oben = stapel[stapel.length - 1];
-    if (gruppe && oben && oben.gruppe === gruppe && jetzt - oben.zeit < VERLAUF_COALESCE_MS) {
-      /* Laufende Geste (Regler ziehen, tippen): Fenster verlaengern, KEIN
-         neuer Eintrag — der urspruengliche "vorher"-Stand bleibt das
-         Rueckgaengig-Ziel. Mutiert bewusst den Ref-Eintrag direkt (reines
-         Buchfuehrungs-Objekt ausserhalb von React-State, s.o.) statt ihn zu
-         ersetzen. */
-      oben.zeit = jetzt;
-      return;
+
+    /* Halter der laufenden Geste wiederverwenden (gleiche Gruppe im Fenster),
+       sonst einen frischen anlegen; ohne Gruppe (diskrete Aktion) die Geste
+       beenden, damit ein folgender gruppierter Commit frisch startet. */
+    let halter: { nach: VerlaufZustand | null };
+    const laufend = gestenHalterRef.current;
+    if (gruppe && laufend && laufend.gruppe === gruppe && jetzt - laufend.zeit < VERLAUF_COALESCE_MS) {
+      halter = laufend.halter;
+      laufend.zeit = jetzt;
+    } else {
+      halter = { nach: null };
+      gestenHalterRef.current = gruppe ? { gruppe, zeit: jetzt, halter } : null;
     }
-    stapel.push({ ...basis, label, gruppe, zeit: jetzt });
-    if (stapel.length > VERLAUF_LIMIT) stapel.shift();
-    /* Jede neue Aktion macht die "Zukunft" ungueltig — Standardverhalten
-       jedes Undo-Managers (Browser, Office, …). */
-    wiederholenStapel.current = [];
-    aktualisiereVerfuegbarkeit();
+
+    const befehl: Befehl = {
+      label,
+      /* Domänen-Präfix „grafik:" (Risiko R-f): der Bus coalesct nur bei gleicher
+         Gruppe — das Präfix verhindert das Zusammenfassen mit einem gleichnamigen
+         Fluss-Befehl auf demselben „animator"-Scope. Die Halter-Coalesce oben
+         vergleicht bewusst die ROH-Gruppe (produzenten-intern, 1:1-Mapping). */
+      gruppe: gruppe ? `grafik:${gruppe}` : undefined,
+      undo: () => {
+        /* Vor dem Zurücksetzen den aktuellen (Nach-)Zustand fürs spätere Redo
+           einfangen — exakt das „Live-Lesen beim Undo" der alten Mechanik. */
+        halter.nach = liveRef.current;
+        setGrafiken(vor.grafiken);
+        setUebernommen(vor.uebernommen);
+      },
+      redo: () => {
+        const nach = halter.nach;
+        if (!nach) return;
+        setGrafiken(nach.grafiken);
+        setUebernommen(nach.uebernommen);
+      },
+    };
+    bus.push(befehl);
   }
 
+  /* undo/redo/canUndo/canRedo/resetHistory delegieren an den aktiven Scope des
+     Bus (in /editor: „animator"). Rückgabe von undo/redo = Label für die
+     Statuszeile, null wenn nichts da ist — identisch zur alten Signatur. */
   function undo(): string | null {
-    const eintrag = rueckgaengigStapel.current.pop();
-    if (!eintrag) return null;
-    wiederholenStapel.current.push({
-      grafiken,
-      uebernommen,
-      label: eintrag.label,
-      zeit: Date.now(),
-    });
-    if (wiederholenStapel.current.length > VERLAUF_LIMIT) wiederholenStapel.current.shift();
-    setGrafiken(eintrag.grafiken);
-    setUebernommen(eintrag.uebernommen);
-    aktualisiereVerfuegbarkeit();
-    return eintrag.label;
+    return bus?.undo() ?? null;
   }
 
   function redo(): string | null {
-    const eintrag = wiederholenStapel.current.pop();
-    if (!eintrag) return null;
-    rueckgaengigStapel.current.push({
-      grafiken,
-      uebernommen,
-      label: eintrag.label,
-      zeit: Date.now(),
-    });
-    if (rueckgaengigStapel.current.length > VERLAUF_LIMIT) rueckgaengigStapel.current.shift();
-    setGrafiken(eintrag.grafiken);
-    setUebernommen(eintrag.uebernommen);
-    aktualisiereVerfuegbarkeit();
-    return eintrag.label;
+    return bus?.redo() ?? null;
   }
 
   function resetHistory() {
-    rueckgaengigStapel.current = [];
-    wiederholenStapel.current = [];
-    aktualisiereVerfuegbarkeit();
+    bus?.resetHistory();
+    gestenHalterRef.current = null;
   }
+
+  const canUndo = bus?.canUndo ?? false;
+  const canRedo = bus?.canRedo ?? false;
 
   return (
     <Ctx.Provider

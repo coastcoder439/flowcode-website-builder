@@ -13,8 +13,10 @@ export async function POST(req: NextRequest) {
     pruefeUrsprung(req);
     const body = await leseJsonBody(req, MAX_BODY_BYTES);
     const name = saubererName(body.name);
-    await loescheSeite(name);
-    return NextResponse.json({ name, geloescht: true });
+    /* U7/N2: loescheSeite verschiebt in den Papierkorb (reversibel) und liefert
+       den Papierkorb-Dateinamen zurueck — reicht ihn dem Client fuer Undo/Logs. */
+    const papierkorb = await loescheSeite(name);
+    return NextResponse.json({ name, geloescht: true, papierkorb });
   } catch (e) {
     return fehlerAntwort(e, "puck-seite/loesche");
   }

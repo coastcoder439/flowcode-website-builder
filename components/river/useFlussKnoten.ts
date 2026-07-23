@@ -317,8 +317,9 @@ export function useFlussKnoten(): FlussKnotenSteuerung | null {
       const faktor = e.deltaY < 0 ? WHEEL_FAKTOR : 1 / WHEEL_FAKTOR;
       /* EIN Wheel-Zug an DEMSELBEN Knoten = EIN Verlaufsschritt (coalesced,
          Gruppe pro Knoten-Index) — VOR der Änderung committen, damit der
-         Vor-Zug-Stand das Rückgängig-Ziel bleibt (wie der Grafik-Wheel). */
-      verlauf.commit("Breite geändert", `fluss-breite:${gelockt}`);
+         Vor-Zug-Stand das Rückgängig-Ziel bleibt (wie der Grafik-Wheel). Der
+         Produzent präfixt zu „fluss:breite:<idx>" (Risiko R-f). */
+      verlauf.commit("Breite geändert", `breite:${gelockt}`);
       setzeNodes(
         nodes.map((n, i) =>
           i === gelockt

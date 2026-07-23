@@ -27,3 +27,8 @@ public/wee-embed.css
 # Dev-Server-Logs (Durchlaufposten, nie committen)
 .next-dev-*.log
 test-sites/
+
+# Seiten-Papierkorb (U7/N2): geloeschte Seiten wandern reversibel hierher.
+# seiten/ selbst ist getrackt (wee-website-v3.json), der Papierkorb NICHT —
+# das sind fluechtige Loesch-/Undo-Reste, kein Quellstand.
+seiten/.papierkorb/

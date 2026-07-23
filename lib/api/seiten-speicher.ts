@@ -14,7 +14,7 @@
  * aktuellen Stand — ein Agent kann dann neu laden statt blind zu clobbern.
  */
 
-import { readdir, readFile, writeFile, unlink, mkdir } from "node:fs/promises";
+import { readdir, readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 /* In App-Router-Route-Handlern loest "@puckeditor/core" ueber die
    react-server-Condition auf dist/rsc.js auf — die Node-faehige Oberflaeche
@@ -26,8 +26,23 @@ import { istGrafik } from "./grafik-validierung";
 import type { Grafik } from "@/components/grafik/grafik-types";
 
 const SEITEN_ORDNER = resolve(process.cwd(), "seiten");
+/* Papierkorb (U7, N2): geloeschte Seiten wandern hierher statt hart weg, so
+   ist das Loeschen reversibel (POST /api/puck-seite/wiederherstelle bzw.
+   Client-Undo). Unterordner von seiten/, mit fuehrendem Punkt, damit
+   listeSeiten() (nur *.json in seiten/ selbst) ihn nie mitlistet und der
+   Export ihn ignoriert (docs/plan-analyse/lens-undo.md §5). */
+const PAPIERKORB_ORDNER = resolve(SEITEN_ORDNER, ".papierkorb");
 export const SEITEN_VERSION = 1;
 const MAX_SEITEN = 500;
+
+/* Filesystem-sicherer Zeitstempel (kein ":" / "." — Windows-tauglich) und
+   zugleich lexikografisch = chronologisch sortierbar, damit der juengste
+   Papierkorb-Eintrag per String-Sortierung gefunden wird. Beispiel:
+   2026-07-23T12-30-45-123Z. */
+const ZEITSTEMPEL_REGEX = /\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z/;
+function papierkorbZeitstempel(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
 
 /** Animations-Abbild einer Seite (Welle 4c, docs/editor-vereinheitlichung.md
  *  §9/4c(3)): die vom Animator ueber DIESER Seite gesetzten Scroll-Grafiken —
@@ -111,6 +126,17 @@ function seitenPfad(name: string): string {
   const ziel = join(SEITEN_ORDNER, `${name}.json`);
   if (!resolve(ziel).startsWith(resolve(SEITEN_ORDNER) + sep)) {
     throw new AnfrageFehler(400, "Pfad außerhalb des Seiten-Ordners");
+  }
+  return ziel;
+}
+
+/** Ziel-Pfad fuer EINE Papierkorb-Datei, mit derselben Pfad-Ausbruch-Gegenprobe
+ *  wie seitenPfad — der dateiname kommt aus readdir(PAPIERKORB_ORDNER), also
+ *  Guertel und Hosentraeger. */
+function papierkorbPfad(dateiname: string): string {
+  const ziel = join(PAPIERKORB_ORDNER, dateiname);
+  if (!resolve(ziel).startsWith(resolve(PAPIERKORB_ORDNER) + sep)) {
+    throw new AnfrageFehler(400, "Pfad außerhalb des Papierkorbs");
   }
   return ziel;
 }
@@ -266,6 +292,18 @@ export async function speichereSeite(name: string, data: Data, opts: SpeichernOp
         `erst laden (erwartetGespeichert mitschicken) oder ueberschreibe:true setzen`,
     );
   }
+  /* N18 (docs/plan-analyse/lens-undo.md §2.5): Die Datei ist WEG, aber der
+     Aufrufer glaubt, sie existiere (erwartetGespeichert gesetzt) → das ist ein
+     Konflikt, KEINE stumme Neuanlage. Sonst belebt ein Speichern eine soeben
+     geloeschte Seite wieder. ueberschreibe:true bleibt der bewusste Ausweg
+     (dann wird sie neu angelegt), analog zum bestehenden 409-Guard oben. */
+  if (!bestehend && opts.erwartetGespeichert && !opts.ueberschreibe) {
+    throw new AnfrageFehler(
+      409,
+      `Konflikt: Seite „${name}" existiert nicht mehr (zwischenzeitlich geloescht) — ` +
+        `erst pruefen/neu laden oder ueberschreibe:true setzen, um neu anzulegen`,
+    );
+  }
   /* anim: uebergebenes gewinnt; sonst das bestehende erhalten (nicht stumm
      wegwerfen, wenn ein reiner Daten-Speichervorgang kein anim mitschickt). */
   const animEffektiv = opts.anim !== undefined ? opts.anim : bestehend?.anim;
@@ -285,10 +323,65 @@ export async function speichereSeite(name: string, data: Data, opts: SpeichernOp
   return datei;
 }
 
-export async function loescheSeite(name: string): Promise<void> {
+/** Loeschen = in den Papierkorb verschieben (U7/N2, reversibel). Statt hartem
+ *  unlink wird die Datei atomar nach seiten/.papierkorb/<name>-<zeitstempel>.json
+ *  umbenannt. Rueckgabe: der Papierkorb-Dateiname (fuer Undo/Logs). 404, wenn es
+ *  die Seite gar nicht gibt. */
+export async function loescheSeite(name: string): Promise<string> {
+  const quelle = seitenPfad(name);
+  const papierkorbName = `${name}-${papierkorbZeitstempel()}.json`;
+  const ziel = papierkorbPfad(papierkorbName);
+  await mkdir(PAPIERKORB_ORDNER, { recursive: true });
   try {
-    await unlink(seitenPfad(name));
-  } catch {
-    throw new AnfrageFehler(404, `Seite „${name}" nicht gefunden`);
+    await rename(quelle, ziel);
+  } catch (e) {
+    /* ENOENT = Seite existierte nicht → 404; alles andere ist ein echter
+       Fehler (z.B. Rechte) und darf nicht als "nicht gefunden" maskiert werden. */
+    if (e instanceof Error && (e as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new AnfrageFehler(404, `Seite „${name}" nicht gefunden`);
+    }
+    throw e;
   }
+  return papierkorbName;
+}
+
+/** Stellt die JUENGSTE Papierkorb-Fassung einer Seite wieder her (U7/N2).
+ *  Der Papierkorb-Dateiname ist exakt `<name>-<zeitstempel>.json` — der
+ *  Zeitstempel wird per Regex am Ende verankert, damit ein Name mit
+ *  Bindestrich (z.B. "wee-website-v3") nicht versehentlich den Papierkorb
+ *  einer anderen Seite ("wee-website") aufsammelt.
+ *  409, wenn die Ziel-Seite inzwischen wieder existiert (R-e: kein blindes
+ *  Ueberschreiben). 404, wenn nichts im Papierkorb liegt. */
+export async function stelleSeiteWieder(name: string): Promise<SeitenDatei> {
+  const ziel = seitenPfad(name); // wirft bei Pfad-Ausbruch
+  /* Nur der exakte Name gefolgt von "-<zeitstempel>.json" gilt. */
+  const musterQuelle = `^${escapeRegex(name)}-(${ZEITSTEMPEL_REGEX.source})\\.json$`;
+  const muster = new RegExp(musterQuelle);
+  let dateien: string[];
+  try {
+    dateien = await readdir(PAPIERKORB_ORDNER);
+  } catch {
+    throw new AnfrageFehler(404, `Kein Papierkorb-Eintrag für „${name}"`);
+  }
+  const treffer = dateien.filter((d) => muster.test(d)).sort();
+  if (treffer.length === 0) {
+    throw new AnfrageFehler(404, `Kein Papierkorb-Eintrag für „${name}"`);
+  }
+  const juengste = treffer[treffer.length - 1]; // lexikografisch = chronologisch
+  /* R-e: existiert die Seite inzwischen wieder, NICHT ueberschreiben. */
+  try {
+    await readFile(ziel, "utf-8");
+    throw new AnfrageFehler(409, `Seite „${name}" existiert bereits — nicht ueberschrieben`);
+  } catch (e) {
+    if (e instanceof AnfrageFehler) throw e; // der 409 von oben
+    /* readFile warf (Datei fehlt) — Ziel frei, weiter mit Restore. */
+  }
+  await rename(papierkorbPfad(juengste), ziel);
+  return ladeSeite(name);
+}
+
+/** Escapt Regex-Sonderzeichen in einem Seiten-Namen (Namen duerfen laut
+ *  saubererName u.a. "." und "-" enthalten). */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

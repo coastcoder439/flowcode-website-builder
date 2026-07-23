@@ -119,6 +119,9 @@ paths:
         ueberschreibe=true gesetzt sein — sonst 409 (agentensicheres
         Konflikt-Modell). data wird strukturgeprueft, auf registrierte
         Komponenten-Typen geklemmt und durch Pucks migrate() gehoben.
+        409 auch, wenn die Seite zwischenzeitlich GELOESCHT wurde und der
+        Aufrufer erwartetGespeichert mitschickt (N18): dann keine stumme
+        Neuanlage, sondern Konflikt — ueberschreibe:true legt sie neu an.
       requestBody:
         required: true
         content:
@@ -167,7 +170,9 @@ paths:
         "400": { $ref: "#/components/responses/Ungueltig" }
         "403": { $ref: "#/components/responses/FremderUrsprung" }
         "409":
-          description: Konflikt — Seite wurde zwischenzeitlich geaendert
+          description: >-
+            Konflikt — Seite wurde zwischenzeitlich geaendert ODER geloescht
+            (N18: erwartetGespeichert gesetzt, Datei aber weg).
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Fehler" }
@@ -175,7 +180,11 @@ paths:
   /api/puck-seite/loesche:
     post:
       operationId: puckSeiteLoesche
-      summary: Eine Puck-Seite loeschen
+      summary: Eine Puck-Seite in den Papierkorb verschieben (reversibel)
+      description: >-
+        Loeschen ist reversibel (N2): die Seite wird nicht hart entfernt,
+        sondern nach seiten/.papierkorb/<name>-<zeitstempel>.json verschoben.
+        Zurueckholen ueber /api/puck-seite/wiederherstelle.
       requestBody:
         required: true
         content:
@@ -187,7 +196,7 @@ paths:
                 name: { $ref: "#/components/schemas/SeitenName" }
       responses:
         "200":
-          description: Geloescht
+          description: In den Papierkorb verschoben
           content:
             application/json:
               schema:
@@ -196,8 +205,51 @@ paths:
                 properties:
                   name: { type: string }
                   geloescht: { type: boolean }
+                  papierkorb:
+                    type: string
+                    description: >-
+                      Dateiname im Papierkorb (<name>-<zeitstempel>.json) —
+                      fuer Undo/Logs.
         "403": { $ref: "#/components/responses/FremderUrsprung" }
         "404": { $ref: "#/components/responses/NichtGefunden" }
+
+  /api/puck-seite/wiederherstelle:
+    post:
+      operationId: puckSeiteWiederherstelle
+      summary: Eine geloeschte Puck-Seite aus dem Papierkorb zurueckholen
+      description: >-
+        Stellt die JUENGSTE Papierkorb-Fassung der Seite wieder her (N2).
+        404, wenn nichts im Papierkorb liegt; 409, wenn die Ziel-Seite
+        inzwischen wieder existiert (kein blindes Ueberschreiben, R-e).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { $ref: "#/components/schemas/SeitenName" }
+      responses:
+        "200":
+          description: Wiederhergestellt
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [name, pfad, gespeichert, wiederhergestellt]
+                properties:
+                  name: { type: string }
+                  pfad: { type: string }
+                  gespeichert: { type: string }
+                  wiederhergestellt: { type: boolean }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+        "404": { $ref: "#/components/responses/NichtGefunden" }
+        "409":
+          description: Ziel-Seite existiert bereits — nicht ueberschrieben
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Fehler" }
 
   /api/import/grafik-setup:
     post:

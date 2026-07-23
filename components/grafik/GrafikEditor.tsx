@@ -30,6 +30,7 @@ import { GrafikTutorial, HilfeIcon, tutorialAlsGesehenMerken, tutorialNochNichtG
 import { HilfeMenue } from "./ProduktTutorial";
 import { GrafikExportPanel } from "./GrafikExportPanel";
 import { useFlussObjekt } from "@/components/river/FlussObjektContext";
+import { useUndoBus, sollUndoShortcutGreifen, istEingabeFokussiert } from "@/components/undo/UndoBus";
 import { FlussObjektBild } from "@/components/river/FlussObjektBild";
 import { ProfileSektion } from "@/components/river/sektionen/ProfileSektion";
 import { BackdropAuswahl } from "@/components/backdrop/BackdropAuswahl";
@@ -160,15 +161,11 @@ function neueId(): string {
   return `g${Date.now().toString(36)}${Math.floor(performance.now() * 1000) % 997}`;
 }
 
-/** true, wenn GERADE in einem Textfeld getippt wird — Tastenkürzel (Strg+Z,
- *  Entf, Esc, …) dürfen dann NICHT feuern, sonst würde z.B. Entf beim
- *  Umbenennen den Ebenennamen kaputt machen statt die Grafik zu löschen.
- *  Modul-Ebene (nicht pro Render neu gebaut) — von Tastatur-Shortcut UND
- *  Strg+V/Drop-Handler benutzt, damit es nur EINE Definition davon gibt. */
-function istEingabeFokussiert(t: EventTarget | null): boolean {
-  if (!(t instanceof HTMLElement)) return false;
-  return t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable;
-}
+/* Der Fokus-Guard liegt jetzt zentral im Undo-Bus-Modul (U3, §2.4):
+ *   sollUndoShortcutGreifen — Slider greift, Textfeld nativ (fixt N9)
+ *   istEingabeFokussiert    — breite Alt-Regel für Pfeil-/Esc-Tasten
+ * beide oben aus "@/components/undo/UndoBus" importiert; das frühere lokale
+ * Duplikat (und das in FlussObjektContext) ist aufgelöst. */
 
 /** Index des Keyframes, der dieser Scrollposition am nächsten liegt. */
 function naechsterKfIndex(g: Grafik, scrollY: number): number {
@@ -382,6 +379,13 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
      alten Route (Redirect) fehlt der Provider → null → alle Fluss-Zweige
      unten sind No-Ops, der Grafik-Editor bleibt exakt wie zuvor. */
   const flussObjekt = useFlussObjekt();
+  /* Der EINE gemeinsame Undo-Bus (U2, docs/plan-analyse/lens-undo.md §2/§3-U2).
+     Strg+Z / die Kopf-Knöpfe wirken jetzt auf die chronologisch letzte Aktion
+     des aktiven Scopes — egal ob Grafik oder Fluss zuletzt dran war. Der frühere
+     fokusbasierte Router (ENTWEDER Grafik- ODER Fluss-Stapel) ist damit weg
+     (N8/M11). null außerhalb des UndoBusProvider (alte Route) → Undo ist dann ein
+     No-Op, wie zuvor ohne Verlauf. */
+  const bus = useUndoBus();
   /* Stabiler Zugriff auf das Fluss-Objekt aus dem Fenster-Pointer-Effekt
      (Alt+Klick, s.u.) — ohne flussObjekt in dessen Abhängigkeiten aufzunehmen
      (das würde die Pointer-Listener bei jedem Context-Wechsel neu an-/abmelden). */
@@ -438,6 +442,62 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
    *  Bibliothek unter „Presets" gelistet, im Reiter Animation gespeichert.
    *  Reine Zusatz-Bibliothek: unabhängig von platzierten Grafiken/Setups. */
   const [presets, setPresets] = useState<AnimationsPreset[]>([]);
+
+  /* U5 (docs/plan-analyse/lens-undo.md §2.2/§3-U5, fixt N10): die Bibliothek/der
+     Pool war bisher historienlos — ein versehentliches ✕ (Entfernen), ein Import
+     oder ein Vektorisier-Ergebnis ließen sich NICHT rückgängig machen, weil der
+     Pool außerhalb des {grafiken, uebernommen}-Snapshots von GrafikContext liegt.
+     Jetzt ist der Pool ein eigener PRODUZENT auf demselben „animator"-Scope: jede
+     Nutzer-Änderung legt EINEN diskreten Befehl auf den Bus (wie setBackdropMitUndo,
+     U4). Live-Spiegel als Ref, damit die Befehl-Closures IMMER den jüngsten Stand
+     einfangen — auch aus einer useCallback mit leeren Deps (inPool). PROGRAMMATISCHE
+     Wechsel (Setup laden, Server-Bibliothek, Ordner-Reload) bleiben bewusst OHNE
+     Historie: sie sind kein Nutzer-Schritt, ein Strg+Z dort spränge in einen
+     Ladevorgang. */
+  const poolRef = useRef(pool);
+  poolRef.current = pool;
+  const presetsRef = useRef(presets);
+  presetsRef.current = presets;
+
+  /* Pool-Änderung als undo-baren Befehl: alten Pool einfangen, neuen setzen und
+     einen diskreten Befehl (keine Gruppe → nie coalesct) auf den aktiven Scope
+     legen. undo/redo verschieben nur zwischen zwei bekannten Ständen. bus null
+     (alte Route ohne UndoBusProvider) → reines setPool, kein Eintrag (wie zuvor
+     ohne Verlauf). */
+  const poolMitUndo = (neu: Asset[], label: string) => {
+    const alt = poolRef.current;
+    setPool(neu);
+    bus?.push({
+      label,
+      undo: () => setPool(alt),
+      redo: () => setPool(neu),
+    });
+  };
+
+  /* Presets (IndexedDB, K_PRESETS) sind ebenfalls Bibliotheks-State: Speichern/
+     Löschen wird gleich mitbehandelt (§3-U5). WICHTIG (Risiko R-c, wie Backdrop):
+     undo/redo müssen die IndexedDB-Persistenz MITFÜHREN, sonst divergieren State und
+     Speicher. Persistiert wird ZUERST (await) — schlägt das fehl, wirft es an den
+     Aufrufer (dessen catch zeigt den Fehler) und es landet KEIN Eintrag auf dem Bus.
+     Die undo/redo-Persistenz ist fire-and-forget (wie backdropSpeichern); der
+     Undo-Verlauf selbst überlebt keinen Reload, die Presets im Speicher schon. */
+  const presetsMitUndo = async (neu: AnimationsPreset[], label: string) => {
+    const alt = presetsRef.current;
+    await presetsSetzen(neu);
+    setPresets(neu);
+    bus?.push({
+      label,
+      undo: () => {
+        void presetsSetzen(alt);
+        setPresets(alt);
+      },
+      redo: () => {
+        void presetsSetzen(neu);
+        setPresets(neu);
+      },
+    });
+  };
+
   const ordnerRef = useRef<HTMLInputElement>(null);
   /** Verbundener PC-Ordner. Der Handle liegt in IndexedDB und überlebt den
    *  Neustart — die Bibliothek wird daraus GELESEN statt gespeichert.
@@ -1387,9 +1447,11 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
 
   /** Dateien in den Pool aufnehmen (aus Ordner ODER Mehrfachauswahl).
    *  Doppelte Namen werden übersprungen, damit wiederholtes Öffnen
-   *  desselben Ordners den Pool nicht aufbläht. */
+   *  desselben Ordners den Pool nicht aufbläht. `undoBar` = Nutzer-Import
+   *  (Datei-Dialog) → EIN Befehl auf den Bus (U5/N10). Der programmatische
+   *  Ordner-Reload (ordnerLesen) ruft OHNE Flag → unverändert historienlos. */
   const inPool = useCallback(
-    async (dateien: File[]) => {
+    async (dateien: File[], undoBar = false) => {
       const bilder = dateien.filter(
         (f) => f.type.startsWith("image/") || BILD_ENDUNGEN.test(f.name),
       );
@@ -1411,14 +1473,34 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
           art: medienArt(f.name, f.type),
         });
       }
-      setPool((alt) => {
+      if (undoBar) {
+        /* Nutzer-Import: gegen den jüngsten Pool (Ref) rechnen, damit undo/redo
+           konkrete Vor-/Nach-Stände halten. Sind alle Namen schon bekannt (nichts
+           Neues), KEIN Bus-Eintrag — ein Strg+Z auf einen No-Op wäre verwirrend. */
+        const alt = poolRef.current;
         const bekannt = new Set(alt.map((a) => a.name));
-        return [...alt, ...neu.filter((a) => !bekannt.has(a.name))];
-      });
+        const hinzu = neu.filter((a) => !bekannt.has(a.name));
+        if (hinzu.length > 0) {
+          poolMitUndo(
+            [...alt, ...hinzu],
+            `${hinzu.length} Asset${hinzu.length === 1 ? "" : "s"} zur Bibliothek hinzugefügt`,
+          );
+        }
+      } else {
+        /* Ordner-Reload: funktionaler Updater wie bisher (nebenläufig-sicher),
+           keine Historie. */
+        setPool((alt) => {
+          const bekannt = new Set(alt.map((a) => a.name));
+          return [...alt, ...neu.filter((a) => !bekannt.has(a.name))];
+        });
+      }
       setStatus(
         `${neu.length} Assets in der Bibliothek${zuGross ? ` · ${zuGross} zu groß übersprungen` : ""}`,
       );
     },
+    // poolMitUndo/poolRef sind über stabile Refs/Setter angebunden (bus.push ist
+    // eine stabile useCallback) — bewusst nicht in den Deps, wie schon zuvor `[]`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
@@ -1492,7 +1574,7 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
   const ordnerGewaehlt = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fs = Array.from(e.target.files ?? []);
     e.target.value = "";
-    await inPool(fs);
+    await inPool(fs, true); // Nutzer-Import → undo-bar (U5/N10)
   };
 
   /** Asset aus dem Pool auf die Seite setzen: mittig im Bild, mit einem
@@ -1548,9 +1630,9 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     try {
       /* Erst persistieren, dann State setzen — so bleibt die Anzeige
          konsistent zum tatsächlich Gespeicherten (kein "gespeichert"-Status
-         ohne echtes Schreiben, Muster wie loesche* unten). */
-      await presetsSetzen(liste);
-      setPresets(liste);
+         ohne echtes Schreiben, Muster wie loesche* unten). presetsMitUndo (U5)
+         macht den Schritt zusätzlich per Strg+Z rückgängig (inkl. IndexedDB). */
+      await presetsMitUndo(liste, `Preset „${n}" gespeichert`);
       setStatus(`Preset „${n}" gespeichert (${neu.frames.length} Frames) — in der Bibliothek unter „Presets"`);
     } catch (error) {
       setStatus(
@@ -1591,8 +1673,9 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     if (!window.confirm(`Preset „${p.name}" wirklich löschen?`)) return;
     const liste = presets.filter((x) => x.id !== id);
     try {
-      await presetsSetzen(liste);
-      setPresets(liste);
+      /* presetsMitUndo (U5): Löschen aus der Bibliothek ist per Strg+Z
+         reversibel (stellt das Preset in State UND IndexedDB wieder her). */
+      await presetsMitUndo(liste, `Preset „${p.name}" gelöscht`);
       setStatus(`Preset „${p.name}" gelöscht`);
     } catch (error) {
       setStatus(
@@ -1689,10 +1772,15 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
           serverHinweis = " · Server-Schreiben fehlgeschlagen";
         }
 
-        setPool((alt) => [
-          ...alt,
-          { id: neueId(), name: neuerName, src: assetSrc, art: "bild", ordner: assetOrdner },
-        ]);
+        /* Vektorisier-Ergebnis undo-bar in die Bibliothek (U5/N10) — gegen den
+           jüngsten Pool (Ref) gerechnet, damit der Befehl konkrete Stände hält. */
+        poolMitUndo(
+          [
+            ...poolRef.current,
+            { id: neueId(), name: neuerName, src: assetSrc, art: "bild", ordner: assetOrdner },
+          ],
+          `„${neuerName}" vektorisiert`,
+        );
 
         const pfadeGesamt = daten.gruppen.reduce((summe, g) => summe + g.pfade, 0);
         const skaliertHinweis = daten.herunterskaliert
@@ -1786,7 +1874,9 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     if (!ctx) return;
 
     const onPaste = (e: ClipboardEvent) => {
-      if (istEingabeFokussiert(e.target)) return;
+      /* In einem Textfeld hat Strg+V native Bedeutung (Text einfügen) → nicht
+         abfangen; auf Slider/Bühne/Body fängt der Bild-Weg (§2.4). */
+      if (!sollUndoShortcutGreifen(e.target)) return;
       const f = Array.from(e.clipboardData?.files ?? [])[0];
       if (!f) return;
       e.preventDefault();
@@ -2392,56 +2482,59 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
      beide Aufrufer (Kopf-Knöpfe ↶↷ UND Strg+Z/Strg+Y) sollen exakt dieselbe
      Statuszeilen-Meldung bekommen (nicht nachbauen).
 
-     DISPATCH NACH FOKUS (Welle 2c-1, Bauvorlage §3): hat auf /editor das
-     Fluss-Objekt den Bearbeitungs-Fokus, wirken Rückgängig/Wiederholen auf den
-     eigenen FLUSS-Verlauf, sonst wie bisher auf den Grafik-Verlauf. EINE
-     Dispatch-Stelle für Kopf-Knopf UND Strg+Z/Y — der globale Tastatur-Handler
-     ruft genau diese Funktionen (kein zweiter Shortcut-Handler). Ohne
-     FlussObjekt-Provider (alte Route) ist flussObjekt null → immer Grafik. */
+     U2 (docs/plan-analyse/lens-undo.md §3-U2, fixt N8/M11): REINE bus.undo()/
+     redo()-Aufrufe — der frühere fokusbasierte Router (ENTWEDER Fluss- ODER
+     Grafik-Stapel) ist gelöscht. Grafik- UND Fluss-Produzent legen ihre Befehle
+     auf DENSELBEN Bus-Scope („animator"), also macht ein Strg+Z chronologisch die
+     LETZTE Aktion rückgängig, unabhängig vom Fokus — auch bei Fluss-Fokus +
+     leerem Fluss-Verlauf greift eine vorherige Grafik-Aktion. Das Label kommt vom
+     Befehl selbst („Knoten verschoben", „Grafik gesetzt", …) und beschreibt die
+     Domäne bereits, daher EINE einheitliche Statuszeilen-Konvention (§2.1). Ohne
+     UndoBusProvider (alte Route) ist bus null → No-Op. */
   const rueckgaengigMachen = () => {
-    if (flussObjekt?.fokus && flussObjekt.steuerung) {
-      const label = flussObjekt.steuerung.verlauf.undo();
-      if (label) setStatus(`Rückgängig (Fluss): ${label}`);
-      return;
-    }
-    const label = ctx?.undo();
+    const label = bus?.undo();
     if (label) setStatus(`Rückgängig: ${label}`);
   };
 
   const wiederholenMachen = () => {
-    if (flussObjekt?.fokus && flussObjekt.steuerung) {
-      const label = flussObjekt.steuerung.verlauf.redo();
-      if (label) setStatus(`Wiederhergestellt (Fluss): ${label}`);
-      return;
-    }
-    const label = ctx?.redo();
+    const label = bus?.redo();
     if (label) setStatus(`Wiederhergestellt: ${label}`);
   };
 
   /* Globale Tastaturkürzel: Strg+Z / Strg+Shift+Z / Strg+Y (Verlauf),
-     Entf/Backspace (Auswahl löschen), Esc (Auswahl aufheben). Bewusst GANZ
-     UNTEN platziert (nach loeschen() & Co.) — const-Deklarationen sind nicht
-     hoisted, ein Effekt weiter oben würde beim Rendern mit einem
-     ReferenceError abstürzen. Feuert NIE, während in einem Textfeld
-     getippt wird (s. istEingabeFokussiert) — sonst würde z.B. Entf beim
-     Umbenennen die Grafik statt eines Zeichens löschen. */
+     Entf/Backspace (Auswahl löschen), Pfeile (Auswahl verschieben),
+     Esc (Auswahl aufheben). Bewusst GANZ UNTEN platziert (nach loeschen() &
+     Co.) — const-Deklarationen sind nicht hoisted, ein Effekt weiter oben
+     würde beim Rendern mit einem ReferenceError abstürzen.
+
+     U3 (§2.4, fixt N9): DER FRÜHERE PAUSCHAL-GUARD ist per Taste differenziert:
+     - Strg+Z/Y und Entf nutzen sollUndoShortcutGreifen — in Textfeldern nativ
+       (Zeichen-Undo bzw. Zeichen-Entf bleibt), aber bei Slider-Fokus greift der
+       Bus/die Löschlogik (früher schluckte der Regler das Strg+Z).
+     - Pfeile/Esc bleiben an der breiten istEingabeFokussiert-Regel: in JEDEM
+       Eingabefeld (auch Slider) haben Pfeile native Bedeutung (Slider-Wert,
+       Zahl-Spinner, Textcursor) und dürfen nicht die Grafik verschieben —
+       Invariante feature-inventar §5.8/§5.9. */
   useEffect(() => {
     if (!ctx) return;
     const onKeyDown = (e: KeyboardEvent) => {
-      if (istEingabeFokussiert(e.target)) return;
       const strg = e.ctrlKey || e.metaKey;
       if (strg && !e.altKey && e.key.toLowerCase() === "z") {
+        if (!sollUndoShortcutGreifen(e.target)) return; // Textfeld → natives Zeichen-Undo
         e.preventDefault();
         if (e.shiftKey) wiederholenMachen();
         else rueckgaengigMachen();
         return;
       }
       if (strg && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "y") {
+        if (!sollUndoShortcutGreifen(e.target)) return;
         e.preventDefault();
         wiederholenMachen();
         return;
       }
       if ((e.key === "Delete" || e.key === "Backspace") && ctx.auswahl) {
+        /* Textfeld → natives Zeichen-Löschen; Slider/Bühne → Grafik löschen. */
+        if (!sollUndoShortcutGreifen(e.target)) return;
         e.preventDefault();
         /* Additiv: bei aktiver Mehrfachauswahl löscht Entf ALLE (EIN
            Verlaufsschritt) — s. loescheMehrere. Ohne Mehrfachauswahl (der
@@ -2450,6 +2543,11 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
         loescheMehrere(volleAuswahl(ctx.auswahl, ctx.auswahlMehr));
         return;
       }
+      /* Ab hier Tasten mit nativer Feld-Bedeutung (Pfeile: Slider-Wert/Zahl-
+         Spinner/Textcursor; Esc): in JEDEM Eingabefeld dem Feld überlassen,
+         nicht die Grafik verschieben (§5.8/§5.9). Bewusst NACH Strg+Z/Entf, die
+         den Slider-Sonderfall über sollUndoShortcutGreifen selbst regeln. */
+      if (istEingabeFokussiert(e.target)) return;
       /* Pfeiltasten: NEUE Fähigkeit (gab es bisher gar nicht), additiv —
          greift nur, wenn etwas ausgewählt ist, sonst bleibt das normale
          Tastaturverhalten (z.B. Seiten-Scroll) unangetastet. Verschiebt die
@@ -2489,12 +2587,12 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
 
   if (!ctx) return null;
 
-  /* Kopf-Knöpfe ↶↷ (Welle 2c-1, Bauvorlage §3c): bei Fluss-Fokus richtet sich
-     die Verfügbarkeit nach dem FLUSS-Verlauf (jetzt scharf statt disabled wie in
-     2b-2), sonst nach dem Grafik-Verlauf. */
-  const flussVerlauf = flussObjekt?.steuerung?.verlauf;
-  const kannRueckgaengig = flussHatFokus ? !!flussVerlauf?.canUndo : ctx.canUndo;
-  const kannWiederholen = flussHatFokus ? !!flussVerlauf?.canRedo : ctx.canRedo;
+  /* Kopf-Knöpfe ↶↷ (U2, docs/plan-analyse/lens-undo.md §3-U2): die Verfügbarkeit
+     richtet sich — wie Strg+Z — nach dem aktiven Bus-Scope, NICHT mehr nach dem
+     Fokus. Ein Knopf ist scharf, sobald IRGENDEINE (Grafik- oder Fluss-)Aktion im
+     Scope liegt. */
+  const kannRueckgaengig = bus?.canUndo ?? false;
+  const kannWiederholen = bus?.canRedo ?? false;
 
   const aktivKfIndex = aktiv ? naechsterKfIndex(aktiv, scrollY) : -1;
   /** Nur Rasterbilder (kein SVG) lassen sich sinnvoll vektorisieren — steuert
@@ -2578,7 +2676,12 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
       )}
       <button
         className="gre-pool-weg"
-        onClick={() => setPool(pool.filter((x) => x.id !== a.id))}
+        onClick={() =>
+          poolMitUndo(
+            pool.filter((x) => x.id !== a.id),
+            `„${a.name}" aus Bibliothek entfernt`,
+          )
+        }
         title="Aus der Bibliothek entfernen"
       >
         ✕
@@ -2603,17 +2706,17 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
     <div className={`gre-panel${panelSichtbar ? "" : " gre-panel--versteckt"}`}>
       <div className="gre-kopf">
         <strong>Grafik-Editor</strong>
-        {/* Undo/Redo dispatchen nach Fokus (Welle 2c-1, Bauvorlage §3): bei
-            Fluss-Fokus auf den eigenen Fluss-Verlauf (jetzt scharf statt der
-            2b-2-Sperre), sonst auf den Grafik-Verlauf. Der Title zeigt den
-            Kontext. onClick unverändert — die Fokus-Weiche steckt in
-            rueckgaengigMachen/wiederholenMachen (EINE Dispatch-Stelle). */}
+        {/* U2 (docs/plan-analyse/lens-undo.md §3-U2): EIN Undo über Grafik UND
+            Fluss — die Knöpfe wirken (wie Strg+Z) auf die chronologisch letzte
+            Aktion des aktiven Bus-Scopes, nicht mehr nach Fokus getrennt. Der
+            Title ist daher fokus-unabhängig. onClick/Verfügbarkeit stecken in
+            rueckgaengigMachen/wiederholenMachen bzw. kannRueckgaengig (bus). */}
         <div className="gre-verlauf">
           <button
             className="gre-verlauf-btn"
             onClick={rueckgaengigMachen}
             disabled={!kannRueckgaengig}
-            title={flussHatFokus ? "Rückgängig – Fluss (Strg+Z)" : "Rückgängig (Strg+Z)"}
+            title="Rückgängig (Strg+Z)"
           >
             ↶
           </button>
@@ -2621,11 +2724,7 @@ export function GrafikEditor({ onProduktTutorial }: GrafikEditorProps) {
             className="gre-verlauf-btn"
             onClick={wiederholenMachen}
             disabled={!kannWiederholen}
-            title={
-              flussHatFokus
-                ? "Wiederholen – Fluss (Strg+Umschalt+Z / Strg+Y)"
-                : "Wiederholen (Strg+Umschalt+Z / Strg+Y)"
-            }
+            title="Wiederholen (Strg+Umschalt+Z / Strg+Y)"
           >
             ↷
           </button>

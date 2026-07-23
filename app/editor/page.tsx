@@ -26,7 +26,7 @@
  * authoredDocH-Prop-Pfad übersprungen → keine Doppel-Skalierung.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { HomePageContent } from "@/components/HomePageContent";
 import { GrafikProvider } from "@/components/grafik/GrafikContext";
 import { GrafikEditor } from "@/components/grafik/GrafikEditor";
@@ -42,6 +42,7 @@ import "@/components/river/river-kurs-editor.css";
 import { Backdrop } from "@/components/backdrop/Backdrop";
 import type { Backdrop as BackdropDaten } from "@/components/backdrop/backdrop-types";
 import { BackdropProvider, useBackdropCtx } from "@/components/backdrop/BackdropContext";
+import { UndoBusProvider, useUndoBus, sollUndoShortcutGreifen } from "@/components/undo/UndoBus";
 import { entferneAktiveSeite, setzeAktiveSeite, useAktiveSeite } from "@/lib/aktive-seite";
 import { SeitenBereich } from "./SeitenBereich";
 import { SeitenImport } from "./SeitenImport";
@@ -102,17 +103,19 @@ function EditorInner({ onProduktTutorial }: { onProduktTutorial: () => void }) {
   /* Welle 5b (§10/5b): die „aktive Website" ist die Default-Buehne des
      Animators — statt der eingebauten WEE-Demo-Landing. */
   const aktiveSeite = useAktiveSeite();
-  const [aktivExistiert, setAktivExistiert] = useState(false);
+  /* Die geladenen Seiten-Namen (null = noch nicht geladen / Server-Fehler,
+     also „Existenz unbekannt"). Traegt sowohl den Self-Heal der aktiven Seite
+     als auch die N19-Absicherung des Backdrops (s. effektiverBackdrop). */
+  const [seitenNamen, setSeitenNamen] = useState<string[] | null>(null);
 
-  /* Existenz der aktiven Seite pruefen (§10/5b: „wenn ... gesetzt ist UND
-     existiert"). Nur bei einem definitiven „Liste geladen, Name fehlt" wird die
-     verwaiste aktive Seite vergessen (self-heal) — bei Server-Fehlern bleibt sie
-     gemerkt, wir zeigen diese Sitzung nur die Demo-Landing. */
+  /* Seiten-Liste laden (§10/5b: „wenn ... gesetzt ist UND existiert"). Nur bei
+     einem definitiven „Liste geladen, Name fehlt" wird die verwaiste aktive
+     Seite vergessen (self-heal) — bei Server-Fehlern bleibt sie gemerkt
+     (seitenNamen = null → „unbekannt"), wir zeigen diese Sitzung nur die
+     Demo-Landing. Die Liste wird IMMER geholt (nicht nur bei gesetzter aktiver
+     Seite), damit auch ein expliziter „puck-seite"-Backdrop gegen sie geprueft
+     werden kann (N19). */
   useEffect(() => {
-    if (!aktiveSeite) {
-      setAktivExistiert(false);
-      return;
-    }
     let tot = false;
     void (async () => {
       try {
@@ -124,11 +127,15 @@ function EditorInner({ onProduktTutorial }: { onProduktTutorial: () => void }) {
         const json = (await res.json()) as { seiten?: { name: string }[] };
         if (tot) return;
         const listeOk = res.ok && Array.isArray(json.seiten);
-        const da = listeOk && json.seiten!.some((s) => s.name === aktiveSeite);
-        setAktivExistiert(da);
-        if (listeOk && !da) entferneAktiveSeite();
+        if (!listeOk) {
+          setSeitenNamen(null);
+          return;
+        }
+        const namen = json.seiten!.map((s) => s.name);
+        setSeitenNamen(namen);
+        if (aktiveSeite && !namen.includes(aktiveSeite)) entferneAktiveSeite();
       } catch {
-        if (!tot) setAktivExistiert(false);
+        if (!tot) setSeitenNamen(null);
       }
     })();
     return () => {
@@ -136,16 +143,30 @@ function EditorInner({ onProduktTutorial }: { onProduktTutorial: () => void }) {
     };
   }, [aktiveSeite]);
 
+  const aktivExistiert = !!(aktiveSeite && seitenNamen?.includes(aktiveSeite));
+
   /* Effektive Buehne:
      - Explizit gewaehlter Backdrop schlaegt alles (Backdrop-Persistenz bleibt
        unangetastet, Inventar §4.1/Risiko 5). "demo-landing" ist der Sentinel
        fuer „ausdruecklich die WEE-Landing" → kein Backdrop (echte Landing).
+     - N19 (lens-undo.md §2.5): ein „puck-seite"-Backdrop, dessen Seite
+       nachweislich nicht mehr in der geladenen Liste steht, wuerde eine
+       404-Buehne nachladen (Dauerfehler) → auf die Fallback-Buehne zuruecknehmen
+       (null). Nur unterdruecken, wenn die Liste WIRKLICH geladen ist
+       (seitenNamen !== null) und den Namen NICHT enthaelt; solange die Existenz
+       unbekannt ist (null), den Backdrop zeigen (kein Aufblitzen). Zusaetzliche
+       Sicherung zum Direktpfad-Heal beim Loeschen (SeitenBereich).
      - Sonst (nichts gewaehlt): die aktive Website, falls gesetzt und vorhanden.
      - Fallback: echte WEE-Landing (wie bisher). */
-  const effektiverBackdrop: BackdropDaten | null = bctx?.backdrop
-    ? bctx.backdrop.art === "demo-landing"
+  const explizit = bctx?.backdrop ?? null;
+  const effektiverBackdrop: BackdropDaten | null = explizit
+    ? explizit.art === "demo-landing"
       ? null
-      : bctx.backdrop
+      : explizit.art === "puck-seite" &&
+          seitenNamen !== null &&
+          !seitenNamen.includes(explizit.quelle)
+        ? null
+        : explizit
     : aktiveSeite && aktivExistiert
       ? { art: "puck-seite", quelle: aktiveSeite, name: aktiveSeite }
       : null;
@@ -381,6 +402,94 @@ function VerlassenDialog({
   );
 }
 
+/** Aktiviert den Undo-Scope „animator" für die Dauer der Animator-Station
+ *  (U1, docs/plan-analyse/lens-undo.md §2.3): pushScope beim Mount, popScope +
+ *  Historie leeren beim Verlassen. Der Grafik-Zustand setzt sich beim
+ *  Stationswechsel ohnehin zurück (EditorInner/GrafikProvider re-mounten), also
+ *  ist eine über den Wechsel hinweg erhaltene Historie wertlos und wird beim
+ *  Verlassen bewusst geleert — dasselbe Verhalten wie der frühere Per-Mount-
+ *  Verlauf des Grafik-Editors.
+ *
+ *  WICHTIG: nur an die STABILEN Bus-Callbacks gekoppelt (nicht an das ganze
+ *  Bus-Objekt) — sonst liefe der Effekt bei jeder canUndo-Änderung neu und
+ *  würde die Historie bei JEDEM Commit leeren. */
+function AnimatorUndoScope({ children }: { children: ReactNode }) {
+  const bus = useUndoBus();
+  const pushScope = bus?.pushScope;
+  const popScope = bus?.popScope;
+  const resetHistory = bus?.resetHistory;
+  useEffect(() => {
+    if (!pushScope || !popScope) return;
+    pushScope("animator");
+    return () => {
+      resetHistory?.();
+      popScope();
+    };
+  }, [pushScope, popScope, resetHistory]);
+  return <>{children}</>;
+}
+
+/** Aktiviert den Undo-Scope „bauen" für die Dauer der Bauen-Station und stellt
+ *  fuer die Seiten-LISTE das Strg+Z/Strg+Y bereit (U8, lens-undo.md §2.5/§3-U8).
+ *  Der Loesch-Befehl (SeitenBereich.loesche) landet via bus.push auf diesem
+ *  Scope; hier haengt der passende Tastatur-Vertrag daran — dieselbe Kürzel-Regel
+ *  wie im Animator (GrafikEditor), inkl. Textfeld-Guard (das „Neue Seite"-Feld
+ *  behaelt sein natives Zeichen-Undo).
+ *
+ *  WICHTIG: Der Handler greift NUR, wenn „bauen" der AKTIVE (oberste) Scope ist.
+ *  Sobald ein Puck-Editor offen ist, hat PuckUndoBruecke den „puck"-Scope oben
+ *  aufgelegt (Bruecke an Pucks eigene Historie) — dann darf UNSER Handler nicht
+ *  feuern, sonst kaempft er mit Pucks eigenem Strg+Z-Hotkey (der N4-Fight).
+ *  Deshalb der aktiverScope-Wächter. Wie AnimatorUndoScope nur an die STABILEN
+ *  Bus-Callbacks gekoppelt; den jeweils juengsten Scope/undo/redo liest der
+ *  Handler ueber Refs, damit er nicht bei jedem Commit neu bindet. */
+function BauenUndoScope({ children }: { children: ReactNode }) {
+  const bus = useUndoBus();
+  const pushScope = bus?.pushScope;
+  const popScope = bus?.popScope;
+  const resetHistory = bus?.resetHistory;
+
+  /* Ref-Spiegel: der Tastatur-Handler wird EINMAL gebunden, liest aber stets den
+     aktuellen Scope + die aktuellen undo/redo-Callbacks. */
+  const scopeRef = useRef<string | null>(bus?.aktiverScope ?? null);
+  scopeRef.current = bus?.aktiverScope ?? null;
+  const undoRef = useRef(bus?.undo);
+  undoRef.current = bus?.undo;
+  const redoRef = useRef(bus?.redo);
+  redoRef.current = bus?.redo;
+
+  useEffect(() => {
+    if (!pushScope || !popScope) return;
+    pushScope("bauen");
+    return () => {
+      resetHistory?.();
+      popScope();
+    };
+  }, [pushScope, popScope, resetHistory]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const strg = e.ctrlKey || e.metaKey;
+      if (!strg || e.altKey) return;
+      const taste = e.key.toLowerCase();
+      if (taste !== "z" && taste !== "y") return;
+      /* Nur wenn „bauen" oben liegt (kein Puck offen) — sonst macht Pucks
+         eigener Hotkey das Undo. */
+      if (scopeRef.current !== "bauen") return;
+      /* Textfeld (z. B. „Neue Seite"-Name) → natives Zeichen-Undo behalten. */
+      if (!sollUndoShortcutGreifen(e.target)) return;
+      if (taste === "y" && e.shiftKey) return; // Strg+Umschalt+Y ist kein Kürzel
+      e.preventDefault();
+      if (taste === "y" || e.shiftKey) redoRef.current?.();
+      else undoRef.current?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  return <>{children}</>;
+}
+
 export default function EditorPage() {
   const [zustand, setZustand] = useState<Zustand>({ station: "import", sub: null });
 
@@ -507,7 +616,11 @@ export default function EditorPage() {
   const { station, sub } = zustand;
 
   return (
-    <>
+    /* U1 (docs/plan-analyse/lens-undo.md §2): EIN Undo-Bus über der ganzen
+       Editor-Shell. Er bleibt über Stationswechsel hinweg gemountet (Scopes
+       segmentieren die Historie je Station); aktiv wird der „animator"-Scope
+       aber nur, solange die Animator-Station läuft (AnimatorUndoScope unten). */
+    <UndoBusProvider>
       <StationsNav station={station} onWechsel={(s) => navigiere(s)} />
       {station === "animator" ? (
         /* display:contents → der Wrapper ist layout-neutral, der Animator bleibt
@@ -519,7 +632,9 @@ export default function EditorPage() {
           style={{ display: "contents" }}
         >
           <BackdropProvider>
-            <EditorInner onProduktTutorial={() => setProduktTutorialOffen(true)} />
+            <AnimatorUndoScope>
+              <EditorInner onProduktTutorial={() => setProduktTutorialOffen(true)} />
+            </AnimatorUndoScope>
           </BackdropProvider>
         </div>
       ) : station === "preview" ? (
@@ -558,11 +673,13 @@ export default function EditorPage() {
           aria-labelledby="tab-bauen"
           tabIndex={0}
         >
-          <SeitenBereich
-            sub={sub}
-            navigiere={navigiere}
-            istUngespeichertRef={istUngespeichertRef}
-          />
+          <BauenUndoScope>
+            <SeitenBereich
+              sub={sub}
+              navigiere={navigiere}
+              istUngespeichertRef={istUngespeichertRef}
+            />
+          </BauenUndoScope>
         </div>
       )}
       {verlassenAktion && (
@@ -579,6 +696,6 @@ export default function EditorPage() {
           gemountet (feuert auf Station 1, manuell via Animator-„?"-Menue).
           Inhalt/Latch unveraendert (ProduktTutorial.tsx). */}
       <ProduktTutorial offen={produktTutorialOffen} onSchliessen={produktTutorialSchliessen} />
-    </>
+    </UndoBusProvider>
   );
 }
