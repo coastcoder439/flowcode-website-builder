@@ -56,9 +56,11 @@ interface OrdnerBericht {
   dateien: number;
   /** Seiten, die beim Abgriff scheiterten (Import-Luecken sichtbar machen). */
   warnungen: { seite: string; grund: string }[];
-  /** Nicht aufloesbare Referenzen (relative lokale Pfade) im Ordner-Artefakt —
-   *  aus baueOrdnerArtefakt().warnungen. Getrennt von den Seiten-Skips, weil es
-   *  eine andere Fehlerklasse ist (einzelne tote Asset-Links statt ganze Seite). */
+  /** Nicht aufloesbare Referenzen im Ordner-Artefakt — aus
+   *  baueOrdnerArtefakt().warnungen: relative lokale Asset-Pfade OHNE Ziel UND
+   *  interne Navigations-Links (<a href>) auf nicht-importierte Seiten. Getrennt
+   *  von den Seiten-Skips, weil es eine andere Fehlerklasse ist (einzelne tote
+   *  Links statt ganze Seite). */
   refWarnungen: { seite: string; roh: string; grund: string }[];
 }
 
@@ -211,8 +213,9 @@ export function Station4ExportPanel({
           )}
           {bericht.refWarnungen.length > 0 && (
             <div className="s4-export-warnungen">
-              <b>{bericht.refWarnungen.length} nicht aufloesbare Referenz(en)</b> (relative lokale
-              Pfade ohne Ziel — auf einem statischen Host vermutlich tote Links):
+              <b>{bericht.refWarnungen.length} tote Referenz(en) / interne Link(s)</b> (relative
+              lokale Asset-Pfade oder interne Links auf nicht-importierte Seiten — auf einem
+              statischen Host vermutlich tote Links):
               <ul>
                 {bericht.refWarnungen.map((w, i) => (
                   <li key={`${w.seite}:${w.roh}:${i}`}>
@@ -224,7 +227,8 @@ export function Station4ExportPanel({
           )}
           {bericht.warnungen.length === 0 && bericht.refWarnungen.length === 0 && (
             <p className="s4-export-keine-warnungen">
-              Alle Seiten vollstaendig, alle Referenzen aufgeloest — keine Warnungen.
+              Alle Seiten vollstaendig, alle Referenzen und internen Links aufgeloest — keine
+              Warnungen.
             </p>
           )}
         </div>

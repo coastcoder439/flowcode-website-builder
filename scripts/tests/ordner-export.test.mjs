@@ -54,6 +54,8 @@ const {
   endungAus,
   stabilerHash,
   assetDateiname,
+  hrefPfadZuSlug,
+  schreibeInterneLinks,
 } = await import("../../components/embed/ordner-export.ts");
 
 const { baueSeiteHtml } = await import("../../components/embed/embed-export.ts");
@@ -506,6 +508,103 @@ await test("ORDNER: unaufloesbare Referenz (relativer Pfad) → Warnung, saubere
   const res = baueOrdnerArtefakt([sauber], "ordner");
   // Assert
   assertGleich(res.warnungen.length, 0, "saubere Seite → keine Warnung");
+});
+
+/* ------------------------------------------------------------------ */
+/* 7 · Multi-Page: interne <a>-Verlinkung relativ (E5 / X5)            */
+/* ------------------------------------------------------------------ */
+
+await test("hrefPfadZuSlug: Wurzel/Einsegment/Mehrsegment/index.html verflacht", () => {
+  assertGleich(hrefPfadZuSlug("/"), "", "Wurzel = Startseite");
+  assertGleich(hrefPfadZuSlug("/project-oasis/"), "project-oasis", "ein Segment");
+  assertGleich(hrefPfadZuSlug("/bildung/aquaponik/"), "bildung-aquaponik", "mehrsegmentig → verflacht");
+  assertGleich(hrefPfadZuSlug("/organisation/team/index.html"), "organisation-team", "index.html + verflacht");
+  assertGleich(hrefPfadZuSlug("/faq"), "faq", "ohne Trailing-Slash");
+});
+
+await test("schreibeInterneLinks: Startseite (Tiefe 0) — eigene Sublinks + Home relativ", () => {
+  // Arrange
+  const markup =
+    `<a href="/">Home</a>` +
+    `<a class="nav" href="/project-oasis/">Oasis</a>` +
+    `<a href="/bildung/aquaponik/#kurs">Aquaponik</a>`;
+  const zielSlugs = new Set(["project-oasis", "bildung-aquaponik"]);
+  // Act
+  const { markup: out, ungeloest } = schreibeInterneLinks(markup, zielSlugs, true, 0);
+  // Assert
+  assert(out.includes(`href="index.html"`), "Home → index.html (kein Praefix)");
+  assert(out.includes(`href="project-oasis/index.html"`), "Sublink relativ ohne Praefix");
+  assert(out.includes(`href="bildung-aquaponik/index.html#kurs"`), "Mehrsegment + Anker erhalten");
+  assertGleich(ungeloest.length, 0, "alle aufgeloest");
+});
+
+await test("schreibeInterneLinks: Unterseite (Tiefe 1) — Praefix ../, Home + Geschwister", () => {
+  // Arrange
+  const markup = `<a href="/">Home</a><a href="/pilot-projekt/">Pilot</a>`;
+  const zielSlugs = new Set(["project-oasis", "pilot-projekt"]);
+  // Act
+  const { markup: out } = schreibeInterneLinks(markup, zielSlugs, true, 1);
+  // Assert
+  assert(out.includes(`href="../index.html"`), "Home aus Tiefe 1 = ../index.html");
+  assert(out.includes(`href="../pilot-projekt/index.html"`), "Geschwister aus Tiefe 1 = ../<slug>/index.html");
+});
+
+await test("schreibeInterneLinks: extern / Anker / mailto unangetastet", () => {
+  // Arrange
+  const markup =
+    `<a href="https://x.example/a">ext</a>` +
+    `<a href="//cdn.example/b">proto</a>` +
+    `<a href="#content">skip</a>` +
+    `<a href="mailto:info@world-eden-era.org">mail</a>`;
+  // Act
+  const { markup: out, ungeloest } = schreibeInterneLinks(markup, new Set(), true, 0);
+  // Assert
+  assertGleich(out, markup, "keine externen/Anker/mailto-Links umgeschrieben");
+  assertGleich(ungeloest.length, 0, "nicht als ungeloest gezaehlt (kein interner Pfad)");
+});
+
+await test("schreibeInterneLinks: interner Pfad ohne Ziel-Seite → ungeloest + unveraendert", () => {
+  // Arrange — /faq/ ist nicht importiert (nicht in zielSlugs)
+  const markup = `<a href="/faq/">FAQ</a><a href="/project-oasis/">Oasis</a>`;
+  const zielSlugs = new Set(["project-oasis"]);
+  // Act
+  const { markup: out, ungeloest } = schreibeInterneLinks(markup, zielSlugs, true, 0);
+  // Assert
+  assert(out.includes(`href="/faq/"`), "unaufloesbarer interner Link bleibt roh");
+  assert(out.includes(`href="project-oasis/index.html"`), "aufloesbarer Link umgeschrieben");
+  assertGleich(ungeloest.length, 1, "genau eine ungeloeste");
+  assertGleich(ungeloest[0], "/faq/", "die richtige gemeldet");
+});
+
+await test("ORDNER: interne Links relativ verlinkt + tote Links als Warnung", () => {
+  // Arrange — Start verlinkt Unterseite + toten /faq/; Unterseite verlinkt Home + Start-Asset
+  const config = baueConfig();
+  const seiten = [
+    {
+      slug: "", istStart: true, data: { root: {}, content: [] }, config, runtimeJs: RUNTIME, embedUrl: "wee-embed.js",
+      markup: `<a href="/project-oasis/">Oasis</a><a href="/faq/">FAQ</a><img src="/import/wee/held.png" />`,
+    },
+    {
+      slug: "project-oasis", istStart: false, data: { root: {}, content: [] }, config, runtimeJs: RUNTIME, embedUrl: "wee-embed.js",
+      markup: `<a href="/">Home</a>`,
+    },
+  ];
+  // Act
+  const { dateien, warnungen } = baueOrdnerArtefakt(seiten, "ordner");
+  const start = dateien.find((d) => d.pfad === "index.html").inhalt;
+  const sub = dateien.find((d) => d.pfad === "project-oasis/index.html").inhalt;
+  // Assert — relative Verlinkung untereinander
+  assert(start.includes(`href="project-oasis/index.html"`), "Start → Unterseite relativ");
+  assert(sub.includes(`href="../index.html"`), "Unterseite → Home relativ (../)");
+  assert(!sub.includes(`href="/"`), "kein absoluter Home-Link mehr");
+  // Assert — Asset + Link koexistieren (disjunkte Umschreibung)
+  assert(start.includes(`assets/${assetDateiname("/import/wee/held.png")}`), "Asset weiterhin umgeschrieben");
+  // Assert — toter interner Link als Warnung (herkunft a-href), roh unveraendert
+  assert(start.includes(`href="/faq/"`), "toter interner Link bleibt roh");
+  const linkWarn = warnungen.find((w) => w.roh === "/faq/");
+  assert(linkWarn, "toter Link als Warnung gemeldet");
+  assertGleich(linkWarn.herkunft, "a-href", "als a-href klassifiziert");
+  assertGleich(linkWarn.seite, "index.html", "Warnung nennt die Quell-Seite");
 });
 
 /* ------------------------------------------------------------------ */

@@ -58,7 +58,8 @@ export type RefHerkunft =
   | "markup-src"
   | "markup-srcset"
   | "markup-poster"
-  | "markup-url";
+  | "markup-url"
+  | "a-href";
 
 /** Eine gefundene Bild-/Medien-Referenz (→ assets/<hash>.<ext>). */
 export interface AssetReferenz {
@@ -502,6 +503,99 @@ function schreibeMarkupAssets(markup: string, map: Record<string, string>): stri
   return out;
 }
 
+/** Normalisiert einen INTERNEN Seiten-Pfad (der reine Pfadteil eines href, ohne
+ *  Query/Hash) zum Vergleichs-Slug einer Seite. Spiegelt die Slug-Ableitung des
+ *  Imports/der Seiten-Auswahl (export-seiten-auswahl.waehleWebsiteSeiten): der
+ *  Import hat Unterpfade bereits zu „-" verflacht (aus `/bildung/aquaponik/` wird
+ *  die Seite `…-bildung-aquaponik` → Slug `bildung-aquaponik`). Also hier ebenso:
+ *  fuehrende/abschliessende Slashes + ein evtl. `index.html` weg, dann „/" → „-".
+ *  "" = Wurzel = Startseite. So matcht der Original-Link `/bildung/aquaponik/`
+ *  (wie `…/index.html`) auf den flachen Ordner-Slug `bildung-aquaponik`.
+ *
+ *  BEWUSST GETEILT: auch die Station-4-Vorschau (Station4Preview) nutzt diese
+ *  EINE Funktion fuer ihre interne Link-Zuordnung — Preview und Ordner-Export
+ *  klassifizieren interne Links identisch (keine Drift). */
+export function hrefPfadZuSlug(pfad: string): string {
+  const kern = pfad
+    .replace(/^\/+/, "")
+    .replace(/(?:^|\/)index\.html?$/i, "")
+    .replace(/\/+$/, "");
+  return kern.replace(/\//g, "-");
+}
+
+/** Ist `href` ein WURZEL-RELATIVER interner Pfad (`/…`, aber nicht `//…` und kein
+ *  `scheme:`)? Nur solche werden als Kandidaten fuer die interne Verlinkung
+ *  betrachtet — externe URLs, protokoll-relative, `mailto:`/`tel:`, reine Anker
+ *  (`#…`) und (fremd-)relative Pfade bleiben unangetastet. */
+function istWurzelRelativ(href: string): boolean {
+  if (!href.startsWith("/") || href.startsWith("//")) return false;
+  return true;
+}
+
+/** Ergebnis der internen Link-Umschreibung EINER Seite. */
+export interface LinkErgebnis {
+  /** Markup mit relativ umgeschriebenen internen Navigations-Links. */
+  markup: string;
+  /** Interne (wurzel-relative) Links, die auf KEINE Seite dieser Website zeigen —
+   *  im Ordner-Artefakt tote Links (Import-Luecke). Roh, unveraendert gelassen. */
+  ungeloest: string[];
+}
+
+/**
+ * Schreibt interne Navigations-Links (`<a href>`) EINER Seite auf relative
+ * Ordner-Pfade um, sodass die Seiten des Ordner-Artefakts UNTEREINANDER verlinkt
+ * bleiben — auch beim Direktoeffnen (file://) oder Deploy in einem Unterordner
+ * (E5, „relative Verlinkung untereinander"). Die Original-Links der importierten
+ * Seite sind wurzel-absolut (`/`, `/project-oasis/`, `/bildung/aquaponik/`); im
+ * flachen Ordner liegt jede Unterseite unter `<slug>/index.html`, die Startseite
+ * als `index.html`.
+ *
+ * Zuordnung je Link (reiner Pfadteil, Query/Hash bleiben erhalten):
+ *   · Pfad → `""` (Wurzel) und es GIBT eine Startseite → `<praefix>index.html`.
+ *   · Pfad → bekannter Unterseiten-Slug            → `<praefix><slug>/index.html`.
+ *   · sonst (extern/Anker/relativ ODER interner Pfad ohne Ziel-Seite) → UNVERAENDERT
+ *     (Letzteres zusaetzlich als `ungeloest` gemeldet — ehrlicher Bericht statt
+ *     stiller toter Link).
+ * `praefix` = `../`·Tiefe der QUELL-Seite (0 fuer die Startseite).
+ *
+ * REIN & DOM-FREI (Regex ueber `<a …href=…>`, kein DOMParser) — wie das ganze
+ * Modul, damit unit-testbar. BEWUSST NUR `<a>` (Navigation): `src`/`srcset`/
+ * `poster`/`url()`/`<link href>` (Assets/Stylesheets) laufen ueber getrennte Wege.
+ */
+export function schreibeInterneLinks(
+  markup: string,
+  zielSlugs: Set<string>,
+  hatStart: boolean,
+  tiefe: number,
+): LinkErgebnis {
+  const praefix = wurzelPraefix(tiefe);
+  const ungeloest: string[] = [];
+  /* <a …> mit href-Attribut; Wert per gematchtem Quote begrenzt (kein Ueberlauf
+     ueber das schliessende Anfuehrungszeichen). `\shref` verlangt Whitespace davor
+     → kein Treffer auf `data-href` o.ae. */
+  const re = /(<a\b[^>]*?\shref\s*=\s*)(["'])([^"']*)\2/gi;
+  const out = markup.replace(re, (voll, pre: string, q: string, val: string) => {
+    const roh = val.trim();
+    if (!istWurzelRelativ(roh)) return voll; // extern / Anker / relativ → echtes Verhalten lassen
+    const grenze = /[?#]/.exec(roh);
+    const pfad = grenze ? roh.slice(0, grenze.index) : roh;
+    const suffix = grenze ? roh.slice(grenze.index) : ""; // ?query / #anker erhalten
+    const slug = hrefPfadZuSlug(pfad);
+    let ziel: string | null = null;
+    if (slug === "") {
+      if (hatStart) ziel = `${praefix}index.html`;
+    } else if (zielSlugs.has(slug)) {
+      ziel = `${praefix}${slug}/index.html`;
+    }
+    if (ziel === null) {
+      ungeloest.push(roh); // interner Pfad ohne Ziel-Seite → toter Link, unveraendert
+      return voll;
+    }
+    return `${pre}${q}${ziel}${suffix}${q}`;
+  });
+  return { markup: out, ungeloest };
+}
+
 /** Schreibt die Asset-Referenzen INNERHALB einer EmbedConfig um (Grafik.src +
  *  Keyframe.srcOverride) — rein/immutabel. Gemappte Quellen → relatives Ziel,
  *  ungemappte (externe/Data-URLs ohne Ziel) bleiben stehen. */
@@ -631,14 +725,37 @@ export function baueOrdnerArtefakt(seiten: OrdnerSeite[], modus: ExportModus): O
   });
 
   const dateien: OrdnerDatei[] = [];
+  const warnungen: ExportWarnung[] = [];
+
+  /* Multi-Page-Verlinkung: die Slugs ALLER Unterseiten + ob eine Startseite
+     existiert — Grundlage fuer die relative Umschreibung der internen
+     Navigations-Links (E5, „relative Verlinkung untereinander"). */
+  const zielSlugs = new Set(seiten.filter((s) => !s.istStart).map((s) => s.slug));
+  const hatStart = seiten.some((s) => s.istStart);
 
   /* Seiten-HTML (jede mit eigenem Tiefen-Praefix). */
   for (const { seite, refs } of proSeite) {
-    const praefix = wurzelPraefix(seitenTiefe(seite));
+    const tiefe = seitenTiefe(seite);
+    const praefix = wurzelPraefix(tiefe);
     const map = baueZielMap(refs, praefix);
-    const markup = schreibeMarkupAssets(seite.markup ?? "", map);
+    /* Interne <a>-Navigation zwischen den Seiten DIESER Website relativ
+       umschreiben — VOR der Asset-Umschreibung. Disjunkte Attribute (href vs.
+       src/srcset/poster/url()), also keine gegenseitige Beeinflussung; die
+       relativen Link-Ziele (`<slug>/index.html`) sind kein Teilstring eines
+       Asset-Schluessels (die beginnen mit `/` oder `data:`). */
+    const linkErgebnis = schreibeInterneLinks(seite.markup ?? "", zielSlugs, hatStart, tiefe);
+    const markup = schreibeMarkupAssets(linkErgebnis.markup, map);
     const config = schreibeConfigAssets(seite.config, map);
     dateien.push({ pfad: seitenPfad(seite), inhalt: baueOrdnerSeiteHtml(seite, config, markup, praefix) });
+    for (const roh of linkErgebnis.ungeloest) {
+      warnungen.push({
+        seite: seitenPfad(seite),
+        roh,
+        herkunft: "a-href",
+        grund:
+          "interner Navigations-Link ohne importierte Ziel-Seite — im Ordner-Artefakt toter Link (Import-Luecke?)",
+      });
+    }
   }
 
   /* Geteilte Wurzel-Dateien EINMAL (dedupliziert ueber alle Seiten). */
@@ -678,8 +795,8 @@ export function baueOrdnerArtefakt(seiten: OrdnerSeite[], modus: ExportModus): O
      statischen Host vermutlich tote Links. Sie brechen den Export NICHT ab (der
      Rest ist deploybar), werden aber ehrlich berichtet. Pro Seite ueber die
      verschmolzene Referenzliste (Data-Baum + Markup-Scan); Dedup pro Seite ist
-     durch die Sammler bereits gegeben. */
-  const warnungen: ExportWarnung[] = [];
+     durch die Sammler bereits gegeben. Wird an die schon gesammelten
+     internen-Link-Warnungen angehaengt (dieselbe warnungen-Liste). */
   for (const { seite, refs } of proSeite) {
     const label = seitenPfad(seite);
     for (const a of refs.assets) {

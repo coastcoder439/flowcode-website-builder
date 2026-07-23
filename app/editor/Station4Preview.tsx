@@ -26,7 +26,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAktiveSeite } from "@/lib/aktive-seite";
-import type { OrdnerSeite } from "@/components/embed/ordner-export";
+import { hrefPfadZuSlug, type OrdnerSeite } from "@/components/embed/ordner-export";
 import { sammleEineSeite } from "./ExportSammler";
 import { reichereZuOrdnerSeiten, baueVorschauSrcdoc } from "./export-vorbereitung";
 import { waehleWebsiteSeiten, type WebsiteSeitenPlan } from "./export-seiten-auswahl";
@@ -49,14 +49,14 @@ function seitenPfad(plan: WebsiteSeitenPlan): string {
 }
 
 /** Normalisiert einen INTERNEN href (Protokoll/Origin/Anker sind beim Aufrufer
- *  schon ausgeschlossen) zu einem Slug-Vergleichswert: Query/Hash + fuehrende/
- *  abschliessende Slashes + ein evtl. abschliessendes "index.html" weg. "" =
- *  Wurzel = Startseite. So matcht "/project-oasis/" wie "/project-oasis/index.html"
- *  auf plan.slug "project-oasis". */
+ *  schon ausgeschlossen) zu einem Slug-Vergleichswert. Query/Hash werden hier
+ *  abgeschnitten, die Pfad→Slug-Ableitung teilt sich die EINE Funktion mit dem
+ *  Ordner-Export (hrefPfadZuSlug: fuehrende/abschliessende Slashes + evtl.
+ *  "index.html" weg, dann "/" → "-"). So klassifizieren Vorschau und Export
+ *  interne Links identisch — auch mehrsegmentige Pfade wie "/bildung/aquaponik/"
+ *  (→ flacher Slug "bildung-aquaponik") matchen jetzt. "" = Wurzel = Startseite. */
 function hrefZuSlug(href: string): string {
-  const ohneQuery = href.split(/[?#]/, 1)[0].trim();
-  const kern = ohneQuery.replace(/^\/+/, "").replace(/(?:^|\/)index\.html$/i, "");
-  return kern.replace(/\/+$/, "");
+  return hrefPfadZuSlug(href.split(/[?#]/, 1)[0]);
 }
 
 export function Station4Preview({ onZurueck }: Station4PreviewProps) {
