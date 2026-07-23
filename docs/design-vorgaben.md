@@ -33,3 +33,25 @@
    Webbuilder ausgelegt**: Kernweg = **Ordner-Struktur-Export** (fertiger, deploybarer statischer
    Ordner der im Builder gebauten Seite MIT Animationen). Das **Export-Menü ist primär darauf
    ausgerichtet**; Fremdseiten-Wege (Overlay/Runtime/Element) bleiben nachgeordnete Zusatzoptionen.
+
+## Entscheidungen E7/E8 (Leon delegiert 2026-07-23: „entscheidest du, achte auf
+## Benutzerfreundlichkeit bzw. Barrierefreiheit, soll gut fürs Auge sein") — VERBINDLICH für Phase 6
+
+**E7 — Animator-Panel über der hellen Bühne: Variante A, solides Sand-Panel** (`--surface` +
+`--shadow-lg` + `--border-default`), KEIN Glas. Begründung: Lesbarkeit — Glas über einer bewegten,
+inhaltsreichen Bühne senkt den Textkontrast unvorhersehbar (WCAG-Kontrast nicht garantierbar) und
+kostet GPU (`backdrop-filter` + laufende Scroll-Animationen). Solide Fläche = ruhig, konstant lesbar.
+
+**E8 — Ersatz des fremden Gelbs `#e8b400`, je Rolle getrennt (eine Farbe je Bedeutung):**
+- **„Aktiv/gekoppelt"-Zustand** (Umrisse, aktive Reiter-Marker, Kopplungs-Anzeigen): **`--green-500`**
+  als Kennfarbe + `--green-600` für zugehörigen Text (Kontrast auf Sand). Grün = Zustand.
+- **Aktions-Knöpfe** (z. B. „Freischalten", Primär-Aktionen): **`--accent-500` Orange**, Text weiß.
+  Orange = Aktion. (Dadurch sind Zustand und Aktion nie dieselbe Farbe.)
+- **Transiente Bühnen-Overlays** (Snap-Linien, Rubberband): **Orange `--accent-500`** — kurzlebig,
+  muss sofort ins Auge springen, ermüdet nicht, weil es nur beim Ziehen erscheint.
+- **Echte Warnungen:** ausschließlich `--warning` (Amber) — Gelbtöne sind ab jetzt für Warn-Semantik
+  reserviert, nie für „aktiv".
+- **Barrierefreiheits-Regeln dazu:** Zustände nie NUR über Farbe kommunizieren (immer zusätzlich
+  Umriss/Icon/Text, z. B. gefüllter Punkt am aktiven Reiter); Fokus sichtbar über `--focus-ring`
+  auf ALLEN interaktiven Elementen; Text-auf-Flächen-Paare nur aus den kontrastgeprüften
+  Kombinationen `--text-*` auf `--surface`/`--sand-*`; Mindestgröße von Klickzielen beibehalten.
