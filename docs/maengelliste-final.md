@@ -30,9 +30,9 @@
 - Soll: Ein-/Ausblenden-Schalter, damit man die Seite auch ungestört sehen kann.
 - Beleg: Kein Ein-/Ausblenden-Control vorhanden; das Panel (`.gre-panel`) liegt permanent über der Bühne.
 
-**Die finale Live-Preview-Seite fehlt komplett** *(M23)*
+**Die finale Live-Preview-Seite fehlt komplett** *(M23 — Umsetzung geklärt, Leon-Go 2026-07-23)*
 - Problem: Es gibt keine eigene Abschluss-Station, auf der man die fertige Seite live sieht (ohne Editor-Gedöns).
-- Soll: Eigene Seite (Station 4) mit oben ein-/ausklappbarem Export-Fenster.
+- Soll: Station 4 als **„Preview-Modus" auf derselben Render-Grundlage wie die Animator-Bühne** (kein doppelter Bau): Animator KOMPLETT aus — nicht nur Panel versteckt, sondern auch die Klick-Abfangung; Links klickbar, nichts selektierbar, Seite verhält sich echt. Oben ein-/ausklappbares Export-Fenster. Die Preview zeigt die **Export-Wahrheit** (das, was der Ordner-Struktur-Export ausspuckt) — letzte Kontrolle vor dem Veröffentlichen. In der Navigation bleibt sie als vierte Station sichtbar. Der ausblendbare Animator (siehe oben) bleibt daneben: der ist für den schnellen Blick WÄHREND des Animierens, ohne Stationswechsel.
 - Beleg: Existiert nicht; siehe auch nächster Punkt.
 
 **Vorschau und Export sind zwei unverbundene Welten** *(N14)*
