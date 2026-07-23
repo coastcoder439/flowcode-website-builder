@@ -56,6 +56,10 @@ interface OrdnerBericht {
   dateien: number;
   /** Seiten, die beim Abgriff scheiterten (Import-Luecken sichtbar machen). */
   warnungen: { seite: string; grund: string }[];
+  /** Nicht aufloesbare Referenzen (relative lokale Pfade) im Ordner-Artefakt —
+   *  aus baueOrdnerArtefakt().warnungen. Getrennt von den Seiten-Skips, weil es
+   *  eine andere Fehlerklasse ist (einzelne tote Asset-Links statt ganze Seite). */
+  refWarnungen: { seite: string; roh: string; grund: string }[];
 }
 
 function fehlerText(e: unknown): string {
@@ -103,8 +107,12 @@ export function Station4ExportPanel({
         headers: { "Content-Type": "application/json" },
         /* spiegel:true schreibt zusaetzlich public/export/<slug>/, damit der
            Vorschau-Umschalter „Ordner-Artefakt" das echte On-Disk-Ergebnis
-           statisch (/export/<slug>/…) laden kann. Deploy-Rohbau bleibt export/. */
-        body: JSON.stringify({ slug: aktiveSeite, dateien: artefakt.dateien, spiegel: true }),
+           statisch (/export/<slug>/…) laden kann. Deploy-Rohbau bleibt export/.
+           leeren:true = Clean-Write: den Ziel-Ordner vor dem Schreiben leeren,
+           damit Altlasten eines frueheren Exports (verwaiste Assets, geloeschte
+           Seiten) nicht akkumulieren — der Bericht zaehlt sonst weniger Dateien,
+           als real auf der Platte liegen. */
+        body: JSON.stringify({ slug: aktiveSeite, dateien: artefakt.dateien, spiegel: true, leeren: true }),
       });
       const json = (await res.json().catch(() => null)) as
         | { ordner?: string; anzahl?: number; fehler?: string }
@@ -121,6 +129,7 @@ export function Station4ExportPanel({
         css,
         dateien: json?.anzahl ?? artefakt.dateien.length,
         warnungen: sammelBericht.fehler,
+        refWarnungen: artefakt.warnungen.map((w) => ({ seite: w.seite, roh: w.roh, grund: w.grund })),
       });
       setStatus("");
       onExportFertig?.(aktiveSeite);
@@ -187,7 +196,7 @@ export function Station4ExportPanel({
               <b>{bericht.dateien}</b> Dateien gesamt
             </li>
           </ul>
-          {bericht.warnungen.length > 0 ? (
+          {bericht.warnungen.length > 0 && (
             <div className="s4-export-warnungen">
               <b>{bericht.warnungen.length} Seite(n) uebersprungen</b> (Import-Luecke — der Rest wurde
               exportiert):
@@ -199,8 +208,24 @@ export function Station4ExportPanel({
                 ))}
               </ul>
             </div>
-          ) : (
-            <p className="s4-export-keine-warnungen">Alle Seiten vollstaendig — keine Warnungen.</p>
+          )}
+          {bericht.refWarnungen.length > 0 && (
+            <div className="s4-export-warnungen">
+              <b>{bericht.refWarnungen.length} nicht aufloesbare Referenz(en)</b> (relative lokale
+              Pfade ohne Ziel — auf einem statischen Host vermutlich tote Links):
+              <ul>
+                {bericht.refWarnungen.map((w, i) => (
+                  <li key={`${w.seite}:${w.roh}:${i}`}>
+                    <span className="s4-export-warn-seite">{w.seite}</span> — <code>{w.roh}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {bericht.warnungen.length === 0 && bericht.refWarnungen.length === 0 && (
+            <p className="s4-export-keine-warnungen">
+              Alle Seiten vollstaendig, alle Referenzen aufgeloest — keine Warnungen.
+            </p>
           )}
         </div>
       )}

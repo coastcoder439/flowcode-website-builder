@@ -434,6 +434,102 @@ paths:
         "400": { $ref: "#/components/responses/Ungueltig" }
         "403": { $ref: "#/components/responses/FremderUrsprung" }
 
+  /api/export/ordner:
+    post:
+      operationId: exportOrdner
+      summary: "Station 4 / S2: Ordner-Struktur-Export nach export/<slug>/ schreiben"
+      description: >-
+        Materialisiert das vom Client (components/embed/ordner-export.ts,
+        baueOrdnerArtefakt "ordner") fertig zusammengebaute Artefakt als
+        deploybaren Rohbau unter export/<slug>/ (Projektwurzel, gitignored).
+        Der Server baut NICHTS an Puck (kein puck.config-Import) — er schreibt
+        nur reine Dateien. Guards wie /api/import/asset: Origin-Gate,
+        Pfad-Guards (kein Ausbruch aus export/<slug>/; Kopier-Quellen nur aus
+        public/), Endungs↔MIME-Whitelist eng gekoppelt, Groessenlimits.
+        Je Datei GENAU EINE Quelle: inhalt (Text) ODER quellUrl (data:-URL →
+        dekodieren, oder /import|/curtain|/vektor-Pfad → aus public/ kopieren).
+        Die Aliase dataUrl (nur data:) und quellPfad (nur /…) werden zusaetzlich
+        akzeptiert. Zwei-Pass: erst alle Eintraege validieren, dann schreiben —
+        ein ungueltiger Eintrag hinterlaesst keinen halben Ordner.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [slug, dateien]
+              properties:
+                slug: { $ref: "#/components/schemas/SeitenName" }
+                spiegel:
+                  type: boolean
+                  description: >-
+                    Optional true → zusaetzlich public/export/<slug>/ schreiben
+                    (statisch ausgelieferter Vorschau-Spiegel fuer Station 4).
+                    Default false (nur export/<slug>/).
+                leeren:
+                  type: boolean
+                  description: >-
+                    Optional true → Clean-Write: den Ziel-Ordner export/<slug>/
+                    (und, falls spiegel, public/export/<slug>/) VOR dem Schreiben
+                    komplett leeren, damit Altlasten eines frueheren Exports
+                    (verwaiste Assets, Seiten geloeschter Slugs) nicht
+                    akkumulieren. Geleert wird erst NACH der Validierung und nur
+                    innerhalb der ausbruchsgeprueften Wurzeln. Default false.
+                dateien:
+                  type: array
+                  minItems: 1
+                  maxItems: 2000
+                  items:
+                    type: object
+                    required: [pfad]
+                    description: "GENAU eine Quelle: inhalt ODER quellUrl (bzw. dataUrl/quellPfad)."
+                    properties:
+                      pfad:
+                        type: string
+                        maxLength: 400
+                        description: >-
+                          Ziel-Pfad relativ zu export/<slug>/ (darf Unterordner
+                          enthalten: index.html, ueber-uns/index.html,
+                          assets/<hash>.png, css/x.css). Kein ".."/absolut/
+                          Laufwerk. Endung muss auf der Whitelist stehen
+                          (html/js/css/txt/json, Bilder, Fonts, Medien).
+                      inhalt:
+                        type: string
+                        description: Fertiger Text (nur html/js/css/txt/json).
+                      quellUrl:
+                        type: string
+                        description: >-
+                          "data:…;base64,…" → dekodieren + schreiben, oder
+                          "/import…|/curtain…|/vektor…" → aus public/ kopieren.
+                      dataUrl:
+                        type: string
+                        description: Alias fuer quellUrl (nur data:), falls quellUrl fehlt.
+                      quellPfad:
+                        type: string
+                        description: Alias fuer quellUrl (nur /…), falls quellUrl fehlt.
+      responses:
+        "200":
+          description: Ordner geschrieben
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [slug, ordner, anzahl, dateien]
+                properties:
+                  slug: { type: string }
+                  ordner: { type: string, description: "Relativer Ziel-Ordner (export/<slug>)." }
+                  anzahl: { type: integer }
+                  dateien:
+                    type: array
+                    items:
+                      type: object
+                      required: [pfad, bytes]
+                      properties:
+                        pfad: { type: string }
+                        bytes: { type: integer }
+        "400": { $ref: "#/components/responses/Ungueltig" }
+        "403": { $ref: "#/components/responses/FremderUrsprung" }
+
   /api/abbild:
     post:
       operationId: abbildAktion

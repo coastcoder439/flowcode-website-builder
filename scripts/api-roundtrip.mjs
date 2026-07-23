@@ -9,7 +9,7 @@
  * Exit 0 = alle Pruefungen gruen; Exit 1 = mindestens eine rot.
  */
 
-import { readdir, unlink } from "node:fs/promises";
+import { readdir, unlink, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,6 +26,15 @@ const TEST_PAPIERKORB = "roundtrip-papierkorb";
    Test-Reste im Papierkorb muessen deshalb per fs entfernt werden. */
 const SEITEN_DIR = fileURLToPath(new URL("../seiten", import.meta.url));
 const PAPIERKORB_DIR = join(SEITEN_DIR, ".papierkorb");
+/* Ziel-Wurzel des Ordner-Exports (export/ der Projektwurzel, gitignored). Der
+   Roundtrip liest das Geschriebene direkt per fs zurueck (es gibt bewusst keine
+   Lese-Route) und raeumt seinen Test-Slug danach wieder ab. */
+const EXPORT_DIR = fileURLToPath(new URL("../export", import.meta.url));
+const TEST_EXPORT = "roundtrip-export";
+/* Next-Build-Ordner: hier liegen die von next/font optimierten Schriften
+   (.next/static/media/*.woff2), die der Ordner-Export ueber /_next/… kopieren
+   koennen muss (uebernommene CSS verweist auf /_next/static/media/…). */
+const NEXT_MEDIA_DIR = fileURLToPath(new URL("../.next/static/media", import.meta.url));
 
 /** Entfernt Papierkorb-Dateien (und optionale wiederhergestellte Seiten) der
  *  Testlaeufe — nur exakt Praefix-<zeitstempel>, fremde Trash-Eintraege bleiben
@@ -396,6 +405,114 @@ let gespeichertStand = "";
     gel2.status === 200 && neu.status === 200 && konflikt.status === 409,
     `gel2=${gel2.status} neu=${neu.status} konflikt=${konflikt.status}`,
   );
+}
+
+/* 6h — Ordner-Struktur-Export (Station 4 / S2, /api/export/ordner).
+   Positiv: schreibt index.html (Text) + wee-embed.js (Text) + Asset (data-URL),
+   liest on-disk zurueck. Negativ: fremder Origin -> 403, Pfadausbruch ../ -> 400,
+   Nicht-Whitelist-Endung -> 400. Danach den Test-Slug per fs abraeumen. */
+{
+  const schreib = await post("/api/export/ordner", {
+    slug: TEST_EXPORT,
+    dateien: [
+      { pfad: "index.html", inhalt: "<!doctype html><title>rt-export</title><body>hallo</body>" },
+      { pfad: "wee-embed.js", inhalt: "console.info('rt-runtime');" },
+      { pfad: "assets/pixel.png", quellUrl: "data:image/png;base64,iVBORw0KGgo=" },
+    ],
+  });
+  ok(
+    "export: schreibt Ordner (3 Dateien) -> 200",
+    schreib.status === 200 && schreib.json?.anzahl === 3 && schreib.json?.ordner === `export/${TEST_EXPORT}`,
+    `status=${schreib.status} ${JSON.stringify(schreib.json)}`,
+  );
+
+  const idx = await readFile(join(EXPORT_DIR, TEST_EXPORT, "index.html"), "utf-8").catch(() => null);
+  ok("export: index.html on-disk + Inhalt", typeof idx === "string" && idx.includes("<title>rt-export</title>"));
+
+  const emb = await readFile(join(EXPORT_DIR, TEST_EXPORT, "wee-embed.js"), "utf-8").catch(() => null);
+  ok("export: wee-embed.js on-disk", typeof emb === "string" && emb.includes("rt-runtime"));
+
+  const asset = await readFile(join(EXPORT_DIR, TEST_EXPORT, "assets", "pixel.png")).catch(() => null);
+  ok("export: Asset (data-URL) on-disk + binaer", asset !== null && asset.length > 0);
+
+  /* /_next/…-Kopier-Quelle: next/font-Schriften liegen unter .next/static/media/,
+     NICHT unter public/ — die uebernommene Website-CSS verweist aber genau darauf.
+     Regression: frueher loeste der Export JEDE Quelle nur gegen public/ auf →
+     /_next/static/media/*.woff2 nicht gefunden → 400, ganzer Export scheiterte.
+     Dynamisch eine real vorhandene woff2 waehlen (Hash-Name aendert sich je Build). */
+  const nextFont = await readdir(NEXT_MEDIA_DIR)
+    .then((f) => f.find((n) => n.endsWith(".woff2")) ?? null)
+    .catch(() => null);
+  if (nextFont) {
+    const fontExport = await post("/api/export/ordner", {
+      slug: TEST_EXPORT,
+      dateien: [{ pfad: "assets/schrift.woff2", quellUrl: `/_next/static/media/${nextFont}` }],
+    });
+    const fontDatei = await readFile(join(EXPORT_DIR, TEST_EXPORT, "assets", "schrift.woff2")).catch(() => null);
+    ok(
+      "export: /_next/-Schrift kopiert (.next/static/media → assets/) -> 200 + on-disk",
+      fontExport.status === 200 && fontDatei !== null && fontDatei.length > 0,
+      `status=${fontExport.status} ${JSON.stringify(fontExport.json)}`,
+    );
+  } else {
+    ok("export: /_next/-Schrift-Test (keine .next/static/media/*.woff2 gefunden -> uebersprungen)", true);
+  }
+
+  const fremd = await post(
+    "/api/export/ordner",
+    { slug: TEST_EXPORT, dateien: [{ pfad: "x.html", inhalt: "x" }] },
+    { Origin: "http://boese.example" },
+  );
+  ok("export: fremder Origin -> 403", fremd.status === 403, `status=${fremd.status}`);
+
+  const ausbruch = await post("/api/export/ordner", {
+    slug: TEST_EXPORT,
+    dateien: [{ pfad: "../ausbruch.html", inhalt: "boese" }],
+  });
+  ok("export: Pfadausbruch ../ -> 400", ausbruch.status === 400, `status=${ausbruch.status}`);
+
+  const endung = await post("/api/export/ordner", {
+    slug: TEST_EXPORT,
+    dateien: [{ pfad: "schad.exe", inhalt: "boese" }],
+  });
+  ok("export: Nicht-Whitelist-Endung -> 400", endung.status === 400, `status=${endung.status}`);
+
+  /* Belegen, dass der Ausbruch-Versuch NICHTS neben dem Slug-Ordner ablegte. */
+  const ausbruchDa = await readFile(join(EXPORT_DIR, "ausbruch.html"), "utf-8").catch(() => null);
+  ok("export: Ausbruch-Datei existiert NICHT", ausbruchDa === null);
+
+  /* leeren:true — Clean-Write (Defekt a): ein Alt-Asset aus einem frueheren Export
+     muss beim Re-Export mit leeren:true verschwinden (sonst akkumulieren Waisen →
+     Bericht zaehlt weniger als auf der Platte liegt). Erst einen Stand mit
+     Alt-Asset schreiben, dann mit leeren:true nur index.html re-exportieren. */
+  await post("/api/export/ordner", {
+    slug: TEST_EXPORT,
+    dateien: [
+      { pfad: "index.html", inhalt: "<!doctype html><title>alt</title>" },
+      { pfad: "assets/waise.png", quellUrl: "data:image/png;base64,iVBORw0KGgo=" },
+    ],
+  });
+  const waiseVorher = await readFile(join(EXPORT_DIR, TEST_EXPORT, "assets", "waise.png")).catch(() => null);
+  const reexport = await post("/api/export/ordner", {
+    slug: TEST_EXPORT,
+    leeren: true,
+    dateien: [{ pfad: "index.html", inhalt: "<!doctype html><title>neu</title>" }],
+  });
+  const waiseNachher = await readFile(join(EXPORT_DIR, TEST_EXPORT, "assets", "waise.png")).catch(() => null);
+  const neuIdx = await readFile(join(EXPORT_DIR, TEST_EXPORT, "index.html"), "utf-8").catch(() => null);
+  ok(
+    "export: leeren:true entfernt Alt-Asset (Clean-Write) + schreibt neu",
+    waiseVorher !== null &&
+      reexport.status === 200 &&
+      reexport.json?.anzahl === 1 &&
+      waiseNachher === null &&
+      typeof neuIdx === "string" &&
+      neuIdx.includes("<title>neu</title>"),
+    `waiseVorher=${waiseVorher !== null} status=${reexport.status} anzahl=${reexport.json?.anzahl} waiseWeg=${waiseNachher === null} neu=${typeof neuIdx === "string" && neuIdx.includes("neu")}`,
+  );
+
+  /* Test-Slug abraeumen (kein Hard-Delete-Endpunkt — export/ ist Build-Output). */
+  await rm(join(EXPORT_DIR, TEST_EXPORT), { recursive: true, force: true }).catch(() => {});
 }
 
 /* 7 — Aufraeumen */
