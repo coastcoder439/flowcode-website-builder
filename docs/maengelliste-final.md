@@ -1,457 +1,282 @@
-# Gesamt-Mängelliste v3 (konsolidiert, 2026-07-23 — zur finalen Bestätigung durch Leon)
+# Gesamt-Mängelliste v4 (feature-orientiert, 2026-07-23 — zur finalen Bestätigung durch Leon)
 
-> **Quellen (beide vollständig eingelesen, nichts weggelassen):**
-> 1. Finale Mängelliste v2 (Leons Abnahme-Runden 1–3, bestätigt) — M1–M25, R1–R5, S1–S5.
-> 2. Systematische Mängelsuche (4 Code-Audits + 4 Begehungs-Stationen) — N1–N21 + Bestätigungen +
->    UNGEPRÜFT-Deklarationen + Title-Vollzählung. Audit „C" lieferte nur Platzhalter-Testdaten und
->    wurde verworfen; die Title-Zählung wurde vom Orchestrator per Grep nachgeholt.
-> 3. Design-Vorgaben ([design-vorgaben.md](design-vorgaben.md)) — Leons Farbregeln + bestätigte
->    Interpretation (Hell-Modus, WEE-Fonts, M25-Präzisierung).
+> Vollständige Zusammenführung aus: Leons bestätigter Liste (Abnahme-Runden 1–3), der systematischen
+> Mängelsuche (4 Code-Audits + 4 Begehungs-Stationen) und den bestätigten Design-Vorgaben
+> ([design-vorgaben.md](design-vorgaben.md)). Nichts weggelassen. Die Kürzel in Klammern (M…/N…)
+> dienen nur der Nachverfolgung im Plan — die Titel sagen, worum es geht.
 >
-> Diese Liste ist die Grundlage für den großen Plan (ECC-Skill). Nach Leons Bestätigung folgt der Plan.
-> Positiv-Anker (funktioniert laut Leon): das **Umschalten auf die Live-/aktive Seite** als Mechanik.
-> Optik-Urteile bleiben bei Leon; Verdachtsfälle sind nur als `optik-verdacht` markiert.
+> **Der verbindliche Userflow (Leons Definition, vier Stationen):**
+> **1. Import → 2. Puck (Seite bauen) → 3. Animations-Preview (Animator) → 4. Live-Preview + Export.**
 >
-> **DER USERFLOW (verbindlich, Leons Definition — vier Stationen):**
-> **1. Import → 2. Puck → 3. Animations-Preview (Animator) → 4. Live-Preview + Export.**
+> Funktioniert laut Leon (Positiv-Anker): das Umschalten auf die Live-/aktive Seite als Mechanik.
+> Optik-Urteile bleiben bei Leon; Verdachtsfälle sind als „Optik-Verdacht" markiert.
 
 ---
 
-## I — USERFLOW / AUFBAU DER APP (höchste Priorität — „hatte ich dir schon fünfmal gesagt")
+## 1 · App-Aufbau & Navigation (höchste Priorität)
 
-**M1 · Der ganze Webbuilder ist nicht dem Workflow nachgerichtet.** Die App muss den vier Stationen
-folgen: **Import → Puck → Animations-Preview → Live-Preview + Export.** Heute steht die Animator-Seite
-an erster Stelle / ist Default, obwohl man auf der Import-Seite beginnt. „Die User Experience ist immer
-noch kompletter Mumpitz." Das Tutorial beschreibt den Flow richtig — die Seite selbst ist so überhaupt
-nicht aufgebaut. **Umbau: Startansicht = Import; Navigation und Reihenfolge = die vier Stationen;
-Animator ist Station 3, nicht Station 1.**
-*(Neu belegt: /editor/ startet auf „Animator" als useState-Default, Tab „Animator" steht vor „Seiten";
-der Vier-Stationen-Flow ist nirgends als Navigation abgebildet — app/editor/page.tsx:221 + live read_page.)*
+**Die App folgt nicht dem Arbeitsablauf — falsche Startansicht** *(M1)*
+- Problem: Die App startet auf dem Animator und stellt ihn an erste Stelle, obwohl man mit dem Import beginnt. Der Vier-Stationen-Ablauf ist nirgends als Navigation abgebildet. „Die User Experience ist immer noch kompletter Mumpitz."
+- Soll: Startansicht = Import; Navigation und Reihenfolge = die vier Stationen; Animator ist Station 3, nicht Station 1.
+- Beleg: /editor startet per Code-Default auf „Animator" (app/editor/page.tsx:221); Tab „Animator" steht vor „Seiten".
 
-**M2 · Tutorial-Trigger falsch platziert.** Es ist „Schwachsinn", dass das Produkt-Tutorial auf der
-Animator-Seite aufploppt, obwohl der Nutzer auf der Import-Seite beginnt. Trigger gehört an den
-Flow-Anfang (Station 1). (Feinschliff des Tutorials selbst: erst wenn alles fertig ist — s. VII/S1.)
-*(Neu belegt: ProduktTutorial ist im Animator gemountet → feuert auf der Default-Animator-Station.)*
+**Das Tutorial ploppt an der falschen Stelle auf** *(M2)*
+- Problem: Das Produkt-Tutorial erscheint auf der Animator-Seite — „Schwachsinn", denn der Nutzer beginnt beim Import.
+- Soll: Trigger an den Anfang des Ablaufs (Station 1). Feinschliff des Tutorial-Inhalts erst ganz am Ende (siehe „Später").
+- Beleg: ProduktTutorial ist im Animator gemountet und feuert dort.
 
-**M22 · Animator nicht ein-/ausblendbar.** Das Animator-Overlay/-Panel liegt dauerhaft über der Seite —
-es muss sich ein- und ausblenden lassen.
-*(Neu belegt: kein Ein-/Ausblenden-Control; `.gre-panel` liegt dauerhaft über der Bühne.)*
+**Das Animator-Panel lässt sich nicht ausblenden** *(M22)*
+- Problem: Das Werkzeug-Panel liegt dauerhaft über der Seite.
+- Soll: Ein-/Ausblenden-Schalter, damit man die Seite auch ungestört sehen kann.
+- Beleg: Kein Ein-/Ausblenden-Control vorhanden; das Panel (`.gre-panel`) liegt permanent über der Bühne.
 
-**M23 · Finale Live-Preview-Station fehlt komplett.** Es braucht eine eigene finale Preview-Seite
-(Station 4: die Seite live, ohne Editor-Gedöns), auf der oben ein **Export-Fenster ein-/ausklappbar**
-ist. Existiert noch gar nicht. → Vertiefung durch N14.
+**Die finale Live-Preview-Seite fehlt komplett** *(M23)*
+- Problem: Es gibt keine eigene Abschluss-Station, auf der man die fertige Seite live sieht (ohne Editor-Gedöns).
+- Soll: Eigene Seite (Station 4) mit oben ein-/ausklappbarem Export-Fenster.
+- Beleg: Existiert nicht; siehe auch nächster Punkt.
 
-**M24 · Kein einheitliches UI/UX im gesamten Tool.** Verbindliche Grundlage: das **WEE-Designsystem** —
-`user-projects/wee-website-refactoring/Information/World Eden Era Design System - Standalone.html`
-(zusätzliche Referenz im Klon: `test-sites/wee-website-v3/design-system/World-Eden-Era-Design-System.html`
-+ `design-tokens.reference.css`). Alle Editor-Oberflächen (Panels, Menüs, Dialoge, Import/Puck/Preview/
-Export) werden daran ausgerichtet. **Bestätigte Design-Regeln (Leon, [design-vorgaben.md](design-vorgaben.md)):**
-Flächen nur dezent/hell (Sand-Töne), KEINE Grüntöne als Flächenfarbe; Orange (`--accent-500`) und
-`green-500` nur als Signal; Dunkelgrün nur für Text/Linien/kleine Akzente, **nie großflächig** →
-**Hell-Modus-Umbau des heutigen dunklen Editor-Panels**; WEE-Fonts (Syne/Montserrat) auch fürs Tool-UI.
-*(Neu belegt: Editor-Panel durchgängig dunkelgrün/schwarz über alle 8 Reiter — widerspricht
-„hell/sand, Dunkel nicht großflächig". Siehe auch N5.)*
+**Vorschau und Export sind zwei unverbundene Welten** *(N14)*
+- Problem: Die Vollbild-Vorschau hat nur einen „Zurück"-Knopf, keinerlei Export-Möglichkeit. Der Export liegt versteckt als Unter-Reiter im Animator und überlagert dort die Bühne. Kein Weg von der Vorschau zum Export oder umgekehrt.
+- Soll: Station 4 = „Live-Preview + Export" als EINE Einheit.
+- Beleg: Vorschau-Dialog nur mit „← Zurück"; Export nur unter dem Animator-Tab.
 
-**M25 · Export integriert nicht in die eigene Seite.** „Was soll ich denn mit 'nem Export, den ich dann
-wieder in meine eigene Seite einfüge, die ich im Builder bau? Das ist ja kompletter Quatsch." → Die
-Kernfunktion beim Export (Station 4) ist: **die Animation/das Ergebnis wird direkt in die im Webbuilder
-gebaute Seite richtig hinein-integriert** (fertige Seite MIT Animation als Ganzes). **Leons Präzisierung
-(bestätigt):** Der Export ist **primär (nicht ausschließlich) auf den Webbuilder ausgelegt** — Kernweg =
-**Ordner-Struktur-Export** (fertiger, deploybarer statischer Ordner der im Builder gebauten Seite MIT
-Animationen); das **Export-Menü ist primär darauf ausgerichtet**. Datei-Exporte (Overlay/Runtime/Element)
-bleiben nur nachgeordneter Zusatzweg für FREMDE, nicht importierte Seiten.
-*(Neu belegt: Export-Reiter heute datei-/embed-orientiert (JSON/Overlay/Runtime/Element/Ganze-Seite),
-kein deploybarer Ordner-Struktur-Export als Kernweg. Alle 5 bestehenden Wege lösten sauber aus —
-Downloads bestätigt, 0 Fehler/404.)*
+**Browser-Zurück wirft ungespeicherte Puck-Änderungen kommentarlos weg** *(N20)*
+- Problem: Das Öffnen einer Seite im Puck-Editor legt keinen Browser-History-Eintrag an. Drückt man im offenen Editor „Zurück", landet man auf dem Animator und alle ungespeicherten Änderungen sind ohne Rückfrage verloren (kein „Wirklich verlassen?"-Dialog). Zusätzlich kann das Schließen der Vorschau die History so verbiegen, dass „Zurück" in eine veraltete Vorschau-Ansicht springt.
+- Soll: Editor-Öffnen sauber in die Browser-History integriert + Warnung bei ungespeicherten Änderungen.
+- Beleg: `oeffne()` ohne pushState (SeitenBereich.tsx:219-237) vs. Vorschau mit pushState (182-196); Vorschau-Vorrang 349-353; nur per Code nachvollzogen, nicht live durchgespielt.
 
-## II — STATION 1: IMPORT (Leons #1, #2, #6, #7, #8, #9 — alles Import-Ursachen)
+**Geteilter Vorschau-Link funktioniert nur mit beiden URL-Parametern** *(N21, niedrige Schwere)*
+- Problem: Ein Link nur mit `?vorschau=X` (ohne `?bereich=seiten`) landet kommentarlos auf dem Animator — obwohl der Hilfe-Dialog den Vorschau-Link als „teilbar und reload-fest" bewirbt. Trifft nur manuell gekürzte Links.
+- Soll: Vorschau-Absicht auch ohne zweiten Parameter respektieren (oder Hinweis).
+- Beleg: app/editor/page.tsx:172-175; „teilbar"-Zusage SeitenBereich.tsx:650-655; per Code nachvollzogen.
 
-**M3 · Es wird nicht die richtige bzw. nicht die komplette Seite angezeigt** — Folge des fehlerhaften/
-unvollständigen Imports (die Umschalt-Mechanik selbst funktioniert).
+**Der Browser-Tab zeigt einen fremden Prototyp-Titel** *(N16)*
+- Problem: Titel überall = „WEE Titelkarte – Prototyp v1", Beschreibung = alter Vorhang-Effekt-Prototyp. Auf allen Routen identisch — Tabs, Lesezeichen und Teilen-Vorschauen sind verwirrend, Stationen nicht unterscheidbar.
+- Soll: Passender Titel je Station.
+- Beleg: app/layout.tsx:21.
 
-**M4 · Texte fehlen** — Ursache belegt: Bens Einblende-Animationen frieren bei `opacity:0` ein
-(Roh-HTML statt gerendertem Endzustand).
-*(Neu belegt: Roh-HTML mit `style="opacity:0"` an tc-hero/glass/cta-row eingefroren; Vorschau zeigt
-leere Glass-Card, Puck zeigt „Together, WEE can." — station1-08 vs. -09.)*
+## 2 · Einheitliches Design (WEE-Designsystem)
 
-**M5 · Layout zerrissen / „sehr random verteilt"** — Zerlegung zu grob (3 Sektionen + 6 HTML-Blöcke).
-Fix: Zerlegungs-Urteile durch das lokale Modell (gemma4) — an späterer Stelle im Import-Umbau (S4).
-*(Neu belegt: gesamter Seiteninhalt = EIN „HTML-Block (übriges Markup)", nur Roh-Textarea, kein
-visuelles Editieren.)*
+**Kein einheitliches Erscheinungsbild im gesamten Tool** *(M24, Regel R5)*
+- Problem: Jedes Panel sieht anders aus; das Editor-Panel ist durchgängig dunkelgrün/schwarz (alle 8 Reiter) — widerspricht Leons Vorgabe „hell/sand, Dunkel nicht großflächig".
+- Soll: ALLES UI nach dem WEE-Designsystem (`wee-website-refactoring/Information/World Eden Era Design System - Standalone.html`; Referenz im Klon: `test-sites/wee-website-v3/design-system/` + `design-tokens.reference.css`). Bestätigte Regeln: Flächen nur hell/dezent (Sand-Töne), KEINE Grüntöne als Fläche; Orange + Grün-500 nur als Signalfarben; Dunkelgrün nur für Text/Linien/kleine Akzente, nie großflächig → Hell-Modus-Umbau des dunklen Panels; WEE-Fonts (Syne/Montserrat) auch fürs Tool-UI.
+- Details: [design-vorgaben.md](design-vorgaben.md).
 
-**M6 · Unterseiten fehlen komplett** — nur index.html importiert; in Puck liegt exakt eine Seite.
-*(Neu belegt: Seitenliste zeigt nur „wee-website-v3", obwohl die Hauptnav /project-oasis/
-/pilot-projekt/ /faq/ verlinkt.)*
+**Dunkle Vollflächen-Kopfleiste im Puck-Editor** *(N5, Optik-Verdacht)*
+- Problem: Über die volle Bildschirmbreite läuft ein dunkler Balken (Seitenname + Speichern/Zurück) — Verdacht auf Verstoß gegen „Dunkel nicht großflächig".
+- Soll: Leons Optik-Urteil; im Zuge des Design-Umbaus mit erledigen.
+- Beleg: Screenshots station1-05 / station1-09.
 
-**M7 · Bild-/Asset-404s** — Bilder in HTML-Blöcken + CSS-`url()`-Assets (Fonts/Medien) werden nicht
-mitkopiert. *(Grenzt an N15: Import kopiert Fremd-Markup falsch/unvollständig.)*
+**~30 Knöpfe ohne Hover-Erklärung** *(M17)*
+- Problem: Ziel ist, dass sich JEDER Knopf beim Drüberfahren erklärt. Vollzählung (per Grep): GrafikEditor 8 fehlend · GrafikObjektMenue 8 (von 9!) · GrafikCrop 4 (alle) · FlussSektion 3 (alle) · Haupt-Bereichs-Umschalter „Animator"/„Seiten" 2 (alle!) · GrafikExportAnleitung 2 · GrafikHilfe 2 · je 1 in EasingKurve, RiverKursEditor (verwaist), Front-/Nebel-/Profile-/WasserSektion, BackdropAuswahl, BackdropHilfeIcon, shared/HilfeIcon.
+- Soll: Hover-Erklärung überall; bei Hilfe-Icons mit aria-label ist title zusätzlich sinnvoll (Einzelfall beim Umbau).
 
-**M8 · Live-Bühne: KORREKTUR — fehlende Quell-Animationen sind NICHT konzeptbedingt akzeptabel.**
-Leon wörtlich: „Wenn ich die Liveseite anzeige, dann will ich die **komplette Liveseite** sehen. Der
-Animator ist doch nur das Tool, das darüber liegt und mir ermöglicht, die Sachen eigenständig
-anzuklicken, zu verschieben …" → Die Animator-Bühne muss die **lebendige Seite inklusive ihrer eigenen
-Animationen** zeigen (wie der bestehende Ordner-Backdrop-Modus es kann); die entkernte/eingefrorene
-Fassung ist nur die Basis für die **Puck-Zerlegung**, nie die Bühne.
+**Veralteter Browser-Hinweis in der Oberfläche** *(M19)*
+- Problem: Die UI warnt noch vor fehlender @scope-Unterstützung — inzwischen können das alle Browser.
+- Soll: Hinweis entfernen.
 
-**M9 · Quellprojekt-Erkennung fehlt** — wählt man einen Ordner ohne HTML (Next-Quellprojekt), muss eine
-klare Meldung kommen („erst bauen"), statt still nichts anzuzeigen.
-*(UNGEPRÜFT geblieben: der native FS-Access-Dialog ist im Automations-Browser nicht steuerbar —
-weder bestätigt noch widerlegt, s. Abschnitt UNGEPRÜFT.)*
+**Preset-Name wird über ein hässliches Browser-Popup abgefragt** *(M16)*
+- Problem: Beim Preset-Speichern öffnet sich das native `prompt()`-Fenster — Stilbruch.
+- Soll: Inline-Eingabefeld im Panel.
 
-**N1 · Import-Unterseite hat keinen Hilfe-Zugang** — *ux*
-Ist: Die Seiten-Liste hat oben rechts ein „?"-Hilfe-Icon mit Erklär-Dialog; wechselt man auf „Website
-importieren", verschwindet es komplett. Erwartet: gerade der Import-Schritt (Ordnerwahl,
-Styling-Verlust-Hinweis) ist erklärungsbedürftig → konsistente Hilfe-Affordanz auf beiden Sichten
-derselben Station.
-Beleg: Accessibility-Snapshot „Website importieren"-Screen (nur Heading + „Zurück zur Liste" +
-„Ordner wählen", kein „?") vs. Seiten-Liste-Snapshot mit „Hilfe zum Seiten-Bereich".
+**Optische Abnahme des Sichten-Trios steht aus** *(M21)*
+- Problem: Puck-Bauen / statische Vorschau / Animator wurden nie optisch von Leon abgenommen.
+- Soll: Abnahme nach dem Umbau von App-Aufbau & Design.
 
-**N2 · Seite löschen ist laut eigenem Dialogtext explizit unumkehrbar** — *regel-verstoss (R1)*
-Ist: Klick auf „Löschen" öffnet nativen `confirm()` mit „…Das lässt sich nicht rückgängig machen.",
-der Hilfe-Dialog bestätigt „(mit Rückfrage, nicht umkehrbar)". Erwartet: R1 verlangt Strg+Z für JEDE
-Editier-Aktion — Seiten-Löschen ist die deutlichste, selbst dokumentierte R1-Ausnahme im Tool.
-Beleg: `confirm()`-Dialogtext bei Klick „Seite … löschen"; Hilfe-Dialog-Absatz „Anlegen, Öffnen,
-Löschen"; app/api/puck-seite/loesche/route.ts + app/editor/SeitenBereich.tsx:331-347.
+## 3 · Station 1: Import
 
-**N15 · Passwort-Gate der Quellseite als Fremdkörper mit-importiert (überall sichtbar)** — *bug*
-Ist: Die importierte Seite wee-website-v3 enthält einen eigenen Puck-Baustein (`imp-…-html-19`,
-HtmlBlock) mit `<form class="site-gate__panel">…Diese Seite ist geschützt…Passwort…Freischalten</form>`
-— der Zugangsschutz-Screen der Quell-Deployment-Umgebung (Vercel-Preview-Protection o. ä.), beim
-Einlesen von index.html mitkopiert statt herausgefiltert. Sitzt als eigener Abschnitt UNTER dem Footer,
-aktive Formularelemente (kein Overlay/keine Sperre). Erscheint identisch in Puck-Canvas, Vollbild-
-Vorschau UND Animator-Bühne → würde in einen Export mitgenommen. Eigene Ursache, NICHT M4/M7.
-(Station 1 sah ihn per CSS versteckt; Station 2/3 sahen ihn sichtbar am Seitenende — dieselbe DOM-Quelle.)
-Beleg: station2-puck-bottom-passwortgate.png; station2-vorschau-bottom-sitegate.png;
-station3-01-sitegate-bottom.png; `evaluate` `<form class="site-gate__panel">` als Baustein
-imp-wee-website-v3-html-19.
+**Es wird nicht die richtige bzw. nicht die komplette Seite angezeigt** *(M3)*
+- Problem: Folge des fehlerhaften/unvollständigen Imports (die Umschalt-Mechanik selbst funktioniert).
+- Soll: Import liefert die komplette, korrekte Seite.
 
-## III — STATION 2: PUCK
+**Texte fehlen nach dem Import** *(M4)*
+- Problem: Bens Einblende-Animationen frieren beim Import mit `opacity:0` ein — es wird Roh-HTML statt des gerenderten Endzustands übernommen. Vorschau zeigt z. B. eine leere Glass-Card, wo „Together, WEE can." stehen müsste.
+- Soll: Gerenderten Endzustand einfrieren (Import-Umbau).
+- Beleg: `style="opacity:0"` an tc-hero/glass/cta-row; Screenshots station1-08 vs. -09.
 
-**N3 · Duplizierte DOM-`id` im Props-Feld des HTML-Blocks** — *bug*
-Ist: Nach Auswahl des HtmlBlock existieren ZWEI `<textarea>` mit identischer
-`id="imp-…-html-16_textarea_html"` (eines unsichtbar 0×0 in `.PuckLayout`, eines sichtbar in der
-rechten Sidebar). Erwartet: eindeutige IDs. Folge: ungültiges HTML, brüchig für
-`getElementById`/`aria-describedby` (Screenreader-/Label-Zuordnung); führte in der Prüfung zur
-irreführenden Erst-Messung „Tippen wirkungslos" (zuerst griff das unsichtbare Duplikat). Für den
-Nutzer sichtbar funktioniert das Feld, technischer Defekt darunter.
-Beleg: `document.querySelectorAll('textarea')` nach Block-Auswahl → zwei Treffer gleiche id,
-verschiedenes offsetParent/Rect.
+**Layout zerrissen — Zerlegung viel zu grob** *(M5)*
+- Problem: Die ganze Seite wird zu 3 Sektionen + 6 HTML-Blöcken; praktisch der gesamte Inhalt landet in EINEM „HTML-Block (übriges Markup)" mit Roh-Textarea — kein visuelles Bearbeiten möglich, Anzeige „sehr random verteilt".
+- Soll: Feine, sinnvolle Zerlegung; die Zerlegungs-Urteile übernimmt das lokale Modell (gemma4) im Import-Umbau.
 
-**N4 · Strg+Z im Puck-Editor springt zwischen nativer Textarea-History und App-Undo** — *bug (Bezug M11)*
-Ist: Im HTML-Feld getippt → 1. Strg+Z macht nur den letzten Anschlag rückgängig (native
-Textarea-Undo); 2. Strg+Z hebt stattdessen die komplette Block-Auswahl auf (Props-Panel springt auf
-leere „Page"-Ansicht, Feld verschwindet). Erwartet: vorhersagbares Undo. Neuer, konkreter Repro-Fall
-für M11, im Puck-Editor (M11 war für Animator dokumentiert).
-Beleg: Manueller Test; Screenshot station2-after-second-ctrlz.png.
+**Unterseiten fehlen komplett** *(M6)*
+- Problem: Nur index.html wird importiert; in Puck liegt exakt eine Seite, obwohl die Hauptnavigation /project-oasis/, /pilot-projekt/ und /faq/ verlinkt.
+- Soll: Alle Seiten der Website importieren.
 
-**N5 · Puck-Editor-Kopfleiste ist eine großflächige dunkle Vollfläche** — *optik-verdacht (Bezug M24/R5)*
-Ist: Über volle Bildschirmbreite dunkler Balken (Seitenname + Speichern/Zurück). Design-Vorgabe:
-„Dunkel nicht großflächig!". Nur Verdacht, Optik-Urteil bei Leon.
-Beleg: station1-05-neu-erstellt.png / station1-09-oeffnen-puck.png (dunkler Balken
-„wee-website-v3 Bereit" über volle Breite).
+**Bilder und Schriften fehlen (404-Fehler)** *(M7)*
+- Problem: Bilder in HTML-Blöcken und per CSS eingebundene Dateien (Schriften, Medien) werden nicht mitkopiert.
+- Soll: Alle Assets mitnehmen. (Verwandt: der Passwort-Gate-Fund unten — Import kopiert Markup falsch/unvollständig.)
 
-## IV — STATION 3: ANIMATOR (Funktions-Bugs + neue Funde)
+**Die Animator-Bühne zeigt nicht die lebendige Seite** *(M8 — Leons Korrektur)*
+- Problem: Auf der Bühne fehlen die eigenen Animationen der Quellseite. Leon wörtlich: „Wenn ich die Liveseite anzeige, dann will ich die komplette Liveseite sehen. Der Animator ist doch nur das Tool, das darüber liegt…"
+- Soll: Die Bühne zeigt die lebendige Seite MIT ihren eigenen Animationen (wie es der Ordner-Backdrop-Modus kann). Die eingefrorene Fassung ist NUR die Basis für die Puck-Zerlegung — nie die Bühne.
 
-**M10 · „Neu einlesen"-Buttons funktionieren nicht — alle, überall** („egal welcher, irgendwo — die
-haben bei mir noch nie funktioniert").
-*(Neu belegt: „⟳ Neu einlesen" (WebsiteOg) feuert ohne Fehler, bewirkt sichtbar nichts —
-0 Netzwerk-Anfragen, Liste unverändert.)*
+**Keine Meldung, wenn man einen falschen Ordner wählt** *(M9 — ungeprüft)*
+- Problem: Wählt man einen Ordner ohne HTML (z. B. ein ungebautes Next-Quellprojekt), passiert still nichts.
+- Soll: Klare Meldung „erst bauen".
+- Status: In der Suche weder bestätigt noch widerlegt — der native Ordner-Dialog ist im Automations-Browser nicht steuerbar (siehe „Ungeprüft").
 
-**M11 · Strg+Z ist wieder komplett zerschossen** — bearbeitete Sachen lassen sich nicht rückgängig machen.
-*(Neu belegt via N4/N8/N9 als konkrete Repro-Fälle; der Standard-Grafik-Platzier-Pfad war in der
-Prüfung jedoch sauber undo-bar.)*
+**Die Import-Ansicht hat kein Hilfe-Icon** *(N1)*
+- Problem: Die Seiten-Liste hat oben rechts ein „?" mit Erklär-Dialog; wechselt man auf „Website importieren", verschwindet es — ausgerechnet beim erklärungsbedürftigsten Schritt (Ordnerwahl, Styling-Verlust).
+- Soll: Konsistente Hilfe auf beiden Sichten derselben Station.
+- Beleg: Accessibility-Snapshots beider Ansichten.
 
-**M12 · Konkretfall Undo: Hintergrund-/Screenshot-Wechsel nicht rückgängig machbar** — nach Laden eines
-Screenshot-Hintergrunds gibt es kein Strg+Z; man muss manuell wieder auf die aktive Website klicken.
-„Nicht userfreundlich."
-*(Live VERSCHÄRFT: Strg+Z überspringt den Backdrop-Wechsel und entfernt stattdessen die zuvor
-platzierte Grafik — macht also das Falsche rückgängig.)*
+**Der Passwort-Sperrbildschirm der Quellseite wird mitimportiert** *(N15)*
+- Problem: Die importierte Seite enthält einen eigenen Baustein mit dem kompletten „Diese Seite ist geschützt…Passwort…Freischalten"-Formular der Quell-Hosting-Umgebung (Vercel-Preview-Schutz o. ä.) — als aktives Formular unter dem Footer, sichtbar in Puck, Vorschau UND Animator; würde mit exportiert. Eigene Ursache, nicht dasselbe wie fehlende Texte/Assets.
+- Soll: Solche Fremdkörper beim Import herausfiltern.
+- Beleg: Baustein imp-wee-website-v3-html-19; Screenshots station2/station3.
 
-**M13 · Verdacht: viele weitere Buttons ohne Funktion** — die systematische Mängelsuche lieferte die
-Kandidatenliste (dieses Dokument); Leon schaut sich „Funktionen passen noch nicht" zusätzlich später
-selbst an (S5).
+**Importierte Grundlayout-Regeln greifen auf der Bühne nicht** *(M18)*
+- Problem: `html/body`-Reset-Regeln der importierten CSS wirken auf der Animator-Bühne nicht (im Puck-Editor korrekt).
+- Soll: Beim Umbau prüfen — wird durch die „lebendige Bühne" (oben) voraussichtlich obsolet.
 
-**M14 · Fluss-Fokus-Falle** — ohne platzierte Grafik kein Weg, den Fluss-Fokus zu verlassen.
-*(Neu belegt: ESC und Re-Klick verlassen den Fokus nicht — setFokus(true) ohne Toggle, Esc ohne
-Fluss-Reset; einziger Ausweg = anderes Ist-Stand-Element anklicken. Verschärft N8.)*
+## 4 · Station 2: Puck (Seite bauen)
 
-**M15 · Reibung: „Animation laden?"-Dialog** feuert bei jedem Reload mit aktiver Seite.
-*(In der Suche nicht neu reproduziert — Playwright verwirft native Dialoge; weiterhin als bestätigt
-behandelt, nur diesmal nicht belegbar.)*
+**Das HTML-Bearbeitungsfeld existiert doppelt im Seitengerüst** *(N3)*
+- Problem: Nach Auswahl eines HTML-Blocks gibt es ZWEI Eingabefelder mit identischer ID (eines unsichtbar, eines sichtbar in der Sidebar) — ungültiges HTML, brüchig für Screenreader-/Label-Zuordnung; führte in der Prüfung zunächst zur Fehlmessung „Tippen wirkungslos". Sichtbar funktioniert das Feld, der Defekt liegt darunter.
+- Soll: Eindeutige IDs.
+- Beleg: `querySelectorAll('textarea')` → zwei Treffer, gleiche ID.
 
-**M16 · Stilbruch: Preset-Name über Browser-`prompt()`** statt Inline-Eingabefeld.
+**Jeder Seiten-API-Aufruf feuert doppelt (Umleitung)** *(N17)*
+- Problem: Alle Aufrufe (Liste/Laden/Löschen) gehen ohne End-Schrägstrich raus, bekommen eine 308-Umleitung und werden erneut gesendet — jede Interaktion kostet zwei Anfragen. Funktional unauffällig, aber unnötig + Hinweis auf inkonsistente Next.js-Konfiguration (`trailingSlash`).
+- Soll: Direkt die richtige URL aufrufen.
+- Beleg: Netzwerk-Mitschnitt: [POST] …/liste ⇒ 308 → …/liste/ ⇒ 200.
 
-**N6 · NUL-Byte im Quellcode: GrafikEditor.tsx:779** — *bug*
-Ist: Der „Leerzeichen"-Sentinel im OG-Scan-Signatur-String ist tatsächlich ein NUL-Byte (U+0000),
-bestätigt per Byte-Analyse (genau 1 NUL an Offset 34135). Erwartet: normales Leerzeichen. Funktional
-harmlos (App lief fehlerfrei), aber echte Quellcode-Korruption: die Datei wird von grep/ripgrep als
-BINÄR erkannt (Textsuche verweigert), kann Editoren, Parser, Git-Diffs, Lint stören.
-Beleg: components/grafik/GrafikEditor.tsx:779 (Byte-Offset 34135, einziges NUL-Byte der
-161188-Byte-Datei).
+**Speichern kann eine gelöschte Seite heimlich wiederbeleben** *(N18 — Code-Verdikt)*
+- Problem: Löscht Tab B eine Seite, die Tab A noch offen hat, und drückt Tab A dann „Speichern", wird die Seite kommentarlos neu angelegt — die Löschung ist still rückgängig, kein Konflikt-Banner. Der 409-Konflikt-Schutz wird bei „Datei existiert nicht" übersprungen.
+- Soll: Konfliktmeldung „Seite existiert nicht mehr".
+- Beleg: lib/api/seiten-speicher.ts:256-268 + Aufrufer; nur im Code verifiziert, Laufzeit-Repro nicht ausgeführt (siehe „Ungeprüft").
 
-**N7 · RiverFlow-Anker stimmen nicht mit der importierten Seite überein (stiller Fallback)** — *bug*
-Ist: Bei jedem Laden/Reload ~10–20 Konsolen-Warnungen „[RiverFlow] Anker nicht gefunden, Fluss läuft
-dort geradeaus weiter" für Selektoren #mission, #haltung, #oasis-prose, #bausteine, #stats, #tal u. a.
-Erwartet: Fluss läuft entlang der echten Seitensektionen. Folge: die dekorative Wasser-Linie degradiert
-still auf „geradeaus", Zuordnung Fluss-Anker ↔ echte DOM-Struktur der importierten Seite ist gebrochen
-(keine harten Fehler).
-Beleg: components/river/RiverFlow.tsx:94; Konsolen-Mitschnitt bei Navigation auf /editor (0 Errors /
-20 bzw. 66 Warnings nach Rückschaltung).
+## 5 · Rückgängig machen (Strg+Z) — Grundregel + alle Verstöße
 
-**N8 · Undo-Dispatch strikt nach Fokus — Strg+Z wirkt nur auf EINEN Stapel** — *ux / regel-verstoss
-(R1, Bezug M11/M14)* · PLAUSIBEL (statisch hergeleitet, nicht live erzwungen)
-Ist: `rueckgaengigMachen()` dispatcht bei `flussObjekt.fokus` NUR auf den Fluss-Verlauf, sonst NUR auf
-den Grafik-Verlauf — nie beide. Folge: Fluss fokussiert + leerer Fluss-Verlauf → Strg+Z tut NICHTS,
-obwohl eine Grafik-Aktion rückgängig machbar wäre. Verschärft durch M14 (Fluss-Fokus-Falle) → man
-sitzt fest UND erreicht das Grafik-Undo nicht. Plausibler Kandidat für Leons „Strg+Z zerschossen" (M11).
-Beleg: components/grafik/GrafikEditor.tsx:2376-2394 (Fokus-Dispatch). Nur logisch hergeleitet, Fluss
-war auf der Standard-Bühne nicht fokussiert → nicht interaktiv erzwungen.
+**Grundregel (von Leon angeordnet, Regel R1):** „Jede Funktion, die gebaut wird, muss mit Strg+Z
+wieder rückgängig gemacht werden können" — gilt für ALLE Editier-Aktionen inkl. Hintergrund-Wechseln.
 
-**N9 · Strg+Z wird ignoriert, solange ein Slider (z. B. Grundbreite) den Tastaturfokus hält** —
-*regel-verstoss (R1, Bezug M11)*
-Ist: Grundbreite-Slider verändert (240→620), mit Fokus noch auf dem Slider Strg+Z → nichts passiert
-(Wert bleibt 620). Der ↶-Undo-Button funktioniert; nach `blur()` des Sliders funktioniert auch Strg+Z
-(620→240). Erwartet: R1 gilt auch tastaturseitig. Ursache: natives `<input type=range>` absorbiert den
-globalen Strg+Z-Handler bei Fokus. Exakt eingegrenzte Variante von M11.
-Beleg: station3-08-slider-changed.png; `evaluate`: value bleibt „620" nach Strg+Z bei Slider-Fokus,
-nach `blur()` dann „240".
+**Strg+Z ist insgesamt wieder zerschossen** *(M11)*
+- Problem: Bearbeitete Sachen lassen sich nicht rückgängig machen. Die Suche fand drei konkrete Ursachen (unten); der Standard-Weg „Grafik platzieren" war in der Prüfung sauber undo-bar.
 
-**N10 · „Aus der Bibliothek entfernen" (✕) und Bibliotheks-Änderungen sind nicht mit Strg+Z
-rückgängig** — *regel-verstoss (R1)*
-Ist: Der ✕-Knopf entfernt ein Asset via `setPool(pool.filter(...))` OHNE `ctx.commit`; der Pool ist
-lokaler `useState` und NICHT Teil der Undo-Historie (GrafikContext trackt nur grafiken+uebernommen).
-Folge: ein versehentlich entferntes (z. B. per Strg+V aus Canva eingefügtes) Asset lässt sich nicht
-zurückholen; gilt auch für Hinzufügen/Vektorisieren. Verletzt R1, eigenständig neben den bekannten
-Undo-Lücken.
-Beleg: components/grafik/GrafikEditor.tsx:2554-2560 (setPool ohne commit); Pool ≈ GrafikEditor.tsx:439.
+**Hintergrund-/Screenshot-Wechsel nicht rückgängig machbar** *(M12 — live sogar verschärft)*
+- Problem: Nach dem Laden eines Screenshot-Hintergrunds gibt es kein Strg+Z; man muss manuell zur aktiven Website zurückklicken. Live-Befund verschärft: Strg+Z überspringt den Hintergrund-Wechsel und entfernt stattdessen die zuvor platzierte Grafik — es macht das Falsche rückgängig.
+- Soll: Hintergrund-Wechsel in die Undo-Historie aufnehmen.
 
-**N11 · „⬡ In den Builder holen" für Ist-Stand-Elemente mit enthaltenem Bild sichtbar, aber dauerhaft
-disabled + tot** — *bug*
-Ist: Der Knopf erscheint immer, wenn das Element ein Bild ENTHÄLT (`holbar = bild|svg ||
-masse.quelle!=null`), inkl. „Bildquelle: …"-Zeile und Hilfetext — das ist der importierte Normalfall
-(Blöcke als „deko"/„sektion" getaggt, `<img>` steckt drin). ABER `onInBuilder` wird nur für
-`typ===bild||svg` durchgereicht, sonst `undefined` → `disabled={!onInBuilder}`. Folge: Knopf sieht
-aktiv aus, ist grau/klick-tot, obwohl `ogAlsGrafikErzeugen` das innere `<img>` ziehen könnte. Betrifft
-direkt den Import→Builder-Weg. Live bestätigt an „projekte:karte:0" (holenVorhanden:true,
-holenDisabled:true).
-Beleg: components/grafik/GrafikEditor.tsx:3030-3034 vs. components/grafik/WebsiteOg.tsx:329 + 362-371.
+**Seiten-Löschen ist laut eigenem Dialog „nicht rückgängig zu machen"** *(N2)*
+- Problem: Der Lösch-Dialog sagt es selbst: „…Das lässt sich nicht rückgängig machen." — die deutlichste, selbst dokumentierte Ausnahme von der Grundregel.
+- Soll: Auch Seiten-Löschen umkehrbar machen (z. B. Papierkorb/Undo-Fenster).
+- Beleg: `confirm()`-Text; app/api/puck-seite/loesche/route.ts + SeitenBereich.tsx:331-347.
 
-**N12 · Verwaiste Datei RiverKursEditor.tsx (tote Funktion, enthält das einzige
-Fluss-Anim-Undo-Loch)** — *bug (Wartungslast)*
-Ist: RiverKursEditor.tsx wird nirgends mehr gemountet (/grafik-editor und /fluss-editor sind
-Client-Redirects auf /editor); nur dort geben Anim-Regler `ctx.setAnim` OHNE Verlauf durch (kein
-Fluss-Undo). Auf dem lebenden Pfad (/editor via `setAnimMitVerlauf`) ist das Loch geschlossen → der
-Undo-Bruch existiert nur in totem Code. Fund = Verwechslungsgefahr/Wartungslast (großes verwaistes
-File), kein Laufzeit-Bug.
-Beleg: components/river/RiverKursEditor.tsx:87-91; app/grafik-editor/page.tsx +
-app/fluss-editor/page.tsx (router.replace /editor).
+**Strg+Z im Puck-Editor springt unvorhersehbar** *(N4)*
+- Problem: Nach Tippen im HTML-Feld macht das erste Strg+Z nur den letzten Tastenanschlag rückgängig, das zweite wirft stattdessen die komplette Block-Auswahl weg (Panel springt auf leer).
+- Soll: Vorhersagbares Undo-Verhalten.
+- Beleg: Screenshot station2-after-second-ctrlz.png.
 
-## V — STATION 4: LIVE-PREVIEW + EXPORT
+**Strg+Z wirkt immer nur auf EINEN von zwei Verläufen** *(N8 — plausibel, statisch hergeleitet)*
+- Problem: Je nach Fokus greift Strg+Z NUR auf den Fluss-Verlauf ODER NUR auf den Grafik-Verlauf — nie auf beide. Ist der Fluss fokussiert und dessen Verlauf leer, tut Strg+Z NICHTS, obwohl eine Grafik-Aktion rückgängig machbar wäre. Zusammen mit der Fluss-Fokus-Falle (unten) sitzt man fest. Plausibler Haupt-Kandidat für „Strg+Z zerschossen".
+- Beleg: GrafikEditor.tsx:2376-2394; nicht live erzwungen (siehe „Ungeprüft").
 
-**N13 · Hero-Headline + CTA-Buttons in der Vollbild-Vorschau unsichtbar, obwohl DOM/CSS korrekt** —
-*bug (evtl. Headless-Artefakt — vor Verbuchung in echtem Chrome prüfen)*
-Ist: In der Vollbild-„Vorschau" von wee-website-v3 fehlen „Together, WEE can." und die Buttons
-„Über uns"/„Unterstütze uns hier" im Screenshot — sichtbar nur ein verschwommener Glass-Block mit
-Icon. Per `evaluate` geprüft: H1 opacity:1, weiß, korrekte Position, `elementFromPoint`-Top-Hit; der
-Button hat soliden orangenen Hintergrund (rgb(234,137,20), kein Blur) und ist trotzdem unsichtbar.
-Reproduziert nach Reload + Wartezeit (Font-Ladezeit ausgeschlossen). Möglicher Compositing-Effekt von
-`backdrop-filter:blur(14px)` der Glass-Card zusammen mit scroll-animierter `transform` auf `.cta-row`.
-Betrifft die Kern-Ansicht von Station 4. UNTERSCHEIDET sich von M4 (dort opacity:0 eingefroren; hier
-opacity:1 korrekt).
-Beleg: station4-vollbild-top.png / station4-vollbild-top-retry.png (identisch nach Reload);
-DOM-Messung h1 rect {y:361,h:173}, Button rect {y:623,h:40}.
+**Schieberegler schlucken Strg+Z** *(N9)*
+- Problem: Solange ein Slider (z. B. Grundbreite) den Tastaturfokus hält, wird Strg+Z ignoriert (Wert bleibt). Der ↶-Knopf funktioniert; nach Klick woanders hin funktioniert auch Strg+Z wieder.
+- Soll: Strg+Z auch bei Slider-Fokus.
+- Beleg: Wert blieb „620" bei Slider-Fokus, nach blur() dann „240".
 
-**N14 · Vollbild-Live-Preview und Export-Panel sind zwei komplett unverknüpfte Oberflächen** —
-*ux (Bezug M23)*
-Ist: „Vorschau" führt zu einem reinen Vollbild-Dialog (nur „← Zurück", keine Export-Option); der
-Export liegt ausschließlich als Unter-Reiter im Animator-Grafik-Editor (überlagert dort die Bühne).
-Von der Vorschau gibt es keinen Weg zum Export und umgekehrt. Erwartet (Flow): Station 4 =
-„Live-Preview + Export" als eine Einheit. Vertieft M23 um das konkrete Detail, dass selbst die
-vorhandenen Teile nicht verlinkt sind.
-Beleg: Snapshot editor/?bereich=seiten&vorschau=wee-website-v3 (nur „Zurück") vs. Export-Reiter
-unter Animator-Tab.
+**Bibliotheks-Änderungen (✕ Entfernen u. a.) sind nicht rückgängig machbar** *(N10)*
+- Problem: Der ✕-Knopf entfernt ein Asset ohne Eintrag in die Undo-Historie (Pool ist lokaler State außerhalb der Historie) — ein versehentlich entferntes Asset (z. B. aus Canva eingefügt) ist weg; gilt auch für Hinzufügen/Vektorisieren.
+- Soll: Bibliotheks-Aktionen in die Undo-Historie.
+- Beleg: GrafikEditor.tsx:2554-2560 (setPool ohne commit).
 
-## VI — OBERFLÄCHEN-REST + QUERSCHNITT (Zustand/Flow, Routing, Hygiene)
+## 6 · Station 3: Animator
 
-**M17 · Hover-Erklärungen unvollständig** — Ziel: jeder Knopf erklärt sich beim Drüberfahren.
-**Vollzählung (per Grep nachgeholt, Audit-C-Ersatz) — Buttons ohne `title`, Datei → fehlend:**
-GrafikEditor.tsx 8 (41/33) · **GrafikObjektMenue.tsx 8 (9/1!)** · GrafikCrop.tsx 4 (4/0) ·
-FlussSektion.tsx 3 (3/0) · app/editor/page.tsx 2 (2/0 — die Haupt-Bereichs-Umschalter
-„Animator"/„Seiten"!) · GrafikExportAnleitung.tsx 2 · GrafikHilfe.tsx 2 · je 1: EasingKurve,
-RiverKursEditor (verwaist, s. N12), FrontSektion, NebelSektion, ProfileSektion, WasserSektion,
-BackdropAuswahl, BackdropHilfeIcon, shared/HilfeIcon. **Summe: ~30 Buttons ohne Hover-Erklärung.**
-(Hilfe-Icons tragen aria-label — title zusätzlich sinnvoll, Einzelfall-Entscheidung beim Umbau.)
+**Alle „Neu einlesen"-Knöpfe sind tot** *(M10)*
+- Problem: „Egal welcher, irgendwo — die haben bei mir noch nie funktioniert." Live bestätigt: Klick feuert ohne Fehler, bewirkt sichtbar nichts (0 Netzwerk-Anfragen, Liste unverändert).
+- Soll: Neu-Einlesen funktioniert überall oder fliegt raus.
 
-**M18 · Bühnen-Render-Grenze** — `html/body`-Reset-Regeln der importierten CSS greifen auf der Bühne
-nicht (im Puck-Editor korrekt). (Wird durch M8-Live-Bühne voraussichtlich obsolet — beim Umbau prüfen.)
+**Verdacht: weitere Knöpfe ohne Funktion** *(M13)*
+- Problem: Systematisch geprüft — die Funde stehen in dieser Liste; Leon schaut „Funktionen passen noch nicht" später zusätzlich selbst an (siehe „Später").
 
-**M19 · Veralteter Browser-Hinweis** in der UI (@scope-Warnung — inzwischen alle Browser).
+**Die Fluss-Fokus-Falle** *(M14 — live verschärft)*
+- Problem: Ohne platzierte Grafik gibt es keinen Weg aus dem Fluss-Fokus: ESC hilft nicht, erneutes Klicken hilft nicht (Fokus wird nur gesetzt, nie getoggelt); einziger Ausweg ist, ein anderes Element anzuklicken.
+- Soll: Fokus immer verlassbar (ESC/Toggle).
 
-**M20 · Testrest** — „rt-bleibt"-Preset liegt noch in der Bibliothek.
-*(Neu bestätigt: Preset „rt-bleibt (2 Frames)" weiterhin in Bibliothek › Presets.)*
+**„Animation laden?"-Dialog nervt bei jedem Neuladen** *(M15)*
+- Problem: Der Dialog feuert bei jedem Reload mit aktiver Seite. (In der Suche nicht erneut belegbar — Playwright verwirft native Dialoge — bleibt als bestätigt.)
+- Soll: Einmal fragen bzw. Entscheidung merken.
 
-**M21 · Sichten-Trio (Puck bauen / statische Vorschau / Animator) nie optisch abgenommen** — Abnahme
-nach dem Flow-Umbau (M1).
+**Test-Überbleibsel in der Preset-Bibliothek** *(M20)*
+- Problem: Das Test-Preset „rt-bleibt (2 Frames)" liegt noch in Bibliothek › Presets.
+- Soll: Entfernen.
 
-**N16 · Browser-Tab-Titel + Meta-Description zeigen fremden Prototyp** — *bug*
-Ist: `document.title` des gesamten Website-Builders = „WEE Titelkarte – Prototyp v1",
-Meta-Description = „Gepinnte Scroll-Titelkarte (Vorhang-Effekt) für World Eden Era …" —
-liegengebliebene Metadata aus dem Vorhang-Effekt-Prototyp (anderes Projekt derselben Codebasis).
-Identisch in allen Routen (/, /puck, /puck-import, /editor, Vorschau). Erwartet: passender Titel je
-Station. Folge: Tabs/Lesezeichen/Teilen-Vorschau verwirrend, Stationen nicht unterscheidbar.
-Beleg: `evaluate` {title, metaDesc}; Quelle app/layout.tsx:21.
+**Unsichtbares Sonderzeichen mitten im Quellcode** *(N6)*
+- Problem: In GrafikEditor.tsx steckt ein NUL-Byte (statt eines Leerzeichens) — die App läuft, aber die Datei gilt für Suchwerkzeuge als Binärdatei (Textsuche verweigert), kann Editoren/Diffs/Lint stören.
+- Soll: Durch normales Leerzeichen ersetzen.
+- Beleg: GrafikEditor.tsx:779, Byte-Offset 34135 (einziges NUL der Datei).
 
-**N17 · Alle Puck-Seiten-API-Aufrufe lösen einen 308-Redirect aus (Doppel-Request)** — *bug/perf*
-Ist: /api/puck-seite/liste, /lade, /loesche (POST) gehen ohne Trailing-Slash raus → [308] Permanent
-Redirect → erneut mit „/" → erst dann [200]. Jede Listen-/Lade-/Lösch-Interaktion feuert effektiv
-doppelt. Funktional unauffällig (POST bleibt erhalten), aber unnötiger Overhead + Hinweis auf
-inkonsistente Next.js-`trailingSlash`-Konfiguration.
-Beleg: browser_network_requests: „[POST] …/liste ⇒ [308]" gefolgt von „[POST] …/liste/ ⇒ [200]"
-(mehrfach bei liste/lade/loesche).
+**Die Wasser-Linie findet ihre Ankerpunkte auf der importierten Seite nicht** *(N7)*
+- Problem: Bei jedem Laden warnen 10–20 Konsolen-Meldungen „Anker nicht gefunden, Fluss läuft geradeaus weiter" (#mission, #stats, #tal …) — die dekorative Fluss-Linie degradiert still zu einer Geraden, weil die erwarteten Sektions-Anker in der importierten Seite nicht existieren.
+- Soll: Anker-Zuordnung an die tatsächlich importierte Seitenstruktur koppeln.
+- Beleg: RiverFlow.tsx:94; Konsolen-Mitschnitt (20–66 Warnungen).
 
-**N18 · Stale-Save lässt eine gelöschte Seite ohne Konflikt wieder auferstehen** — *bug*
-(Code-Verdikt, Laufzeit-Repro nicht ausgeführt)
-Ist: `speichereSeite` behandelt fehlende Datei als „neue Seite": `bestehend=null` → der
-409-Konflikt-Guard `if (bestehend && !ueberschreibe && erwartetGespeichert !== bestehend.gespeichert)`
-wird per Short-Circuit übersprungen, auch bei mitgeschicktem (veraltetem) `erwartetGespeichert`.
-Repro (Mehr-Sitzungs-Szenario, das das Konfliktmodell laut Kommentar abdecken will): Tab A öffnet X
-in Puck, Tab B löscht X, Tab A „Speichern" → Server schreibt X frisch → Löschung still rückgängig,
-KEIN Banner. Erwartet: 409 „Seite existiert nicht mehr".
-Beleg: lib/api/seiten-speicher.ts:256-268; Aufrufer SeitenBereich.tsx:240-271; Löschung
-SeitenBereich.tsx:331-347 + app/api/puck-seite/loesche/route.ts.
+**„⬡ In den Builder holen" ist beim Import-Normalfall sichtbar, aber dauerhaft ausgegraut** *(N11)*
+- Problem: Der Knopf erscheint bei jedem Element, das ein Bild ENTHÄLT (der importierte Normalfall), sieht aktiv aus — ist aber grau und klick-tot, weil die Funktion nur für reine Bild-/SVG-Elemente durchgereicht wird. Dabei könnte die bestehende Logik das innere Bild ziehen. Betrifft direkt den Weg Import → Builder. Live bestätigt.
+- Soll: Knopf funktioniert auch für Elemente mit enthaltenem Bild (oder erscheint nicht).
+- Beleg: GrafikEditor.tsx:3030-3034 vs. WebsiteOg.tsx:329 + 362-371.
 
-**N19 · Backdrop, der auf eine gelöschte Seite zeigt, wird nie selbst-geheilt** — *bug* (Code-Verdikt)
-Ist: `loesche()` räumt NUR die aktive Website auf (`entferneAktiveSeite`, localStorage
-„wee-aktive-seite"). Ein explizit gewählter Backdrop vom Typ `puck-seite` (IndexedDB „wee-backdrop",
-quelle=Seitenname) wird NICHT angefasst; für die aktive Seite gibt es Selbstheilung (EditorInner prüft
-Existenz), für den Backdrop KEIN Pendant. Folge: nach Löschen der Backdrop-Seite zeigt der Animator
-bei jedem Reload dauerhaft „Seite konnte nicht geladen werden — im Panel Hintergrund eine andere
-wählen". Kein Crash, aber persistente weiche Sackgasse / Asymmetrie.
-Beleg: SeitenBereich.tsx:341-342 (nur entferneAktiveSeite); Selbstheilung nur aktive Seite
-app/editor/page.tsx:96-122; Backdrop-Setzen BackdropAuswahl.tsx:125; Fehlerpfad Backdrop.tsx:231-236;
-Persistenz BackdropContext.tsx:58-61.
+**Verwaiste Editor-Datei mit letztem Undo-Loch** *(N12)*
+- Problem: RiverKursEditor.tsx wird nirgends mehr eingebunden (alte Routen leiten auf /editor um); nur dort existiert noch ein Fluss-Animations-Undo-Loch. Kein Laufzeit-Bug, aber Verwechslungsgefahr/Wartungslast durch eine große tote Datei.
+- Soll: Datei entfernen.
+- Beleg: RiverKursEditor.tsx:87-91; beide alten Routen leiten um.
 
-**N20 · Editor-Öffnen nicht history-integriert — Browser-Zurück verwirft ungespeicherte
-Puck-Änderungen still** — *ux* (Code-Trace)
-Ist: `oeffne()` setzt `offeneSeite` OHNE `pushState`, während `oeffneVorschau`/`schliesseVorschau`
-`pushState` nutzen. (a) Im offenen Puck-Editor führt Browser-Zurück auf /editor (Animator); popstate
-unmountet SeitenBereich → `offeneSeite` + ungespeicherter `aktuelleDatenRef` gehen ohne Rückfrage
-verloren (kein beforeunload/Dirty-Check). (b) `schliesseVorschau` pusht neuen Eintrag statt
-`history.back()` → Zurück kann in veraltete `?vorschau=X`-Ansicht springen, während der Editor Seite Y
-offen hält (Vorschau-Vorrang gewinnt) → Zustandssprung.
-Beleg: SeitenBereich.tsx:219-237 (oeffne ohne pushState) vs. 182-196; Vorschau-Vorrang 349-353;
-Bereichs-popstate app/editor/page.tsx:227-241.
+**Hintergrund zeigt auf gelöschte Seite → Dauerfehlermeldung** *(N19 — Code-Verdikt)*
+- Problem: Löscht man die Seite, die als Animator-Hintergrund gewählt war, wird nur die „aktive Website" aufgeräumt — der Hintergrund-Verweis bleibt. Der Animator zeigt dann bei jedem Neuladen dauerhaft „Seite konnte nicht geladen werden…". Kein Absturz, aber eine bleibende Sackgasse.
+- Soll: Beim Löschen auch den Hintergrund-Verweis heilen (wie es für die aktive Seite schon passiert).
+- Beleg: SeitenBereich.tsx:341-342; Selbstheilung nur für aktive Seite (page.tsx:96-122); nur im Code verifiziert.
 
-**N21 · Deep-Link `?vorschau=X` ohne `?bereich=seiten` wird still ignoriert** — *ux* (niedrige Schwere)
-Ist: `leseBereich()` mountet SeitenBereich nur bei `bereich==="seiten"`. Eine URL nur mit `vorschau=X`
-(händisch gekürzter/geteilter Link) landet auf dem Animator, Vorschau-Absicht wird kommentarlos
-verworfen — obwohl der Hilfe-Dialog den Vorschau-Link als „teilbar und reload-fest" bewirbt.
-In-App-Links setzen immer beide Params, trifft nur manuell bearbeitete Links.
-Beleg: app/editor/page.tsx:172-175; Param-Lesen SeitenBereich.tsx:172-180; „teilbar"-Zusage
-SeitenBereich.tsx:650-655.
+## 7 · Station 4: Live-Preview + Export
 
-## VII — VERBINDLICHE REGELN (von Leon angeordnet)
+**Der Export integriert nicht in die eigene Seite** *(M25 — mit Leons Präzisierung)*
+- Problem: „Was soll ich denn mit 'nem Export, den ich dann wieder in meine eigene Seite einfüge, die ich im Builder bau? Das ist ja kompletter Quatsch." Heute ist der Export-Reiter datei-/einbettungs-orientiert (JSON/Overlay/Runtime/Element/Ganze-Seite) — alle 5 Wege lösen technisch sauber aus, aber der Kernweg fehlt.
+- Soll (bestätigt): Kernweg = **Ordner-Struktur-Export** — ein fertiger, direkt veröffentlichbarer statischer Ordner der im Builder gebauten Seite MIT Animationen. Das Export-Menü ist primär darauf ausgerichtet; die Datei-Wege bleiben nachgeordnete Zusatzoption für fremde, nicht importierte Seiten.
 
-**R1 · Undo-Pflicht:** „Jede Funktion, die gebaut wird, muss mit Strg+Z wieder rückgängig gemacht werden
-können" — gilt für ALLE Editier-Aktionen inkl. Hintergrund-/Backdrop-Wechseln. Feste Bauregel.
-*(Bekannte R1-Verstöße aus der Suche: N2 Seiten-Löschen, N8 Fokus-Dispatch, N9 Slider-Fokus,
-N10 Bibliothek-✕ — zusätzlich zu M11/M12.)*
+**Überschrift und Buttons in der Vollbild-Vorschau unsichtbar** *(N13 — evtl. Mess-Artefakt)*
+- Problem: In der Vollbild-Vorschau fehlen „Together, WEE can." und die Buttons „Über uns"/„Unterstütze uns hier" im Screenshot — obwohl alle Messwerte korrekt sind (sichtbar, richtige Position, deckkräftige Farbe). Möglicherweise ein Darstellungs-Artefakt des Test-Browsers (Blur-Effekt + Scroll-Animation). Unterscheidet sich vom „Texte fehlen"-Importfehler (dort wirklich unsichtbar gespeichert).
+- Soll: Einmal in echtem Chrome prüfen, erst dann als Bug verbuchen (siehe „Ungeprüft").
+- Beleg: station4-vollbild-top.png (+ Retry identisch); DOM-Messungen normal.
 
-**R2 · Verifikations-Protokoll** ([verifikations-protokoll.md](verifikations-protokoll.md)) — nie beim
-ersten Fehlschlag abbrechen, UNGEPRÜFT deklarieren, kein „alles geprüft" nach Fehlschlägen.
+## 8 · Verbindliche Regeln (von Leon angeordnet)
 
-**R3 · UI-Reihenfolge = Userflow** — jede Oberflächen-Entscheidung folgt den vier Stationen
-Import → Puck → Animations-Preview → Live-Preview + Export.
+- **Undo-Pflicht** *(R1)*: Jede gebaute Funktion muss per Strg+Z rückgängig machbar sein — alle bekannten Verstöße in Abschnitt 5.
+- **Verifikations-Protokoll** *(R2)*: [verifikations-protokoll.md](verifikations-protokoll.md) — nie beim ersten Fehlschlag abbrechen, Ungeprüftes deklarieren, kein „alles geprüft" nach Fehlschlägen.
+- **UI-Reihenfolge = Userflow** *(R3)*: Jede Oberflächen-Entscheidung folgt den vier Stationen.
+- **Menüs erschlagen nicht** *(R4)*: Menüs logisch und schlank, strikt in die vier Stationen eingeteilt — kein Knopf-Dickicht, keine Station zeigt fremde Menüs. (Das Menü-Inventar je Station blieb ungeprüft und wird Teil des Umbau-Plans — der Flow-Umbau deckt die Neustrukturierung ab.)
+- **Ein Designsystem** *(R5)*: Alles UI folgt dem WEE-Designsystem (Abschnitt 2) — keine Insellösungen je Panel.
 
-**R4 · Menüs erschlagen nicht.** Menüs sind logisch und schlank, strikt eingeteilt in die vier
-Userflow-Kategorien — kein Knopf-Dickicht, keine Station zeigt fremde Menüs.
-*(Das Menü-INVENTAR je Station — R4-Bewertung — blieb UNGEPRÜFT und wird Teil des Flow-Umbau-Plans;
-M1/R4 decken die Neustrukturierung ohnehin ab.)*
+## 9 · Bestätigt „Später" (Reihenfolge von Leon festgelegt)
 
-**R5 · Ein Designsystem.** Alles UI folgt dem WEE-Designsystem (M24) — keine Insellösungen je Panel.
-Konkrete Farb-/Typo-Regeln: [design-vorgaben.md](design-vorgaben.md).
-
-## VIII — BESTÄTIGT „SPÄTER" (Reihenfolge von Leon festgelegt)
-
-**S1 ·** Tutorial-Feinbau: erst „wenn alles fertig ist" (Trigger-Fix M2 kommt früher).
-**S2 ·** CLI/MCP-Reprint + Tests: erst wenn das komplette Tool final steht (nie wieder auf Zwischenstand).
-**S3 ·** Verify-Prozess: geregelt (R2), Bewährung laufend.
-**S4 ·** Gemma-Zerlegung (lokales Modell): beim Import-Umbau — besprochen und gesetzt.
-**S5 ·** „Funktionen passen noch nicht"-Restprüfung: Leon prüft später selbst; die systematische
-Mängelsuche lieferte vorab die Kandidatenliste (M13 → N1–N21).
+- **Tutorial-Feinbau** *(S1)*: erst „wenn alles fertig ist" (der Trigger-Fix aus Abschnitt 1 kommt früher).
+- **CLI/MCP-Neudruck + Tests** *(S2)*: erst wenn das komplette Tool final steht (nie wieder auf einen Zwischenstand).
+- **Verify-Prozess** *(S3)*: geregelt (R2), Bewährung laufend.
+- **Gemma-Zerlegung (lokales Modell)** *(S4)*: beim Import-Umbau — besprochen und gesetzt.
+- **„Funktionen passen noch nicht"-Restprüfung** *(S5)*: Leon prüft später selbst; die Mängelsuche lieferte vorab die Kandidatenliste (diese Liste).
 
 ---
 
-## IX — UNGEPRÜFT (Protokoll-Pflicht — nichts verschwiegen, aus der Mängelsuche übernommen)
+## 10 · Ungeprüft (Ehrlichkeits-Deklaration — nichts verschwiegen)
 
-**Visuelle Belege / Screenshot-Kanal:** Der Claude_Browser-`computer{screenshot}`-Kanal timeoutet auf
-http://127.0.0.1:3113/editor konsistent nach 30 s — reproduziert über mehrere Versuche, auch nach
-Viewport-Resize (1280×800) + vollständigem Reload (Eskalationsleiter befolgt). Vermutlich blockiert
-eine dauerhafte RAF-/Canvas-Animation die CDP-Screenshot-Erfassung. `read_page`, `javascript_tool`,
-`computer{left_click}` funktionierten auf demselben Tab; visuelle Belege liefen über eine separate
-Playwright-Instanz (dort unauffällig). Für die reinen Code-Audits musste teils ganz auf
-read_page/Accessibility-Snapshot + `evaluate`-Messungen ausgewichen werden → belegen
-Existenz/Funktion, NICHT das Aussehen. Keine Optik-Urteile abgegeben.
+Punkte, die die Mängelsuche NICHT prüfen konnte — mit Grund und dem, was versucht wurde:
 
-**N13 (Hero unsichtbar):** Ob realer Nutzer-Bug oder reines Headless-Screenshot-Kompositing-Artefakt
-(bekannte Chromium-Eigenheit bei `backdrop-filter`) — UNGEPRÜFT. DOM/CSS-Werte korrekt, Problem trat
-direkt UND nach Reload+Wartezeit auf; Abgleich mit sichtbarem (nicht-headless) Fenster war mit den
-Tools nicht möglich. Empfehlung: manuell in echtem Chrome prüfen, bevor verbucht.
+- **Screenshot-Kanal des eingebauten Browsers**: timeoutet auf dem Editor konsistent nach 30 s (mehrfach reproduziert, auch nach Resize + Reload — Eskalationsleiter befolgt; vermutlich blockiert die Dauer-Canvas-Animation die Erfassung). Klicks/Auslesen funktionierten; visuelle Belege liefen über eine separate Playwright-Instanz. Code-Audits belegen daher Existenz/Funktion, NICHT das Aussehen — keine Optik-Urteile abgegeben.
+- **Unsichtbare Hero in der Vorschau** (Abschnitt 7): ob echter Bug oder Artefakt des Test-Browsers — offen; manuell in echtem Chrome prüfen, bevor verbucht.
+- **Seiten-Wiederauferstehung + Hintergrund-Heilung** (Abschnitte 4/6): nur im Code verifiziert — Laufzeit-Repro hätte echtes Anlegen/Löschen in zwei Sitzungen bzw. Datenbank-Eingriffe erfordert (strikt read-only gearbeitet, wee-website-v3 geschützt).
+- **History-/Deep-Link-Sequenzen** (Abschnitt 1): per Code-Trace belegt, nicht live durchgespielt (Sequenzen verändern Zustand; Screenshot-Beleg blockiert).
+- **Undo wirkt nur auf einen Verlauf** (Abschnitt 5): statisch aus dem Code hergeleitet (plausibel), nicht interaktiv erzwungen.
+- **Echter Ordner-Import**: nicht ausgeführt — der native „Ordner wählen"-Dialog ist im Automations-Browser nicht steuerbar; alle Import-Handler nur code-geprüft. Deshalb auch die **Falsch-Ordner-Meldung** (Abschnitt 3) weder bestätigt noch widerlegt.
+- **„Als aktive Website setzen"-Knopf**: gesehen, bewusst NICHT geklickt (um wee-website-v3 nicht als inaktiv zu hinterlassen) → Funktion ungeprüft.
+- **Speichern/Veröffentlichen + Konflikt-Mechanik (409)**: bewusst nicht ausgelöst (read-only, keine zweite Sitzung) → ungeprüft.
+- **„Ordner neu einlesen" (Bibliothek) + „Ordner erneut freigeben" (Hintergrund)**: nur code-geprüft (verdrahtet) — erscheinen erst bei verbundenem Ordner, der ohne den nativen Dialog nicht herstellbar ist.
+- **Alt+Klick-Selektion**: in beiden Prüf-Kanälen fehlgeschlagen (synthetisches Event griff nicht; vertrauenswürdiger Klick + Screenshot blockiert; Playwright kann nicht-interaktive Elemente nicht koordinaten-klicken) → keine belastbare Aussage.
+- **Nicht vertieft**: Pucks eigener Undo/Redo-Knopf (nur Tastatur getestet); Byte-Inhalt der 5 Export-Downloads (nur Download-Erfolg bestätigt); „kein Fluss"-Export-Variante; Fluss-Sektionen (Wasser/Front/Nebel/Profil) + ShapeAccent/Grafik-Ebene nur code-geprüft; Verhalten über mehrere Tabs (aktive Seite/Hintergrund) und die alten /puck- bzw. /puck-import-Spike-Seiten nicht auf Kollisionen geprüft; Puck-interne Knöpfe (Fremdbibliothek) nicht auditiert.
 
-**N18 / N19 (Stale-Save-Auferstehung, Backdrop-Heilung):** Laufzeit-Repro NICHT ausgeführt — erfordert
-Anlegen UND Löschen echter Puck-Seiten in zwei Sitzungen bzw. IndexedDB-Manipulation an echter
-Umgebung; strikt read-only + Schutz von wee-website-v3 → nur Code-verifiziert.
-
-**N20 / N21 (History/Deep-Link-Sequenzen):** NICHT live durchgespielt — die
-Mehr-History-Eintrag-Sequenzen verändern Zustand und die Screenshot-Evidenz war blockiert; per
-Code-Trace der pushState/popstate-Pfade belegt.
-
-**N8 (Undo-Dispatch nach Fokus):** Nur statisch/logisch aus dem Code hergeleitet (PLAUSIBEL), nicht
-live erzwungen — der Fluss war auf der Standard-Bühne nicht fokussiert; Fokussieren + Strg+Z bei
-leerem Fluss-Verlauf nicht interaktiv erzwungen.
-
-**Echter Ordner-Import (Station 1/2):** NICHT ausgeführt — „📁 Ordner wählen" öffnet den nativen
-File-System-Access-Dialog, im Automations-/Playwright-Browser nicht steuerbar. Alle Import-Handler
-(waehleOrdner/analysiere/speichere) nur code-geprüft. **M9 (Quellprojekt-Erkennung ohne HTML)** aus
-demselben Grund weder bestätigt noch widerlegt.
-
-**„Als aktive Website setzen"-Button:** nur in der Liste gesehen, NICHT geklickt (Wechsel der aktiven
-Website bewusst vermieden, um wee-website-v3 nicht als „nicht mehr aktiv" zu hinterlassen) →
-Funktionalität UNGEPRÜFT.
-
-**Speichern/Publish + 409-Konflikt-Mechanik:** bewusst NICHT ausgelöst (strikt read-only; keine zweite
-Session verfügbar). Speicherpfad-Korrektheit und Puck-eigene Konflikt-Antwort UNGEPRÜFT.
-
-**Bibliotheks-„⟳ Ordner neu einlesen" + Backdrop-„🔓 Ordner erneut freigeben":** nur code-geprüft
-(verdrahtet) — erscheinen erst bei verbundenem Ordner, der ohne FS-Access-Dialog nicht herstellbar ist.
-
-**Alt+Klick-Selektion (Ebenen-Hilfetext):** FEHLGESCHLAGEN in beiden Kanälen → UNGEPRÜFT. Versuch 1:
-synthetisches MouseEvent(altKey:true) per dispatchEvent — keine Auswahländerung, aber untrusted
-(unklar ob Handler nur trusted Events hört). Versuch 2: Trusted-Klick via computer-Tool — blockiert
-(coordinate-clicks setzen vorherigen `screenshot` voraus). Versuch 3: computer-Screenshot —
-30 s-Timeout. Playwright bietet keinen koordinatenbasierten Klick auf nicht-interaktive Elemente
-(Überschriften bekommen keine Refs). Keine belastbare Aussage möglich.
-
-**Weitere nicht vertieft:** Puck-eigener Toolbar-Undo/Redo-Button (nur Tastatur-Strg+Z getestet);
-Byte-Inhalt der 5 Export-Downloads (landeten in nicht-lesbarem Sandbox-Pfad `.playwright-mcp/`, nur
-Download-Erfolg bestätigt); „kein Fluss"-Export-Variante; Fluss-Sektionen (FlussSektion/Wasser/Front/
-Nebel/Profil) und ShapeAccent/Grafik-Ebene-Bausteine nur code-geprüft; Cross-Tab-Verhalten
-(storage-Event) von useAktiveSeite/Backdrop und die /puck- bzw. /puck-import-Spikes nicht auf
-Kollision mit dem Editor-Zustand geprüft; Puck-Editor-interne Buttons (@puckeditor/core,
-Drittanbieter) nicht auditiert.
-
-## X — KURZ-STATISTIK
+## 11 · Kurz-Statistik
 
 - Bekannte Mängel (Leons Abnahme): **25** (M1–M25) + **5 Regeln** (R1–R5) + **5 Später-Punkte** (S1–S5)
-- Neue Funde der Mängelsuche: **21** (N1–N21)
-  - Nach Art: **bug 11** (N3, N6, N7, N11, N12, N13, N15, N16, N17, N18, N19), **regel-verstoss 4**
-    (N2, N9, N10, N8-teilw.), **ux 5** (N1, N8, N14, N20, N21), **optik-verdacht 1** (N5)
-  - Nach Station: Import 2 · Puck 3 · Animator 7 · Export/Preview 2 · Querschnitt 7
-  - R1-Verstöße (Undo-Pflicht) neu: **4** (N2 Seiten-Löschen, N9 Slider-Fokus, N10 Bibliothek-✕,
-    N8 Fokus-Dispatch)
-  - Bezug zu bekannten M: N4/N8/N9→M11, N8→M14, N5→M24/R5, N14→M23 (Vertiefungen, kein Neu-Beleg)
-- In der Suche neu bestätigte bekannte Mängel: **18** (M1, M2, M4, M5, M6, M7, M10, M11, M12, M14,
-  M15, M17, M20, M22, M23, M24, M25 + R5)
-- Verworfen: 1 Audit-Block („C") = reine Test-Platzhalterdaten; Title-Zählung per Grep nachgeholt
-  (~30 Buttons ohne title, eingearbeitet in M17)
-- Ein Code-Fehler mit Tooling-Impact: **N6** NUL-Byte macht GrafikEditor.tsx für grep/Git-Diffs binär
+- Neue Funde der Mängelsuche: **21** (N1–N21) — davon 11 Bugs, 4 Undo-Regel-Verstöße, 5 UX, 1 Optik-Verdacht
+- Neue Undo-Verstöße: 4 (Seiten-Löschen, Slider-Fokus, Bibliothek-✕, Ein-Stapel-Dispatch)
+- In der Suche neu bestätigte bekannte Mängel: 18 (M1, M2, M4–M7, M10–M12, M14, M15, M17, M20, M22–M25 + R5)
+- Verworfen: 1 Audit-Block („C", Platzhalterdaten) — Title-Zählung per Grep nachgeholt (~30 Knöpfe, in Abschnitt 2 eingearbeitet)
