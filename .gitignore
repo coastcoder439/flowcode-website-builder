@@ -57,3 +57,9 @@ public/import/.papierkorb/
 # public/export/<slug>/ wird nur fuer die iframe-Vorschau geschrieben (Next
 # liefert es statisch aus). Reines Dev-Artefakt, jederzeit neu erzeugbar.
 /public/export/
+
+# Instatic-Klon (Sichtung/Referenz, eigenes Upstream-Repo — nicht mitversionieren)
+/instatic/
+
+# Spike-Build-Artefakt
+spike-plugin.zip

@@ -1,0 +1,23 @@
+{
+  "id": "flowcode.ankerspike",
+  "name": "Flowcode Anker-Spike",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "description": "Wegwerf-Spike: prueft, ob ein Canvas-Overlay mit Drag-Handle an einem Node haengt (Anker-Mechanik) und ob es im Live-Modus per Portal nachgezogen werden kann.",
+  "permissions": [
+    "editor.code",
+    "editor.canvas",
+    "editor.panels",
+    "editor.store.read"
+  ],
+  "resources": [],
+  "adminPages": [],
+  "entrypoints": {
+    "editor": "editor/index.js"
+  },
+  "author": {
+    "name": "Flowcode"
+  },
+  "license": "MIT",
+  "keywords": ["spike", "overlay", "anker"]
+}
