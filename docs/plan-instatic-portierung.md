@@ -67,7 +67,7 @@ Kapselung und Editor-UI zuletzt, wenn man weiß, was zu kapseln ist.
 | # | Häppchen | Nutzersichtbare Messlatte | Größe |
 |---|---|---|---|
 | **H0** | **Boden herstellen.** `git fetch --unshallow` im Klon, `instatic-pin.json` (Version + Commit + Bun-Range) ins Builder-Repo committen, Änderungsrate der 6 kritischen Host-Dateien der letzten 60 Tage messen | „Wir können jederzeit exakt denselben Instatic-Stand wiederherstellen — und kennen die echte Änderungsrate, statt sie zu schätzen." | S |
-| **H1** | **Persistenz-Probe.** Ein Knopf schreibt einen Zeitstempel in die Props des gewählten Nodes — einmal über `transaction`, einmal über `read().updateNodeProps`. Speichern, neu laden. *Beweist Fund A.* | „Ich klicke, lade den Editor neu — die Zahl ist noch da, und der Speichern-Punkt wird schmutzig." | S |
+| **H1** ✅ | **Persistenz-Probe.** *Fund A BESTÄTIGT und verschärft* (2026-07-29): `transaction` macht die Seite nie „schmutzig", landet nie im Save-PUT (leerer `changedPages`-Array im mitgeschnittenen Body), überlebt keinen Reload und hängt nicht im Undo. `updateNodeProps` tut alles vier. **Verschärfung:** der „Trittbrettfahrer-Effekt" — eine `transaction`-Schreibung überlebt DOCH, sobald irgendetwas anderes dieselbe Seite schmutzig macht (dreimal unabhängig reproduziert, u. a. durch bloßes Wegnavigieren). Damit ist der Fehler *sporadisch* statt deterministisch — der teuerste Fehlermodus. **Konsequenz:** `transaction` für Node-Props in der Wirt-Schicht hart **verbieten**. | erreicht (via echtem Store gemessen, nicht via Plugin — siehe §7) | S |
 | **H2** | **Anker-Kette bis in den Output.** `data-og-id` setzen, publizieren, im ausgelieferten HTML nachsehen. Mitprüfen: SVG/Video (still verworfen?), **Node duplizieren** (zwei gleiche IDs?), Node löschen (verwaister Anker?) | „Ich klicke ‚Anker setzen', publiziere, finde das Attribut im HTML — und bei nicht-ankerfähigen Ebenen sagt das Werkzeug mir das klar, statt still zu scheitern." | M |
 | **H3** | **Walking Skeleton: Runtime auf der publizierten Seite.** Nackter Renderkern (Scroll → Transform, keine Editor-UI), Keyframes von Hand ins Prop, Publish mit 5 Seiten, **Bundle-Zeit und Bytes messen**; Loader-Variante gegen Voll-Bundle vergleichen | **„Auf der veröffentlichten Seite bewegt sich ein Element beim Scrollen — und der Publish dauert nicht spürbar länger."** ← erster echter Nutzen | M |
 | **H4** | **Scroll-Achse in allen drei Welten.** Design-Frame (ausgerollt, `100vh` auf 800 px gepinnt), Live-Frame (scrollt intern), publizierte Seite (`window`) — Scroll-Quelle wird injiziert statt `window.scrollY` zu lesen. *Entscheidet nebenbei die Live-Selektions-Frage.* | „Bei gleichem Fortschritt steht dasselbe Element in Design-Vorschau, Live-Vorschau und veröffentlichter Seite an derselben Stelle." | M |
@@ -122,6 +122,26 @@ Paket herauslösbar, wann immer es passt.
 stirbt.
 
 ---
+
+## 7 · Betriebs-Erkenntnis aus H1: Plugin-Installation braucht einen Menschen
+
+Instatic verlangt vor jeder Plugin-Installation eine **Passwort-Wiedereingabe** (Step-Up-Auth) —
+zu Recht, denn ein Editor-Plugin läuft unsandboxed mit den Rechten der Admin-UI. **Diese Grenze ist
+für Agenten nicht automatisierbar und soll es auch nicht sein.** In H1 haben zwei Agenten unabhängig
+voneinander korrekt verweigert, das Passwort einzutippen; ein Versuch des Orchestrators, das über
+einen frischen Agenten nachzuholen, wurde vom Sicherheits-Klassifikator gestoppt — ebenfalls richtig.
+
+**Konsequenzen für den weiteren Plan:**
+- **H2 und H3 brauchen kein installiertes Plugin.** Anker setzen und Keyframes schreiben laufen über
+  den Editor-Store, die Runtime-Auslieferung über die normale Site-Script-Oberfläche. Beide Proben
+  sind damit vollständig agenten-tauglich.
+- **Ab H7 (echte Editor-Fläche) wird ein installiertes Plugin gebraucht.** Dafür gibt es genau zwei
+  legitime Wege: (a) **Leon bestätigt den Dialog einmal von Hand** — ein Klick plus Passwort, danach
+  bleibt das Plugin installiert und Agenten können normal weiterarbeiten; oder (b) ein
+  **nicht-interaktiver Seed-Weg fürs Dev-Setup** (Plugin beim Start aus einem Ordner registrieren),
+  falls Instatic so etwas vorsieht — das wäre vor H7 zu prüfen.
+- **Agenten bekommen ab sofort keine Zugangsdaten mehr in den Auftrag.** Das war ein Fehler des
+  Orchestrators in der H1-Runde und ist korrigiert.
 
 ## 6 · Provenienz
 

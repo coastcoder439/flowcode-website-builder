@@ -57,7 +57,7 @@ Eine Datei, z.B. `plugin/src/wirt.ts`, exportiert etwa acht Funktionen. **Kein a
 | `messeViewport()` | `useCanvasViewport` |
 | `findeCanvasWurzel()` | `[data-instatic-canvas-root]` (Live-Portal) |
 | `findeOverlaySchicht()` | `[data-canvas-overlay-layer]` |
-| `schreibeNodeProps(id, patch)` | `api.editor.store.transaction` — **nur diese eine Mutation** |
+| `schreibeNodeProps(id, patch)` | ~~`api.editor.store.transaction`~~ → **KORRIGIERT nach H1-Messung: `store.read().updateNodeProps(id, patch)`**. `transaction` ist ein rohes `setState`, macht die Seite nie dirty, landet nie im Save-PUT und haengt nicht im Undo — in H1 dreifach unabhaengig gemessen (leerer `changedPages`-Array im mitgeschnittenen PUT-Body, Wert nach Reload weg, kein History-Eintrag). Fuer Node-Props/Tree ist `transaction` **verboten**, nicht nur „nicht empfohlen". |
 | `registriereFlaechen(api)` | `registerOverlay` + `panels.register` |
 
 Der Wert: bei einem Instatic-Upgrade ist die Reparaturfläche **eine Datei**, nicht 4000 Zeilen. Absichern in *unserem* Repo mit einem Grep-Test: „außer `wirt.ts` importiert nichts `@instatic/`, außer `wirt.ts` steht nirgends `data-instatic`/`data-canvas`/`data-node-id`". Das ist derselbe Mechanismus, den Instatic selbst für seine Architektur-Regeln nutzt (`src/__tests__/architecture/`) — 97 solcher Gates existieren dort, das Muster passt.
