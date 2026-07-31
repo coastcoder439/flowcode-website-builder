@@ -1,0 +1,31 @@
+{
+  "_hinweis": "H3a-Skeleton-Config. `grafiken` ist exakt der Grafik[]-Typ aus kern/grafik-types.ts. Die id IST die Anker-Id: id 'list' treibt das Element mit class='fcank-list'. Beide Anker sind ECHTE, in Instatic gesetzte Klassen der Seite anker-probe-h2 (styleRules fcank-list / fcank-video, Node-classIds aus der laufenden Datenbank). src/art/breitePx/z sind im Wirt-Element-Modus ohne Wirkung (kein Overlay-Bild) und nur gesetzt, weil der Typ sie fordert.",
+  "version": 1,
+  "grafiken": [
+    {
+      "id": "list",
+      "name": "Anker A - base.list (<ul>), gepinnt + gedreht",
+      "src": "",
+      "art": "bild",
+      "breitePx": 0,
+      "z": 0,
+      "keyframes": [
+        { "scrollY": 0, "x": 0, "y": 0, "scale": 1, "opacity": 1, "rotation": 0 },
+        { "scrollY": 800, "x": 320, "y": 800, "scale": 1.6, "opacity": 1, "rotation": 45 },
+        { "scrollY": 1600, "x": 0, "y": 1600, "scale": 1, "opacity": 0.25, "rotation": 180 }
+      ]
+    },
+    {
+      "id": "video",
+      "name": "Anker B - base.video, einfacher Querflug",
+      "src": "",
+      "art": "bild",
+      "breitePx": 0,
+      "z": 0,
+      "keyframes": [
+        { "scrollY": 0, "x": 0, "y": 0, "scale": 1, "opacity": 1, "rotation": 0 },
+        { "scrollY": 1600, "x": 600, "y": 0, "scale": 1, "opacity": 1, "rotation": 0 }
+      ]
+    }
+  ]
+}

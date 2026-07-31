@@ -69,7 +69,7 @@ Kapselung und Editor-UI zuletzt, wenn man weiß, was zu kapseln ist.
 | **H0** | **Boden herstellen.** `git fetch --unshallow` im Klon, `instatic-pin.json` (Version + Commit + Bun-Range) ins Builder-Repo committen, Änderungsrate der 6 kritischen Host-Dateien der letzten 60 Tage messen | „Wir können jederzeit exakt denselben Instatic-Stand wiederherstellen — und kennen die echte Änderungsrate, statt sie zu schätzen." | S |
 | **H1** ✅ | **Persistenz-Probe.** *Fund A BESTÄTIGT und verschärft* (2026-07-29): `transaction` macht die Seite nie „schmutzig", landet nie im Save-PUT (leerer `changedPages`-Array im mitgeschnittenen Body), überlebt keinen Reload und hängt nicht im Undo. `updateNodeProps` tut alles vier. **Verschärfung:** der „Trittbrettfahrer-Effekt" — eine `transaction`-Schreibung überlebt DOCH, sobald irgendetwas anderes dieselbe Seite schmutzig macht (dreimal unabhängig reproduziert, u. a. durch bloßes Wegnavigieren). Damit ist der Fehler *sporadisch* statt deterministisch — der teuerste Fehlermodus. **Konsequenz:** `transaction` für Node-Props in der Wirt-Schicht hart **verbieten**. | erreicht (via echtem Store gemessen, nicht via Plugin — siehe §7) | S |
 | **H2** ✅ | **Anker-Kette bis in den Output.** *Fund B BESTÄTIGT, aber eleganter gelöst als geplant* (2026-07-29): `htmlAttributes` ist **Opt-in im jeweiligen Modul** — emittiert nur von container/text/image/button/link (+ body). Auf SVG, Video, Liste, Outlet wird `data-og-id` **still verworfen** (gemessen: 0 Treffer im HTML, das `<svg>` selbst ist da). **ABER: CSS-Klassen kommen universell durch** — `injectNodeClassIds` läuft in `renderNode.ts:196` **bedingungslos für jeden Node**, anders als `injectNodeId` (hängt an einem Flag, das nur der Agenten-Pfad setzt). Sauberste Einzelmessung am selben SVG-Node: `data-og-id` → 0 Treffer, `class="fcank-svg"` → **1 Treffer**. → **Der Anker-Vertrag wechselt von `data-og-id` auf eine Klassen-Konvention** (`fcank-<id>`); im Renderkern ist das eine Selektor-Zeile. **Damit erledigt sich E5 ohne Container-Workaround.** | erreicht (Kern-Beweis; Randfälle offen — siehe §8) | M |
-| **H3a** | **Walking Skeleton (agenten-tauglich).** Renderkern auf Klassen-Anker umgestellt, Keyframes von Hand ins Prop, Runtime als Site-Script — Beweis am **server-gerenderten HTML** (derselbe `publishPage()`-Pfad wie Publish): Element bewegt sich beim Scrollen, an ≥3 Positionen gemessen | **„Eine echte Instatic-Seite, auf der sich beim Scrollen etwas bewegt."** ← erster Nutzen | M |
+| **H3a** ✅ | **Walking Skeleton — GESCHAFFT** (2026-07-31): Renderkern auf Klassen-Anker umgestellt (`instatic-plugin/kern/`), schlanke Runtime gebaut, auf einer aus der Instatic-DB **server-gerenderten** Seite bewegt sich beim Scrollen ein Element. Verify hat an **6 selbstgewählten** Scroll-Positionen gemessen (Transform *und* aufgelöste Matrix), die Keyframe-Interpolation **unabhängig neu implementiert** und die Werte **vorhergesagt** — exakte Übereinstimmung. Gegenprobe ohne Anker: keine Bewegung, CSS als Ursache ausgeschlossen (0 Treffer für `@keyframes`/`animation`/`transition` im HTML). | **erreicht** — Beleg `belege/h3a-skeleton-scroll-0400.png` (Liste sichtbar ~22° rotiert) vs. Gegenprobe | M |
 | **H3b** | **Publish-Messung** (braucht Leons einmaligen Bestätigungs-Klick): 5 Seiten veröffentlichen, **Bundle-Zeit und Bytes messen**, Loader-Variante gegen Voll-Bundle | „Der Publish dauert nicht spürbar länger, und die Runtime liegt nicht 5-mal auf der Platte." | S |
 | **H4** | **Scroll-Achse in allen drei Welten.** Design-Frame (ausgerollt, `100vh` auf 800 px gepinnt), Live-Frame (scrollt intern), publizierte Seite (`window`) — Scroll-Quelle wird injiziert statt `window.scrollY` zu lesen. *Entscheidet nebenbei die Live-Selektions-Frage.* | „Bei gleichem Fortschritt steht dasselbe Element in Design-Vorschau, Live-Vorschau und veröffentlichter Seite an derselben Stelle." | M |
 | **H5** | **Datenmodell-Entscheid am Prototyp.** Bühnen-Node vs. Node-pro-Grafik mit je 3 Grafiken durchspielen: Ebenen-Baum, Undo-Schritte, Duplizieren, Anker-Kollision, JSON-Größe messen | **„Leon sieht zwei Ebenen-Bäume nebeneinander und sagt, welcher sich richtig anfühlt."** | M |
@@ -189,6 +189,34 @@ Publish-Wand):
 keine Plugins installieren**. Beides sind bewusste Sicherheitsgrenzen. Für die Portierung heißt das:
 An zwei Stellen im Ablauf braucht es jeweils einen kurzen manuellen Klick von Leon — das ist
 einzuplanen, nicht zu umgehen.
+
+## 9 · Nachtrag H3a: Der Klassen-Anker trägt — und ein neuer SVG-Befund
+
+**Die H2-Lücke ist geschlossen.** Der Verify-Agent hat unabhängig nachgemessen: Die Anker-**Klasse**
+kommt im server-gerenderten HTML an — bestätigt an `<ul>`, `<video>` **und** `<main>`, also an drei
+Baustein-Typen, die das `data-og-id`-Attribut nachweislich verwerfen (`hasAttribute` → false). Der
+Klassen-Weg ist damit unabhängig belegt, nicht nur im Code hergeleitet.
+
+**Neuer, unerwarteter Befund — SVG rendert gar nicht.** Die Erwartung war „SVG verliert nur das
+Attribut". Tatsächlich fehlt im gerenderten HTML **das komplette `<svg>`-Element** (0 Treffer für
+`<svg`), der Wrapper ist leer; der Klassenname taucht nur als CSS-Regel im `<style>`-Block auf, nie
+als Attribut an einem Element. Ursache laut Bau-Agent: die Sanitisierung (DOMPurify) liefert im
+serverseitigen Render-Kontext ohne DOM einen leeren String für SVG-Props.
+**Konsequenz:** Für Video, Listen und Outlets ist E5 durch den Klassen-Weg erledigt — **für SVG
+nicht**, dort liegt ein anderes, tieferes Problem. Ob das nur die Preview-Route betrifft oder auch
+den echten Publish, ist **ungeprüft** (wir konnten nicht publizieren). Gehört in H3b geklärt, bevor
+SVG-Animation zugesagt wird.
+
+**Methodisch bemerkenswert** (für künftige Verify-Aufträge): Der Agent hat die Bewegung nicht nur
+gemessen, sondern die Keyframe-Interpolation aus der Config **selbst nachgerechnet** (kubische
+Bezier per Newton-Raphson, eigenständig hergeleitet) und die Werte **vorab vorhergesagt**. Die
+Übereinstimmung mit den Browser-Messwerten schließt aus, dass irgendetwas anderes als unsere
+Keyframes die Bewegung erzeugt. Das ist die Messlatten-Qualität, die dieser Plan durchgehend braucht.
+
+**Umgebungsgrenze (ehrlich):** Eigene *frische* Screenshots waren dem Verify-Agenten nicht möglich
+(Browser-Pane rendert in einer Hintergrund-Session keine Frames, Playwright-Instanz tot). Er hat
+stattdessen die vorhandenen Belege selbst geöffnet und visuell geprüft — die sichtbare Drehung deckt
+sich mit seiner unabhängigen Vorhersage. Der Orchestrator hat den Beleg ebenfalls selbst angesehen.
 
 ## 6 · Provenienz
 

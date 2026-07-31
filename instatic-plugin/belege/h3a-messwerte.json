@@ -1,0 +1,737 @@
+{
+  "erzeugt": "2026-07-31T17:07:00.854Z",
+  "browser": "150.0.4078.105",
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "skeleton": {
+    "url": "http://127.0.0.1:4177/",
+    "umgebung": {
+      "titel": "Anker-Probe H2",
+      "docHoehe": 3194,
+      "maxScroll": 2394,
+      "scriptQuellen": [
+        "http://127.0.0.1:4177/_instatic/runtime/entries/fcank-runtime-NHKSUITM.js"
+      ],
+      "runtimeGeladen": "object",
+      "status": {
+        "laeuft": true,
+        "reduziert": false,
+        "scrollY": 0,
+        "anker": {
+          "list": true,
+          "video": true
+        },
+        "kollisionen": {
+          "fc-container-1": 2,
+          "fc-text-1": 2,
+          "fc-image-1": 2
+        },
+        "zustaende": {
+          "list": {
+            "x": 0,
+            "y": 0,
+            "scale": 1,
+            "opacity": 1,
+            "rotation": 0
+          },
+          "video": {
+            "x": 0,
+            "y": 0,
+            "scale": 1,
+            "opacity": 1,
+            "rotation": 0
+          }
+        }
+      },
+      "bewegungImDokument": {
+        "transform": 2,
+        "@keyframes": 0,
+        "animation": 0,
+        "transition": 0,
+        "scroll-timeline": 0,
+        "view-timeline": 0
+      },
+      "stylesheetRegeln": [
+        ":where(*) { box-sizing: border-box; }",
+        ":where(*) { margin: 0px; padding: 0px; }",
+        ":where(body) { line-height: 1.5; font-family: system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }",
+        ":where(img, picture, video, canvas, svg) { display: block; max-width: 100%; height: auto; }",
+        ":where(input, button, textarea, select) { font: inherit; color: inherit; }",
+        ":where(button) { background: none; border: 0px; cursor: pointer; }",
+        ":where(p, h1, h2, h3, h4, h5, h6) { overflow-wrap: break-word; }",
+        ":where(ol, ul, menu) { list-style: none; }",
+        ":where(a) { color: inherit; text-decoration: inherit; }",
+        ":where(table) { border-collapse: collapse; }",
+        ".fcank-video { opacity: 1; }",
+        ".fcank-list { opacity: 1; }",
+        ".fcank-loop { opacity: 1; }",
+        ".fcank-outlet { opacity: 1; }",
+        ".fcank-svg { opacity: 1; }"
+      ]
+    },
+    "messungen": [
+      {
+        "sollScrollY": 0,
+        "istScrollY": 0,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(0px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 0, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": 522,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "translate3d(0px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 0, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": 372,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 400,
+        "istScrollY": 400,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(160px, 400px, 0px) scale(1.3) rotate(22.5deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1.20104, 0.497488, -0.497488, 1.20104, 160, 400)",
+            "opacity": "1",
+            "rect": {
+              "x": 19.39,
+              "y": 198.78,
+              "w": 1561.21,
+              "h": 694.44
+            },
+            "dokY": 598.78,
+            "dokX": 19.39
+          },
+          "video": {
+            "inlineTransform": "translate3d(77.5px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 77.5, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 77.5,
+              "y": -28,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 77.5
+          }
+        }
+      },
+      {
+        "sollScrollY": 800,
+        "istScrollY": 800,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(320px, 800px, 0px) scale(1.6) rotate(45deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1.13137, 1.13137, -1.13137, 1.13137, 320, 800)",
+            "opacity": "1",
+            "rect": {
+              "x": 208.77,
+              "y": -205.23,
+              "w": 1502.46,
+              "h": 1502.46
+            },
+            "dokY": 594.77,
+            "dokX": 208.77
+          },
+          "video": {
+            "inlineTransform": "translate3d(300px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 300, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 300,
+              "y": -428,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 300
+          }
+        }
+      },
+      {
+        "sollScrollY": 1197,
+        "istScrollY": 1197,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(162.1px, 1194.8px, 0px) scale(1.304) rotate(111.6deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(-0.480034, 1.21243, -1.21243, -0.480034, 162.1, 1194.8)",
+            "opacity": "0.63",
+            "rect": {
+              "x": 465.78,
+              "y": -243.68,
+              "w": 672.64,
+              "h": 1574.95
+            },
+            "dokY": 953.32,
+            "dokX": 465.78
+          },
+          "video": {
+            "inlineTransform": "translate3d(521.3px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 521.3, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 521.3,
+              "y": -825,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 521.3
+          }
+        }
+      },
+      {
+        "sollScrollY": 1600,
+        "istScrollY": 1600,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(0px, 1600px, 0px) scale(1) rotate(180deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(-1, 0, 0, -1, 0, 1600)",
+            "opacity": "0.25",
+            "rect": {
+              "x": 0,
+              "y": 522,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 2122,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "translate3d(600px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 600, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 600,
+              "y": -1228,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 600
+          }
+        }
+      },
+      {
+        "sollScrollY": 2394,
+        "istScrollY": 2394,
+        "ziele": {
+          "list": {
+            "inlineTransform": "translate3d(0px, 1600px, 0px) scale(1) rotate(180deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(-1, 0, 0, -1, 0, 1600)",
+            "opacity": "0.25",
+            "rect": {
+              "x": 0,
+              "y": -272,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 2122,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "translate3d(600px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+            "computedTransform": "matrix(1, 0, 0, 1, 600, 0)",
+            "opacity": "1",
+            "rect": {
+              "x": 600,
+              "y": -2022,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 600
+          }
+        }
+      }
+    ],
+    "konsole": [
+      "info: Images loaded lazily and replaced with placeholders. Load events are deferred. See https://go.microsoft.com/fwlink/?linkid=2048113",
+      "error: Loading media from  'https://example.com/anker-probe.mp4' violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.",
+      "warning: [fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision): {fc-container-1: 2, fc-text-1: 2, fc-image-1: 2}",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "gegenprobe": {
+    "url": "http://127.0.0.1:4178/",
+    "umgebung": {
+      "docHoehe": 3194,
+      "maxScroll": 2394,
+      "runtimeGeladen": "object",
+      "status": {
+        "laeuft": true,
+        "reduziert": false,
+        "scrollY": 0,
+        "anker": {
+          "list": false,
+          "video": false
+        },
+        "kollisionen": {
+          "fc-container-1": 2,
+          "fc-text-1": 2,
+          "fc-image-1": 2
+        },
+        "zustaende": {
+          "list": {
+            "x": 0,
+            "y": 0,
+            "scale": 1,
+            "opacity": 1,
+            "rotation": 0
+          },
+          "video": {
+            "x": 0,
+            "y": 0,
+            "scale": 1,
+            "opacity": 1,
+            "rotation": 0
+          }
+        }
+      },
+      "ankerKlassenImHtml": {
+        "fcank-list": 0,
+        "fcank-video": 0
+      },
+      "stylesheetRegeln": [
+        ":where(*) { box-sizing: border-box; }",
+        ":where(*) { margin: 0px; padding: 0px; }",
+        ":where(body) { line-height: 1.5; font-family: system-ui, -apple-system, \"Segoe UI\", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }",
+        ":where(img, picture, video, canvas, svg) { display: block; max-width: 100%; height: auto; }",
+        ":where(input, button, textarea, select) { font: inherit; color: inherit; }",
+        ":where(button) { background: none; border: 0px; cursor: pointer; }",
+        ":where(p, h1, h2, h3, h4, h5, h6) { overflow-wrap: break-word; }",
+        ":where(ol, ul, menu) { list-style: none; }",
+        ":where(a) { color: inherit; text-decoration: inherit; }",
+        ":where(table) { border-collapse: collapse; }"
+      ]
+    },
+    "messungen": [
+      {
+        "sollScrollY": 0,
+        "istScrollY": 0,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": 522,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": 372,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 400,
+        "istScrollY": 400,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": 122,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -28,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 800,
+        "istScrollY": 800,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -278,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -428,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 1197,
+        "istScrollY": 1197,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -675,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -825,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 1600,
+        "istScrollY": 1600,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -1078,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -1228,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      },
+      {
+        "sollScrollY": 2394,
+        "istScrollY": 2394,
+        "ziele": {
+          "list": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -1872,
+              "w": 1280,
+              "h": 48
+            },
+            "dokY": 522,
+            "dokX": 0
+          },
+          "video": {
+            "inlineTransform": "(keiner)",
+            "computedTransform": "none",
+            "opacity": "1",
+            "rect": {
+              "x": 0,
+              "y": -2022,
+              "w": 300,
+              "h": 150
+            },
+            "dokY": 372,
+            "dokX": 0
+          }
+        }
+      }
+    ],
+    "konsole": [
+      "info: Images loaded lazily and replaced with placeholders. Load events are deferred. See https://go.microsoft.com/fwlink/?linkid=2048113",
+      "error: Loading media from  'https://example.com/anker-probe.mp4' violates the following Content Security Policy directive: \"default-src 'self'\". Note that 'media-src' was not explicitly set, so 'default-src' is used as a fallback. The action has been blocked.",
+      "warning: [fcank] Anker nicht gefunden: list, video (erwartet: class=\"fcank-<id>\")",
+      "warning: [fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision): {fc-container-1: 2, fc-text-1: 2, fc-image-1: 2}",
+      "error: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "urteile": [
+    {
+      "pruefung": "SKELETON list @ scrollY=0 trifft den Keyframe exakt (Zahlen, nicht Textform)",
+      "erwartet": {
+        "x": 0,
+        "y": 0,
+        "scale": 1,
+        "opacity": 1,
+        "rotation": 0
+      },
+      "gemessen": {
+        "vonUnsGeschrieben": {
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "rotation": 0
+        },
+        "vomBrowserAufgeloest": {
+          "x": 0,
+          "y": 0,
+          "scale": 1,
+          "rotation": 0
+        },
+        "opacity": "1",
+        "rohInline": "translate3d(0px, 0px, 0px) scale(1) rotate(0deg) scaleX(1) scaleY(1)",
+        "rohComputed": "matrix(1, 0, 0, 1, 0, 0)"
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "SKELETON list @ scrollY=800 trifft den Keyframe exakt (Zahlen, nicht Textform)",
+      "erwartet": {
+        "x": 320,
+        "y": 800,
+        "scale": 1.6,
+        "opacity": 1,
+        "rotation": 45
+      },
+      "gemessen": {
+        "vonUnsGeschrieben": {
+          "x": 320,
+          "y": 800,
+          "scale": 1.6,
+          "rotation": 45
+        },
+        "vomBrowserAufgeloest": {
+          "x": 320,
+          "y": 800,
+          "scale": 1.6,
+          "rotation": 45
+        },
+        "opacity": "1",
+        "rohInline": "translate3d(320px, 800px, 0px) scale(1.6) rotate(45deg) scaleX(1) scaleY(1)",
+        "rohComputed": "matrix(1.13137, 1.13137, -1.13137, 1.13137, 320, 800)"
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "SKELETON list @ scrollY=1600 trifft den Keyframe exakt (Zahlen, nicht Textform)",
+      "erwartet": {
+        "x": 0,
+        "y": 1600,
+        "scale": 1,
+        "opacity": 0.25,
+        "rotation": 180
+      },
+      "gemessen": {
+        "vonUnsGeschrieben": {
+          "x": 0,
+          "y": 1600,
+          "scale": 1,
+          "rotation": 180
+        },
+        "vomBrowserAufgeloest": {
+          "x": 0,
+          "y": 1600,
+          "scale": 1,
+          "rotation": 180
+        },
+        "opacity": "0.25",
+        "rohInline": "translate3d(0px, 1600px, 0px) scale(1) rotate(180deg) scaleX(1) scaleY(1)",
+        "rohComputed": "matrix(-1, 0, 0, -1, 0, 1600)"
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "SKELETON list: Geometrie aendert sich ueber die Scroll-Positionen (echte Renderwirkung)",
+      "gemessen": {
+        "verschiedeneGeometrien": 4,
+        "von": 6,
+        "rects": [
+          {
+            "x": 0,
+            "y": 522,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 19.39,
+            "y": 198.78,
+            "w": 1561.21,
+            "h": 694.44
+          },
+          {
+            "x": 208.77,
+            "y": -205.23,
+            "w": 1502.46,
+            "h": 1502.46
+          },
+          {
+            "x": 465.78,
+            "y": -243.68,
+            "w": 672.64,
+            "h": 1574.95
+          },
+          {
+            "x": 0,
+            "y": 522,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": -272,
+            "w": 1280,
+            "h": 48
+          }
+        ]
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "GEGENPROBE: ohne Anker-Klasse bewegt sich NICHTS",
+      "gemessen": {
+        "transformWerte": [
+          "(keiner)"
+        ],
+        "dokumentPositionen": [
+          522
+        ],
+        "geometrien": [
+          {
+            "x": 0,
+            "y": 522,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": 122,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": -278,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": -675,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": -1078,
+            "w": 1280,
+            "h": 48
+          },
+          {
+            "x": 0,
+            "y": -1872,
+            "w": 1280,
+            "h": 48
+          }
+        ],
+        "ankerKlassenImHtml": {
+          "fcank-list": 0,
+          "fcank-video": 0
+        },
+        "runtimeGeladen": "object"
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "SKELETON: hinter dem letzten Keyframe wird geklemmt (Rand-Zustand haelt)",
+      "gemessen": {
+        "beiMaxScroll": "translate3d(0px, 1600px, 0px) scale(1) rotate(180deg) scaleX(1) scaleY(1)",
+        "beiKf2": "translate3d(0px, 1600px, 0px) scale(1) rotate(180deg) scaleX(1) scaleY(1)"
+      },
+      "ergebnis": "OK"
+    },
+    {
+      "pruefung": "Kein CSS im ausgelieferten Dokument kann Bewegung erzeugen",
+      "gemessen": {
+        "transform": 2,
+        "@keyframes": 0,
+        "animation": 0,
+        "transition": 0,
+        "scroll-timeline": 0,
+        "view-timeline": 0
+      },
+      "ergebnis": "OK"
+    }
+  ]
+}
