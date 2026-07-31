@@ -1,0 +1,122 @@
+{
+  "erzeugt": "2026-07-31T18:34:42.369Z",
+  "browser": "150.0.4078.105",
+  "wurzel": "C:\\Users\\Lonsinator\\Flowcode-Agentic-OS\\user-projects\\flowcode-website-builder\\instatic-plugin\\out\\h4",
+  "indexMitScrollen": {
+    "pfad": "/index.html",
+    "konsole": [
+      {
+        "typ": "info",
+        "text": "Images loaded lazily and replaced with placeholders. Load events are deferred. See https://go.microsoft.com/fwlink/?linkid=2048113",
+        "ort": "http://127.0.0.1:4181/index.html:41"
+      },
+      {
+        "typ": "warning",
+        "text": "[fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision): {fc-container-1: 2, fc-text-1: 2, fc-image-1: 2}",
+        "ort": "http://127.0.0.1:4181/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js:214"
+      }
+    ],
+    "fehlgeschlagen": [
+      {
+        "url": "https://example.com/anker-probe.png",
+        "grund": "net::ERR_BLOCKED_BY_ORB",
+        "typ": "image"
+      }
+    ],
+    "antwortenAb400": []
+  },
+  "welten": {
+    "pfad": "/welten.html",
+    "konsole": [
+      {
+        "typ": "warning",
+        "text": "[fcank] Anker nicht gefunden: list, video (erwartet: class=\"fcank-<id>\")",
+        "ort": "http://127.0.0.1:4181/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js:212"
+      },
+      {
+        "typ": "info",
+        "text": "Images loaded lazily and replaced with placeholders. Load events are deferred. See https://go.microsoft.com/fwlink/?linkid=2048113",
+        "ort": "http://127.0.0.1:4181/welten.html:0"
+      },
+      {
+        "typ": "warning",
+        "text": "[fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision): {fc-container-1: 2, fc-text-1: 2, fc-image-1: 2}",
+        "ort": "http://127.0.0.1:4181/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js:214"
+      },
+      {
+        "typ": "warning",
+        "text": "[fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision): {fc-container-1: 2, fc-text-1: 2, fc-image-1: 2}",
+        "ort": "http://127.0.0.1:4181/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js:214"
+      }
+    ],
+    "fehlgeschlagen": [
+      {
+        "url": "https://example.com/anker-probe.png",
+        "grund": "net::ERR_BLOCKED_BY_ORB",
+        "typ": "image"
+      },
+      {
+        "url": "https://example.com/anker-probe.png",
+        "grund": "net::ERR_BLOCKED_BY_ORB",
+        "typ": "image"
+      }
+    ],
+    "antwortenAb400": []
+  },
+  "serverSicht": [
+    {
+      "url": "/index.html",
+      "status": 200
+    },
+    {
+      "url": "/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js",
+      "status": 200
+    },
+    {
+      "url": "/favicon.ico",
+      "status": 200,
+      "quelle": "harness-datei"
+    },
+    {
+      "url": "/welten.html",
+      "status": 200
+    },
+    {
+      "url": "/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js",
+      "status": 200
+    },
+    {
+      "url": "/index.html",
+      "status": 200
+    },
+    {
+      "url": "/index.html",
+      "status": 200
+    },
+    {
+      "url": "/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js",
+      "status": 200
+    },
+    {
+      "url": "/_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js",
+      "status": 200
+    },
+    {
+      "url": "/favicon.ico",
+      "status": 200,
+      "quelle": "harness-datei"
+    }
+  ],
+  "zaehlung": {
+    "indexMitScrollen": {
+      "konsolenFehler": 0,
+      "fehlgeschlageneAnfragen": 1,
+      "antwortenAb400": 0
+    },
+    "welten": {
+      "konsolenFehler": 0,
+      "fehlgeschlageneAnfragen": 2,
+      "antwortenAb400": 0
+    }
+  }
+}

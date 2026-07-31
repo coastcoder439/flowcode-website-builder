@@ -66,7 +66,21 @@ const ASSET_BASIS = '/_instatic/runtime/'
 /** Gegenprobe-Modus: dieselbe Seite, aber die Anker-Klassen werden vom
  *  Node entfernt. Bewegt sich dann noch etwas, kaeme es von CSS — nicht von uns. */
 const OHNE_ANKER = process.argv.includes('--ohne-anker')
-const AUSGABE_ORDNER = OHNE_ANKER ? join(OUT, 'gegenprobe') : join(OUT, 'skeleton')
+/** `--medien-lokal`: keine Anfrage mehr an example.com (s. ohneFremdMedien).
+ *  Bewusst ein FLAG und nicht das Standardverhalten, damit der H3a-Aufruf
+ *  (ohne Flag) weiterhin die eingefrorenen H3a-Bytes reproduziert — nachgemessen:
+ *  Render ohne Flag ist byteidentisch zum Stand vor dieser Fix-Runde. */
+const MEDIEN_LOKAL = process.argv.includes('--medien-lokal')
+/** `--ordner <name>` schreibt woandershin (H4 rendert nach out/h4, damit die
+ *  H3a-Belege in out/skeleton byteidentisch stehen bleiben). */
+const ORDNER_FLAG = process.argv.indexOf('--ordner')
+const ORDNER_NAME =
+  ORDNER_FLAG >= 0 && process.argv[ORDNER_FLAG + 1]
+    ? process.argv[ORDNER_FLAG + 1]
+    : OHNE_ANKER
+      ? 'gegenprobe'
+      : 'skeleton'
+const AUSGABE_ORDNER = join(OUT, ORDNER_NAME)
 
 // ---------------------------------------------------------------------------
 // Harness-Bausteine
@@ -104,6 +118,79 @@ function mitHarnessHoehe(seite: Page): Page {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Fix-Runde zu H4, Check 9 ("0 Konsolen-Fehler auf den gemessenen Pfaden")
+ * ---------------------------------------------------------------------------
+ * Die H2-Fixture zeigt mit Bild und Video auf `https://example.com/...`. Diese
+ * Domain ist per RFC 2606 reserviert und liefert nie Inhalte — beide Anfragen
+ * MUESSEN scheitern. Sie scheitern aber UNTERSCHIEDLICH, und nur eine davon
+ * schreibt in die Konsole:
+ *   - Video: `default-src 'self'` (Instatics eigene CSP, unveraendert) verbietet
+ *     fremde Medien -> eine 'error'-ZEILE je Dokument. Das ist der Check-9-Fund.
+ *   - Bild:  net::ERR_BLOCKED_BY_ORB -> fehlgeschlagene Anfrage OHNE
+ *     Konsolenzeile (selbst gemessen, 55-konsole-diagnose.mjs).
+ *
+ * REPARIERT WIRD DESHALB NUR DAS VIDEO — gleich-origin Ziel PLUS
+ * `preload="none"`. Beides zusammen ist noetig, und das ist gemessen, nicht
+ * angenommen: mit `preload="none"` allein blieb die Fehlerzeile stehen, weil
+ * Chromium die CSP schon beim SETZEN der Quelle prueft, nicht erst beim Laden.
+ * Das gleich-origin Ziel macht diese Pruefung still, `preload="none"` verhindert
+ * die Anfrage danach — es wird also nichts geladen, was das <video> neu
+ * vermassen koennte. Anker-Klasse und Node-Typ bleiben unberuehrt.
+ *
+ * DAS BILD BLEIBT ABSICHTLICH STEHEN, und der Grund ist eine Messung:
+ * ein gleich-origin 1x1-Platzhalter wurde gebaut und durchgemessen — er
+ * verlaengert die Seite um exakt 1 px je Bild (die Fixture hat zwei, also
+ * +2 px: docHoehe 3194 -> 3196, Anker-dokY 522 -> 524, und in der Folge jede
+ * Zahl der H4-Reihen). Eine Anfrage, die keine Fehlerzeile erzeugt, ist diesen
+ * Preis nicht wert: die H4-Messwerte sollen vergleichbar bleiben. Der Rest-Fund
+ * (eine fehlgeschlagene Fremd-Anfrage ohne Konsolenfehler) ist im Bericht
+ * ausgewiesen statt weggeraeumt.
+ *
+ * Die CSP der Seite wird NICHT angefasst: es wird nichts erlaubt, was vorher
+ * verboten war. Dass die Reparatur keine Geometrie bewegt, wird nicht behauptet,
+ * sondern in 60-fix-vergleich.mjs gegen den Messstand vor der Fix-Runde geprueft.
+ */
+const PLATZHALTER_VIDEO = '/_fcank-harness/platzhalter.mp4'
+
+function istFremdUrl(wert: unknown): wert is string {
+  return typeof wert === 'string' && /^https?:\/\//i.test(wert)
+}
+
+interface MedienAenderung {
+  nodeId: string
+  moduleId: string
+  was: string
+  vorher: string
+  nachher: string
+}
+
+function ohneFremdMedien(seite: Page): { seite: Page; aenderungen: MedienAenderung[] } {
+  const aenderungen: MedienAenderung[] = []
+  const nodes: Record<string, PageNode> = {}
+  for (const [id, n] of Object.entries(seite.nodes)) {
+    const knoten = n as PageNode & { moduleId: string; props: Record<string, unknown> }
+    const props = { ...knoten.props }
+    let beruehrt = false
+
+    if (knoten.moduleId === 'base.video' && istFremdUrl(props.videoUrl)) {
+      aenderungen.push({ nodeId: id, moduleId: knoten.moduleId, was: 'videoUrl', vorher: props.videoUrl, nachher: PLATZHALTER_VIDEO })
+      aenderungen.push({
+        nodeId: id,
+        moduleId: knoten.moduleId,
+        was: 'preload',
+        vorher: String(props.preload ?? 'metadata'),
+        nachher: 'none',
+      })
+      props.videoUrl = PLATZHALTER_VIDEO
+      props.preload = 'none'
+      beruehrt = true
+    }
+    nodes[id] = beruehrt ? ({ ...knoten, props } as PageNode) : n
+  }
+  return { seite: { ...seite, nodes }, aenderungen }
+}
+
 /** Gegenprobe: jede fcank-Klassenzuordnung vom Node loesen. Die StyleRules
  *  (und damit das CSS) bleiben unangetastet — genau darum geht es. */
 function ohneAnkerKlassen(seite: Page, fcankRuleIds: Set<string>): Page {
@@ -132,6 +219,12 @@ const fcankRuleIds = new Set(
 
 let seite = mitHarnessHoehe(original)
 if (OHNE_ANKER) seite = ohneAnkerKlassen(seite, fcankRuleIds)
+let medienAenderungen: MedienAenderung[] = []
+if (MEDIEN_LOKAL) {
+  const entschaerft = ohneFremdMedien(seite)
+  seite = entschaerft.seite
+  medienAenderungen = entschaerft.aenderungen
+}
 
 /* Unser Site-Script als SiteFile — type 'script', sonst nichts: Instatic setzt
    von sich aus enabled/runInCanvas/format=module/placement=body-end/
@@ -177,8 +270,19 @@ for (const datei of runtimeBuild.files) {
 }
 
 const scriptTags = [...html.matchAll(/<script\b[^>]*>/g)].map((m) => m[0])
+/* Jede verbliebene Fremd-URL an einem ladenden Attribut wird ausgewiesen, damit
+   nichts still durchrutscht. `<video src>` darf hier stehen bleiben — mit
+   preload="none" wird es nicht angefragt (im Browser nachgemessen). */
+const fremdUrlsImHtml = [...html.matchAll(/(src|poster)="(https?:\/\/[^"]*)"/g)].map((m) => ({
+  attribut: m[1],
+  url: m[2],
+  imTag: /<video[^>]*$/.test(html.slice(0, m.index)) ? 'video' : 'anderes',
+}))
 console.log(JSON.stringify({
   modus: OHNE_ANKER ? 'GEGENPROBE (Anker-Klassen entfernt)' : 'SKELETON',
+  medienLokal: MEDIEN_LOKAL,
+  medienAenderungen,
+  fremdUrlsImHtml,
   ausgabe: AUSGABE_ORDNER,
   seite: { slug: seite.slug, titel: seite.title, nodes: Object.keys(seite.nodes).length },
   htmlBytes: Buffer.byteLength(html, 'utf8'),

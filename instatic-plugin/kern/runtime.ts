@@ -35,6 +35,14 @@
 
 import { ankerElement, ankerKollisionen } from "./anker";
 import { scrubFortschritt, zustandBei, type Grafik } from "./grafik-types";
+import {
+  fensterQuelle,
+  iframeQuelle,
+  virtuelleQuelle,
+  anteilZuPixel,
+  pixelZuAnteil,
+  type ScrollQuelle,
+} from "./scroll-quelle";
 
 /** Die Config, die eine Seite der Laufzeit vorlegt. */
 export interface FcankConfig {
@@ -45,10 +53,31 @@ export interface FcankConfig {
   grafiken: Grafik[];
 }
 
+/** Startoptionen. Ohne Angabe verhaelt sich die Laufzeit exakt wie in H3a. */
+export interface FcankOptionen {
+  /** Woher der Scroll-Fortschritt kommt (H4). Default: `fensterQuelle()` —
+   *  also das bisherige `window.scrollY`-Verhalten, Welt C. */
+  quelle?: ScrollQuelle;
+  /** Zielelemente statt `document` woanders suchen — noetig, wenn die Laufzeit
+   *  im Eltern-Realm laeuft und die Anker in einem Frame liegen. Default:
+   *  `document` des eigenen Realms. */
+  wurzel?: ParentNode;
+}
+
 /** Was `fcank.status()` fuer die Messung zurueckgibt. */
 export interface FcankStatus {
   laeuft: boolean;
   reduziert: boolean;
+  /** Stand auf der Scroll-Achse in DOKUMENT-PIXELN (H4: der kanonische Wert). */
+  fortschritt: number;
+  /** Groesster erreichbarer Fortschritt dieser Welt, in Dokument-Pixeln. */
+  spanne: number;
+  /** Derselbe Stand als 0..1 — NUR Anzeige. Nicht zwischen Welten austauschen:
+   *  der Nenner (`spanne`) ist welt-abhaengig (s. scroll-quelle.ts). */
+  anteil: number;
+  /** Welche Quelle gerade treibt. */
+  quelle: ScrollQuelle["art"] | null;
+  /** Alias von `fortschritt` — haelt die H3a-Messskripte lauffaehig. */
   scrollY: number;
   /** Anker-Id -> aufgeloest? */
   anker: Record<string, boolean>;
@@ -87,49 +116,50 @@ function transformString(z: ReturnType<typeof zustandBei>, g: Grafik): string {
 class FcankLaufzeit {
   private config: FcankConfig | null = null;
   private gebunden: Gebunden[] = [];
-  private raf = 0;
-  private letzterY = Number.NaN;
+  private abmelden: (() => void) | null = null;
+  private quelle: ScrollQuelle | null = null;
+  private wurzel: ParentNode = document;
   private reduziert = false;
 
   /** Startet (oder ersetzt) die Animation. Idempotent: ein zweiter Aufruf
-   *  stoppt sauber und bindet neu — kein zweiter rAF-Loop. */
-  start(config: unknown): void {
+   *  stoppt sauber und bindet neu — kein zweites Abo.
+   *
+   *  H4: Die Scroll-Achse kommt jetzt von aussen. Ohne `optionen.quelle` ist
+   *  das `fensterQuelle()`, also bit-fuer-bit das H3a-Verhalten. */
+  start(config: unknown, optionen: FcankOptionen = {}): void {
     if (!istConfig(config)) {
       console.error("[fcank] Config ungueltig oder falsche Version — Start abgebrochen.", config);
       return;
     }
     this.stop();
     this.config = config;
+    this.wurzel = optionen.wurzel ?? document;
+    this.quelle = optionen.quelle ?? fensterQuelle();
     this.reduziert =
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     this.binden();
 
-    /* prefers-reduced-motion: keine Schleife, nur der Zustand am ERSTEN
-       Keyframe — die Grafik steht ruhig an ihrer Ausgangsposition (dieselbe
-       Regel wie in GrafikLayer). */
+    /* prefers-reduced-motion: kein Abo, nur der Zustand am ERSTEN Keyframe —
+       die Grafik steht ruhig an ihrer Ausgangsposition (dieselbe Regel wie in
+       GrafikLayer). */
     if (this.reduziert) {
       this.schreibe(this.config.grafiken[0]?.keyframes[0]?.scrollY ?? 0);
       return;
     }
 
-    this.schreibe(window.scrollY);
-    const tick = () => {
-      const y = window.scrollY;
-      if (y !== this.letzterY) {
-        this.letzterY = y;
-        this.schreibe(y);
-      }
-      this.raf = requestAnimationFrame(tick);
-    };
-    this.raf = requestAnimationFrame(tick);
+    /* Erst einmal auf Stand bringen, dann abonnieren. Die lesenden Quellen
+       melden nur bei AENDERUNG; ohne diesen ersten Schreibvorgang staende ein
+       Element bis zur ersten Scroll-Bewegung untransformiert da. */
+    this.schreibe(this.quelle.fortschritt());
+    this.abmelden = this.quelle.abonniere((px) => this.schreibe(px));
   }
 
   stop(): void {
-    if (this.raf) cancelAnimationFrame(this.raf);
-    this.raf = 0;
-    this.letzterY = Number.NaN;
+    this.abmelden?.();
+    this.abmelden = null;
+    this.quelle = null;
     this.gebunden = [];
   }
 
@@ -141,8 +171,12 @@ class FcankLaufzeit {
     const fehlend: string[] = [];
     this.gebunden = [];
     for (const g of this.config?.grafiken ?? []) {
-      const el = ankerElement(g.id);
-      if (!(el instanceof HTMLElement)) {
+      const el = ankerElement(g.id, this.wurzel);
+      /* `instanceof HTMLElement` prueft gegen den HTMLElement-Konstruktor DIESES
+         Realms. Liegt der Anker in einem Iframe (Laufzeit im Eltern-Realm),
+         stammt das Element aus einem anderen Realm und faellt durch. Deshalb
+         wird gegen den Konstruktor des BESITZENDEN Dokuments geprueft. */
+      if (!istHtmlElement(el)) {
         fehlend.push(g.id);
         continue;
       }
@@ -151,15 +185,15 @@ class FcankLaufzeit {
     if (fehlend.length > 0) {
       console.warn(`[fcank] Anker nicht gefunden: ${fehlend.join(", ")} (erwartet: class="fcank-<id>")`);
     }
-    const doppelt = ankerKollisionen();
+    const doppelt = ankerKollisionen(this.wurzel);
     if (Object.keys(doppelt).length > 0) {
       console.warn("[fcank] Anker-Id mehrfach im Dokument (H2-Duplizieren-Kollision):", doppelt);
     }
   }
 
-  private schreibe(scrollY: number): void {
+  private schreibe(fortschritt: number): void {
     for (const { g, el } of this.gebunden) {
-      const z = zustandBei(g, scrollY);
+      const z = zustandBei(g, fortschritt);
       el.style.transform = transformString(z, g);
       el.style.opacity = z.opacity.toFixed(3);
       /* scrub bleibt Teil des Datenmodells (Lottie/Video im alten Kern). Hier
@@ -171,31 +205,58 @@ class FcankLaufzeit {
   status(): FcankStatus {
     const anker: Record<string, boolean> = {};
     const zustaende: Record<string, ReturnType<typeof zustandBei>> = {};
-    const y = window.scrollY;
+    const px = this.quelle?.fortschritt() ?? 0;
+    const spanne = this.quelle?.spanne() ?? 0;
     for (const g of this.config?.grafiken ?? []) {
       const treffer = this.gebunden.find((b) => b.g.id === g.id);
       anker[g.id] = Boolean(treffer);
-      zustaende[g.id] = zustandBei(g, y);
+      zustaende[g.id] = zustandBei(g, px);
     }
     return {
-      laeuft: this.raf !== 0,
+      laeuft: this.abmelden !== null,
       reduziert: this.reduziert,
-      scrollY: y,
+      fortschritt: px,
+      spanne,
+      anteil: pixelZuAnteil(px, spanne),
+      quelle: this.quelle?.art ?? null,
+      scrollY: px,
       anker,
-      kollisionen: ankerKollisionen(),
+      kollisionen: ankerKollisionen(this.wurzel),
       zustaende,
     };
   }
 }
 
+/** Realm-sichere HTMLElement-Pruefung (s. binden()). */
+function istHtmlElement(el: unknown): el is HTMLElement {
+  if (el === null || typeof el !== "object") return false;
+  const kandidat = el as { ownerDocument?: Document | null };
+  const fremd = kandidat.ownerDocument?.defaultView as (Window & typeof globalThis) | null | undefined;
+  if (fremd && el instanceof fremd.HTMLElement) return true;
+  return el instanceof HTMLElement;
+}
+
 const laufzeit = new FcankLaufzeit();
 
-/** Oeffentliche Oberflaeche auf `window.fcank`. */
+/** Oeffentliche Oberflaeche auf `window.fcank`.
+ *
+ *  Die Quellen-Fabriken haengen bewusst MIT dran: eine Editor-Flaeche (oder,
+ *  wie in H4, ein Messskript) laeuft ohne Modul-System im fremden Realm und
+ *  kann nichts importieren — sie muss sich ihre Quelle vom Bundle geben
+ *  lassen, sonst gaebe es zwei Implementierungen derselben Achse. */
 const oberflaeche = {
-  start: (config: unknown) => laufzeit.start(config),
+  start: (config: unknown, optionen?: FcankOptionen) => laufzeit.start(config, optionen),
   stop: () => laufzeit.stop(),
   status: () => laufzeit.status(),
-  /** Nur fuer Messungen/Gegenproben: erzwingt einen Frame ohne Scroll-Event. */
+  /** Die drei Welten als Fabriken — s. kern/scroll-quelle.ts. */
+  quellen: {
+    fenster: fensterQuelle,
+    iframe: iframeQuelle,
+    virtuell: virtuelleQuelle,
+  },
+  /** Umrechnung Regler <-> Dokument-Pixel, damit die UI dieselbe benutzt. */
+  anteilZuPixel,
+  pixelZuAnteil,
   version: 1 as const,
 };
 

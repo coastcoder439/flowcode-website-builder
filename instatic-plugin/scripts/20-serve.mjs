@@ -17,6 +17,7 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { join, normalize, resolve, extname, sep, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { harnessDateiAusliefern } from './lib/harness-dateien.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = resolve(__dirname, '../out')
@@ -49,6 +50,9 @@ function starte(wurzel, port, name) {
   const root = resolve(wurzel)
   const server = createServer(async (req, res) => {
     try {
+      /* Favicon + Bild-Platzhalter: sonst holt der Browser von sich aus
+         /favicon.ico und faengt sich einen 404 (s. lib/harness-dateien.mjs). */
+      if (harnessDateiAusliefern(req.url, res)) return
       const abs = await findeDatei(root, req.url ?? '/')
       if (!abs) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' })
