@@ -24,16 +24,23 @@
  * Wege liefern denselben Anker-Id-Raum; die Klasse gewinnt bei Konflikt, weil
  * sie der Weg ist, den Instatic garantiert ausliefert.
  *
- * Diese Datei ist bewusst importfrei (kein React, kein Next, kein Instatic-SDK)
- * — sie ist reine DOM-Konvention und laeuft im Editor-Canvas genau wie auf der
- * veroeffentlichten Seite.
+ * Diese Datei zieht keinen Instatic-Code (kein React, kein Next, kein
+ * Instatic-SDK) — sie ist reine DOM-Konvention und laeuft im Editor-Canvas
+ * genau wie auf der veroeffentlichten Seite.
+ *
+ * H6: DIE KONVENTION SELBST LIEGT JETZT IN DER WIRT-SCHICHT.
+ * `fcank-` ist kein Wert dieser Datei, sondern der Anker-VERTRAG mit Instatic
+ * (BP-03) — und Vertraege gehoeren an eine Stelle, an der auch steht, welche
+ * Wirt-Datei sie traegt und was zu tun ist, wenn sie bricht. Diese Datei
+ * benutzt die Konvention nur; definiert wird sie in wirt/anker-vertrag.ts
+ * (bewusst genauso importfrei, damit das Laufzeit-Bundle klein bleibt).
  */
 
-/** Praefix der Anker-Klasse. `fcank` = FlowCode-ANKer. */
-export const ANKER_KLASSEN_PREFIX = "fcank-";
+import { ANKER_KLASSEN_PREFIX, ANKER_ATTRIBUT, ankerKlasse } from "../wirt/anker-vertrag";
 
-/** Zweitweg (Altdaten des bestehenden Builders). */
-export const ANKER_ATTRIBUT = "data-og-id";
+/* Weiterhin von hier exportiert — der Renderkern und die Messskripte holen
+   ihre Anker-Begriffe an EINER Stelle ab, egal wo sie definiert sind. */
+export { ANKER_KLASSEN_PREFIX, ANKER_ATTRIBUT, ankerKlasse };
 
 /**
  * Grob-Selektor, um KANDIDATEN einzusammeln, ohne das ganze Dokument zu
@@ -54,11 +61,6 @@ function cssEscape(wert: string): string {
 /** Attribut-Werte muessen fuer den Selektor gequotet/escaped werden. */
 function attrEscape(wert: string): string {
   return wert.replace(/["\\]/g, (z) => `\\${z}`);
-}
-
-/** Die Klasse, die ein Element tragen muss, um Anker `id` zu sein. */
-export function ankerKlasse(id: string): string {
-  return ANKER_KLASSEN_PREFIX + id;
 }
 
 /** Der Selektor fuer GENAU einen Anker — Klasse (Hauptweg) ODER Attribut

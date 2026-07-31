@@ -1,0 +1,266 @@
+{
+  "zaehler": {
+    "OK": 26,
+    "ABWEICHUNG": 0,
+    "WARNUNG": 2,
+    "UNGEPRUEFT": 0
+  },
+  "dauerMs": 394,
+  "exitCode": 0,
+  "querpruefungen": [
+    {
+      "id": "pin-stand",
+      "status": "OK",
+      "detail": "Klon == Pin (v0.0.14 @ d1f0942b)",
+      "name": "Gepinnter Stand == Klon",
+      "bruchArt": "fehler"
+    },
+    {
+      "id": "htmlattr-modulmenge",
+      "status": "OK",
+      "detail": "Attribut-Zweitweg unveraendert: button, container, image, link, text",
+      "name": "htmlAttributesAttr — die bekannten 5 Module",
+      "bruchArt": "warnung"
+    },
+    {
+      "id": "dist-aktuell",
+      "status": "WARNUNG",
+      "detail": "dist/ weicht um 4 Byte von kern/ ab — das ist die in H6 bewusst stehengelassene Minifier-Umordnung (Anker-Vertrag nach wirt/ gezogen). Neubau gehoert in das Haeppchen, das die Laufzeit das naechste Mal ausliefert; dann auch die H3a/H4-Belege mit neuem Hash erneuern.",
+      "name": "Ausgeliefertes Bundle == kern/",
+      "bruchArt": "warnung"
+    },
+    {
+      "id": "import-gate",
+      "status": "WARNUNG",
+      "detail": "20 Dateien geprueft, keine Instatic-Interna ausserhalb wirt/. Aber 3 Fremdbibliothek(en) aus der Installation des Klons geliehen: scripts\\30-messen.mjs:20 -> ../../instatic/node_modules/playwright/index.mjs; scripts\\50-welten-messen.mjs:24 -> ../../instatic/node_modules/playwright/index.mjs; scripts\\55-konsole-diagnose.mjs:14 -> ../../instatic/node_modules/playwright/index.mjs. Kein Vertragsbruch (gehoert Instatic nicht), aber die Messskripte haengen an dessen node_modules.",
+      "name": "Kein Instatic-Import ausserhalb von wirt/",
+      "bruchArt": "fehler"
+    }
+  ],
+  "beruehrungspunkte": [
+    {
+      "id": "BP-01",
+      "name": "Schreibpfad in den Editor-Store",
+      "volatilitaet": "volatil",
+      "genutztAb": "H1",
+      "wirtModul": "wirt/editor.ts",
+      "wirtSymbol": "schreibeNodeProps()",
+      "checks": [
+        {
+          "id": "bp01-action-vorhanden",
+          "status": "OK",
+          "detail": "updateNodeProps(nodeId, patch) vorhanden",
+          "fundstelle": "src/admin/pages/site/store/slices/site/nodeActions.ts:315"
+        },
+        {
+          "id": "bp01-store-export",
+          "status": "OK",
+          "detail": "useEditorStore wird exportiert"
+        },
+        {
+          "id": "bp01-plugin-store-read",
+          "status": "OK",
+          "detail": "editor.store.read vorhanden; transaction ebenfalls (bleibt VERBOTEN, s. H1)",
+          "fundstelle": "src/core/plugins/runtime.ts:491"
+        }
+      ]
+    },
+    {
+      "id": "BP-02",
+      "name": "Anker-Klasse an einen Node vergeben",
+      "volatilitaet": "mittel",
+      "genutztAb": "H2",
+      "wirtModul": "wirt/editor.ts",
+      "wirtSymbol": "setzeAnkerKlasse()",
+      "checks": [
+        {
+          "id": "bp02-klassen-aktionen",
+          "status": "OK",
+          "detail": "createClass, addNodeClass, removeNodeClass im Store-Vertrag"
+        },
+        {
+          "id": "bp02-klassennamen-aufloeser",
+          "status": "OK",
+          "detail": "classNamesForClassIds/2",
+          "fundstelle": "src/core/page-tree/classNames.ts:53"
+        },
+        {
+          "id": "bp02-node-classids",
+          "status": "OK",
+          "detail": "Node-Schema traegt classIds",
+          "fundstelle": "src/core/page-tree/baseNode.ts:97"
+        }
+      ]
+    },
+    {
+      "id": "BP-03",
+      "name": "Anker-Emission in den Output",
+      "volatilitaet": "volatil",
+      "genutztAb": "H2",
+      "wirtModul": "wirt/anker-vertrag.ts",
+      "wirtSymbol": "ANKER_KLASSEN_PREFIX / ankerKlasse()",
+      "checks": [
+        {
+          "id": "bp03-injectclassids-unbedingt",
+          "status": "OK",
+          "detail": "injectNodeClassIds wird UNBEDINGT je Node aufgerufen (1 bekannter frueher Ausstieg: base.body)",
+          "fundstelle": "src/core/publisher/renderNode.ts:196"
+        },
+        {
+          "id": "bp03-injectnodeid-bedingt-gegenprobe",
+          "status": "OK",
+          "detail": "Detektor unterscheidet: injectNodeId ist bedingt (Ternaer (?:))",
+          "fundstelle": "src/core/publisher/renderNode.ts:198"
+        },
+        {
+          "id": "bp03-injectclassids-export",
+          "status": "OK",
+          "detail": "injectNodeClassIds wird exportiert"
+        },
+        {
+          "id": "bp03-dist-prefix",
+          "status": "OK",
+          "detail": "gebautes Bundle traegt den Anker-Praefix \"fcank-\""
+        }
+      ]
+    },
+    {
+      "id": "BP-04",
+      "name": "Props-Durchreichung (unsere Keyframes ueberleben)",
+      "volatilitaet": "mittel",
+      "genutztAb": "H5",
+      "wirtModul": "wirt/editor.ts",
+      "wirtSymbol": "GRAFIK_PROP_SCHLUESSEL / liesGrafikAusNode() / grafikPatch()",
+      "checks": [
+        {
+          "id": "bp04-unbekannte-keys-ueberleben",
+          "status": "OK",
+          "detail": "alle 4 Rueckgaben reichen Parameter \"rawProps\" durch (direkt oder per Spread) — unbekannte Keys ueberleben",
+          "fundstelle": "src/core/module-engine/validateNodeProps.ts:187"
+        },
+        {
+          "id": "bp04-props-record-offen",
+          "status": "OK",
+          "detail": "node.props ist weiterhin ein offenes Record<string, Unknown>",
+          "fundstelle": "src/core/page-tree/baseNode.ts:55"
+        }
+      ]
+    },
+    {
+      "id": "BP-05",
+      "name": "Render-/Preview-Pfad ohne Publish",
+      "volatilitaet": "volatil",
+      "genutztAb": "H2",
+      "wirtModul": "wirt/publish.ts",
+      "wirtSymbol": "rendereSeiteZuHtml()",
+      "checks": [
+        {
+          "id": "bp05-publishpage-export",
+          "status": "OK",
+          "detail": "publishPage(page, site, registry, options)",
+          "fundstelle": "src/core/publisher/render.ts:491"
+        },
+        {
+          "id": "bp05-preview-route",
+          "status": "OK",
+          "detail": "Route /admin/api/cms/runtime/preview als echtes Literal vorhanden"
+        },
+        {
+          "id": "bp05-preview-nutzt-publishpage",
+          "status": "OK",
+          "detail": "Preview-Route ruft nachweislich publishPage() — derselbe Render-Pfad wie unser Direktaufruf",
+          "fundstelle": "server/publish/runtime/previewRuntime.ts:88"
+        }
+      ]
+    },
+    {
+      "id": "BP-06",
+      "name": "Auslieferung unserer Laufzeit als Site-Script",
+      "volatilitaet": "mittel",
+      "genutztAb": "H3a",
+      "wirtModul": "wirt/publish.ts",
+      "wirtSymbol": "laufzeitSiteFile() / baueLaufzeitScripts()",
+      "checks": [
+        {
+          "id": "bp06-sitefile-typ-script",
+          "status": "OK",
+          "detail": "SiteFileType enthaelt weiterhin 'script'",
+          "fundstelle": "src/core/files/schemas.ts:22"
+        },
+        {
+          "id": "bp06-script-defaults",
+          "status": "OK",
+          "detail": "Script-Betriebsart unveraendert (enabled/runInCanvas/format/placement/timing)",
+          "fundstelle": "src/core/site-runtime/runtimeConfig.ts:44"
+        },
+        {
+          "id": "bp06-bundler-export",
+          "status": "OK",
+          "detail": "buildSiteRuntimeScripts wird exportiert"
+        }
+      ]
+    },
+    {
+      "id": "BP-07",
+      "name": "Canvas-/DOM-Marker im Editor",
+      "volatilitaet": "volatil",
+      "genutztAb": "H7 (noch ungenutzt — H4 hat die drei Welten im eigenen Harness nachgestellt)",
+      "wirtModul": "wirt/canvas-dom.ts",
+      "wirtSymbol": "CANVAS_MARKER + findeCanvasWurzel/findeBreakpointFrame/findeNodeElement",
+      "checks": [
+        {
+          "id": "bp07-marker-vorhanden",
+          "status": "OK",
+          "detail": "alle 5 Marker-Orte belegt (als Literal/JSX-Attribut, nicht als Kommentar)"
+        }
+      ]
+    },
+    {
+      "id": "BP-08",
+      "name": "Plugin-SDK-Flaechen (Panel, Overlay, Host-Hooks)",
+      "volatilitaet": "mittel",
+      "genutztAb": "H7 (noch ungenutzt — Plugin-Installation verlangt Leons Step-Up-Klick, s. Plan §7)",
+      "wirtModul": "wirt/plugin-sdk.ts",
+      "wirtSymbol": "PLUGIN_SDK_FLAECHEN + montiereEditorFlaechen()",
+      "checks": [
+        {
+          "id": "bp08-editorapi-vertrag",
+          "status": "OK",
+          "detail": "editor.panels.register / editor.canvas.registerOverlay / editor.store.read im SDK-Vertrag"
+        },
+        {
+          "id": "bp08-overlay-typ",
+          "status": "OK",
+          "detail": "PluginCanvasOverlay { id, component }",
+          "fundstelle": "src/core/plugin-sdk/types/canvasOverlays.ts:21"
+        },
+        {
+          "id": "bp08-host-hooks-exports",
+          "status": "OK",
+          "detail": "useEditorStore, useCanvasNodeRect in Shim und Implementierung"
+        },
+        {
+          "id": "bp08-runtime-impl",
+          "status": "OK",
+          "detail": "panels/canvas/registerOverlay in der Plugin-Laufzeit implementiert"
+        }
+      ]
+    },
+    {
+      "id": "BP-09",
+      "name": "Lesender Zugriff auf den Instatic-Stand (DB + Parser)",
+      "volatilitaet": "volatil",
+      "genutztAb": "H2",
+      "wirtModul": "wirt/daten.ts",
+      "wirtSymbol": "leseInstaticStand() / alsSiteDocument()",
+      "checks": [
+        {
+          "id": "bp09-parser-exporte",
+          "status": "OK",
+          "detail": "validateSite + pageFromRow exportiert"
+        }
+      ]
+    }
+  ],
+  "volatilitaet": null
+}

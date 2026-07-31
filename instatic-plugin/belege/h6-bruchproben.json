@@ -1,0 +1,132 @@
+{
+  "erzeugt": "2026-07-31T21:27:47.953Z",
+  "klon": "C:\\Users\\Lonsinator\\Flowcode-Agentic-OS\\user-projects\\flowcode-website-builder\\instatic",
+  "grundlinie": {
+    "exitCode": 0,
+    "zaehler": {
+      "OK": 26,
+      "ABWEICHUNG": 0,
+      "WARNUNG": 2,
+      "UNGEPRUEFT": 0
+    },
+    "dauerMs": 483,
+    "warnungen": [
+      "dist-aktuell",
+      "import-gate"
+    ]
+  },
+  "proben": [
+    {
+      "probe": "a",
+      "art": "bruch",
+      "name": "injectNodeClassIds hinter ein Flag legen",
+      "warum": "Der Anker-Vertrag (BP-03) haengt genau daran, dass dieser Aufruf UNBEDINGT ist. Haenge ich ihn an dasselbe Flag wie den Nachbarn injectNodeId, sieht der Code fast unveraendert aus — und beliebige Node-Typen verlieren still ihren Anker.",
+      "bestanden": true,
+      "fehler": null,
+      "erwarteteTreffer": [
+        "bp03-injectclassids-unbedingt"
+      ],
+      "tatsaechlicheTreffer": [
+        "bp03-injectclassids-unbedingt"
+      ],
+      "fehlend": [],
+      "unerwartet": [],
+      "exitCode": 1,
+      "zaehler": {
+        "OK": 25,
+        "ABWEICHUNG": 1,
+        "WARNUNG": 2,
+        "UNGEPRUEFT": 0
+      },
+      "meldungen": [
+        {
+          "id": "bp03-injectclassids-unbedingt",
+          "detail": "injectNodeClassIds haengt jetzt an einer Bedingung (Ternaer (?:)) — genau der Fehlermodus, den injectNodeId nebenan zeigt. Beliebige Node-Typen verlieren still ihren Anker."
+        }
+      ],
+      "klonSauberDanach": true
+    },
+    {
+      "probe": "b",
+      "art": "bruch",
+      "name": "validateNodeProps verwirft unbekannte Keys",
+      "warum": "BP-04 haengt daran, dass jede Rueckgabe die rohen Props durchreicht. Faellt der Spread in EINER Rueckgabe weg, verschwinden unsere Keyframes beim naechsten Render — still, und erst beim Publish sichtbar.",
+      "bestanden": true,
+      "fehler": null,
+      "erwarteteTreffer": [
+        "bp04-unbekannte-keys-ueberleben"
+      ],
+      "tatsaechlicheTreffer": [
+        "bp04-unbekannte-keys-ueberleben"
+      ],
+      "fehlend": [],
+      "unerwartet": [],
+      "exitCode": 1,
+      "zaehler": {
+        "OK": 25,
+        "ABWEICHUNG": 1,
+        "WARNUNG": 2,
+        "UNGEPRUEFT": 0
+      },
+      "meldungen": [
+        {
+          "id": "bp04-unbekannte-keys-ueberleben",
+          "detail": "Kein Parameter wird mehr von ALLEN 4 Rueckgaben durchgereicht. Unbekannte Keys werden verworfen -> unsere Keyframes verschwinden beim naechsten Render, still."
+        }
+      ],
+      "klonSauberDanach": true
+    },
+    {
+      "probe": "c",
+      "art": "bruch",
+      "name": "DOM-Marker umbenennen",
+      "warum": "BP-07: verschwindet der Canvas-Marker, findet eine Editor-Flaeche ihren Anker-Punkt nicht mehr. Der Kommentar im Wirt-Code bliebe stehen — eine String-Suche waere hier falsch-gruen, die Literal-Pruefung nicht.",
+      "bestanden": true,
+      "fehler": null,
+      "erwarteteTreffer": [
+        "bp07-marker-vorhanden"
+      ],
+      "tatsaechlicheTreffer": [
+        "bp07-marker-vorhanden"
+      ],
+      "fehlend": [],
+      "unerwartet": [],
+      "exitCode": 1,
+      "zaehler": {
+        "OK": 25,
+        "ABWEICHUNG": 1,
+        "WARNUNG": 2,
+        "UNGEPRUEFT": 0
+      },
+      "meldungen": [
+        {
+          "id": "bp07-marker-vorhanden",
+          "detail": "DOM-Marker weg: data-instatic-canvas-root in src/admin/pages/site/canvas/CanvasRoot.tsx. Fallback: Editor-Flaeche ohne Overlay/Live-Positionierung, sichtbar gemeldet (markerBericht()). Renderkern und Schreibpfad sind NICHT betroffen."
+        }
+      ],
+      "klonSauberDanach": true
+    },
+    {
+      "probe": "d",
+      "art": "harmlos",
+      "name": "Gegenprobe: Kommentar + zwei Umbenennungen",
+      "warum": "Die Suite soll den VERTRAG treffen, nicht die Formatierung. Ein eingefuegter Kommentar und zwei umbenannte Bezeichner (`withClasses` in renderNode, `rawProps` in validateNodeProps) aendern nichts am Verhalten — genau daran, dass BP-04 an die Parameter-POSITION bindet statt an den Namen `rawProps`, entscheidet sich, ob die Suite brauchbar ist oder bei jedem Refactoring falschen Alarm schlaegt.",
+      "bestanden": true,
+      "fehler": null,
+      "erwarteteTreffer": [],
+      "tatsaechlicheTreffer": [],
+      "fehlend": [],
+      "unerwartet": [],
+      "exitCode": 0,
+      "zaehler": {
+        "OK": 26,
+        "ABWEICHUNG": 0,
+        "WARNUNG": 2,
+        "UNGEPRUEFT": 0
+      },
+      "meldungen": [],
+      "klonSauberDanach": true
+    }
+  ],
+  "fazit": "Alle Bruchproben wurden gefunden, die harmlose Aenderung hat NICHT ausgeloest."
+}

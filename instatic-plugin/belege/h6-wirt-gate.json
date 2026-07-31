@@ -1,0 +1,38 @@
+{
+  "zweck": "H6: Nachweis, dass die Umleitung aller Instatic-Zugriffe ueber instatic-plugin/wirt/ das Ergebnis nicht veraendert hat.",
+  "erzeugt": "2026-07-31T21:27:05.645Z",
+  "klonCommit": "d1f0942b1c1eb8842b032e6718bfbdabf25cd6d0",
+  "methode": [
+    "1. `bun run scripts/10-render.ts --ordner h6-vor` MIT den alten Direkt-Importen (`../../instatic/...`).",
+    "2. Umbau: 10-render.ts importiert nur noch aus wirt/publish.ts, wirt/daten.ts, wirt/typen.ts.",
+    "3. `bun run scripts/10-render.ts --ordner h6-nach` mit demselben Datenstand.",
+    "4. Byte-Vergleich. Beide Laeufe in derselben Sitzung, damit ein Datenstand-Wechsel als Ursache ausscheidet."
+  ],
+  "warumNichtGegenOutSkeleton": "out/skeleton stammt aus H3a; die Instatic-Datenbank wurde danach angefasst (WAL-Zeitstempel). Ein Vergleich dagegen wuerde Datenaenderung und Umbau vermischen — deshalb der Vorher/Nachher-Lauf in einer Sitzung.",
+  "dateienVor": 2,
+  "dateienNach": 2,
+  "gleicheDateiliste": true,
+  "vergleich": [
+    {
+      "datei": "_instatic/runtime/entries/fcank-runtime-NJ5ECR3D.js",
+      "md5Vor": "43012744f90abd9dbad30a655e7e05ac",
+      "md5Nach": "43012744f90abd9dbad30a655e7e05ac",
+      "bytes": 9706,
+      "identisch": true
+    },
+    {
+      "datei": "index.html",
+      "md5Vor": "70fe091a07bbed9c17cd019e759263be",
+      "md5Nach": "70fe091a07bbed9c17cd019e759263be",
+      "bytes": 2822,
+      "identisch": true
+    }
+  ],
+  "ergebnis": "BYTEIDENTISCH — die Wirt-Schicht ist reines Umleiten, kein Verhaltenswechsel.",
+  "bundleAbgleich": {
+    "frage": "Ist das ausgelieferte dist/-Bundle noch der Quelltext aus kern/?",
+    "befund": "4 Byte Unterschied, ausschliesslich Minifier-Umordnung: `ankerKlasse` liegt jetzt in wirt/anker-vertrag.ts und wird von esbuild als eigene Deklaration vor dem Selektor-Const emittiert, was die Kurznamen-Vergabe verschiebt. Verhalten unveraendert.",
+    "entscheidung": "dist/ wird in H6 NICHT neu gebaut: am gebauten Bundle haengt der Dateiname-Hash, mit dem die H3a-/H4-Belege ihre byteidentische Reproduktion belegen (heute nachgemessen: unveraendert fcank-runtime-NJ5ECR3D.js). Neubau gehoert in das Haeppchen, das die Laufzeit das naechste Mal ausliefert.",
+    "ueberwacht": "Pruefung `dist-aktuell` in scripts/70-wirt-smoke.mjs — meldet die 4 Byte als WARNUNG und jede groessere Drift als ABWEICHUNG."
+  }
+}

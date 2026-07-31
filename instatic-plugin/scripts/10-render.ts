@@ -46,14 +46,19 @@
  * hat). Die beiden hier benutzten Anker (base.list, base.video) sind davon
  * nicht betroffen — ihre Props sind weder svg noch richtext.
  */
-import '../../instatic/src/modules/base'
+/*
+ * H6: Alle Wirt-Zugriffe dieses Skripts laufen ab jetzt ueber instatic-plugin/wirt/
+ * (BP-05 Render, BP-06 Site-Script, BP-09 Datenzugriff). Kein direkter
+ * `../../instatic/...`-Import mehr — durchgesetzt von scripts/70-wirt-smoke.mjs
+ * (Pruefung `import-gate`). Der Umbau ist reines Umleiten: dieselben Funktionen,
+ * dieselben Modul-Instanzen. Nachgemessen statt behauptet — das gerenderte HTML
+ * vor und nach dem Umbau ist byteidentisch (Beleg: belege/h6-wirt-gate.json).
+ */
 import { mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
-import { registry } from '../../instatic/src/core/module-engine'
-import { publishPage } from '../../instatic/src/core/publisher'
-import { buildSiteRuntimeScripts } from '../../instatic/server/publish/runtime/bundleScripts'
-import type { Page, PageNode, SiteDocument } from '../../instatic/src/core/page-tree'
-import { leseInstaticStand, alsSiteDocument } from './lib/instatic-lesen'
+import type { Page, PageNode, SiteDocument } from '../wirt/typen'
+import { rendereSeiteZuHtml, baueLaufzeitScripts, laufzeitSiteFile } from '../wirt/publish'
+import { leseInstaticStand, alsSiteDocument } from '../wirt/daten'
 
 const PLUGIN_ROOT = resolve(import.meta.dir, '..')
 const OUT = join(PLUGIN_ROOT, 'out')
@@ -228,30 +233,24 @@ if (MEDIEN_LOKAL) {
 
 /* Unser Site-Script als SiteFile — type 'script', sonst nichts: Instatic setzt
    von sich aus enabled/runInCanvas/format=module/placement=body-end/
-   timing=dom-ready (DEFAULT_SCRIPT_RUNTIME_CONFIG, runtimeConfig.ts:69). */
+   timing=dom-ready (DEFAULT_SCRIPT_RUNTIME_CONFIG, runtimeConfig.ts:44).
+   H6/BP-06: die Datei baut jetzt `laufzeitSiteFile()` in der Wirt-Schicht. */
 const siteScriptInhalt = readFileSync(join(PLUGIN_ROOT, 'dist/fcank-site-script.js'), 'utf8')
 const site: SiteDocument = {
   ...basisSite,
-  files: [
-    ...basisSite.files,
-    {
-      id: 'fcank-runtime-file',
-      path: 'src/fcank-runtime.js',
-      type: 'script',
-      content: siteScriptInhalt,
-    },
-  ],
+  files: [...basisSite.files, laufzeitSiteFile(siteScriptInhalt).datei],
   pages: basisSite.pages.map((p) => (p.id === seite.id ? seite : p)),
 }
 
-const runtimeBuild = await buildSiteRuntimeScripts({
+/* H6/BP-06 + BP-05: beides ueber die Wirt-Schicht. */
+const runtimeBuild = await baueLaufzeitScripts({
   site,
   page: seite,
   target: 'publish',
   assetBasePath: ASSET_BASIS,
 })
 
-const { html } = publishPage(seite, site, registry, {
+const { html } = rendereSeiteZuHtml(seite, site, {
   runtimeAssets: runtimeBuild.runtimeAssets,
 })
 
