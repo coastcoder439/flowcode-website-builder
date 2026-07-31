@@ -68,7 +68,7 @@ Kapselung und Editor-UI zuletzt, wenn man weiß, was zu kapseln ist.
 |---|---|---|---|
 | **H0** | **Boden herstellen.** `git fetch --unshallow` im Klon, `instatic-pin.json` (Version + Commit + Bun-Range) ins Builder-Repo committen, Änderungsrate der 6 kritischen Host-Dateien der letzten 60 Tage messen | „Wir können jederzeit exakt denselben Instatic-Stand wiederherstellen — und kennen die echte Änderungsrate, statt sie zu schätzen." | S |
 | **H1** ✅ | **Persistenz-Probe.** *Fund A BESTÄTIGT und verschärft* (2026-07-29): `transaction` macht die Seite nie „schmutzig", landet nie im Save-PUT (leerer `changedPages`-Array im mitgeschnittenen Body), überlebt keinen Reload und hängt nicht im Undo. `updateNodeProps` tut alles vier. **Verschärfung:** der „Trittbrettfahrer-Effekt" — eine `transaction`-Schreibung überlebt DOCH, sobald irgendetwas anderes dieselbe Seite schmutzig macht (dreimal unabhängig reproduziert, u. a. durch bloßes Wegnavigieren). Damit ist der Fehler *sporadisch* statt deterministisch — der teuerste Fehlermodus. **Konsequenz:** `transaction` für Node-Props in der Wirt-Schicht hart **verbieten**. | erreicht (via echtem Store gemessen, nicht via Plugin — siehe §7) | S |
-| **H2** | **Anker-Kette bis in den Output.** `data-og-id` setzen, publizieren, im ausgelieferten HTML nachsehen. Mitprüfen: SVG/Video (still verworfen?), **Node duplizieren** (zwei gleiche IDs?), Node löschen (verwaister Anker?) | „Ich klicke ‚Anker setzen', publiziere, finde das Attribut im HTML — und bei nicht-ankerfähigen Ebenen sagt das Werkzeug mir das klar, statt still zu scheitern." | M |
+| **H2** ✅ | **Anker-Kette bis in den Output.** *Fund B BESTÄTIGT, aber eleganter gelöst als geplant* (2026-07-29): `htmlAttributes` ist **Opt-in im jeweiligen Modul** — emittiert nur von container/text/image/button/link (+ body). Auf SVG, Video, Liste, Outlet wird `data-og-id` **still verworfen** (gemessen: 0 Treffer im HTML, das `<svg>` selbst ist da). **ABER: CSS-Klassen kommen universell durch** — `injectNodeClassIds` läuft in `renderNode.ts:196` **bedingungslos für jeden Node**, anders als `injectNodeId` (hängt an einem Flag, das nur der Agenten-Pfad setzt). Sauberste Einzelmessung am selben SVG-Node: `data-og-id` → 0 Treffer, `class="fcank-svg"` → **1 Treffer**. → **Der Anker-Vertrag wechselt von `data-og-id` auf eine Klassen-Konvention** (`fcank-<id>`); im Renderkern ist das eine Selektor-Zeile. **Damit erledigt sich E5 ohne Container-Workaround.** | erreicht (Kern-Beweis; Randfälle offen — siehe §8) | M |
 | **H3** | **Walking Skeleton: Runtime auf der publizierten Seite.** Nackter Renderkern (Scroll → Transform, keine Editor-UI), Keyframes von Hand ins Prop, Publish mit 5 Seiten, **Bundle-Zeit und Bytes messen**; Loader-Variante gegen Voll-Bundle vergleichen | **„Auf der veröffentlichten Seite bewegt sich ein Element beim Scrollen — und der Publish dauert nicht spürbar länger."** ← erster echter Nutzen | M |
 | **H4** | **Scroll-Achse in allen drei Welten.** Design-Frame (ausgerollt, `100vh` auf 800 px gepinnt), Live-Frame (scrollt intern), publizierte Seite (`window`) — Scroll-Quelle wird injiziert statt `window.scrollY` zu lesen. *Entscheidet nebenbei die Live-Selektions-Frage.* | „Bei gleichem Fortschritt steht dasselbe Element in Design-Vorschau, Live-Vorschau und veröffentlichter Seite an derselben Stelle." | M |
 | **H5** | **Datenmodell-Entscheid am Prototyp.** Bühnen-Node vs. Node-pro-Grafik mit je 3 Grafiken durchspielen: Ebenen-Baum, Undo-Schritte, Duplizieren, Anker-Kollision, JSON-Größe messen | **„Leon sieht zwei Ebenen-Bäume nebeneinander und sagt, welcher sich richtig anfühlt."** | M |
@@ -142,6 +142,36 @@ einen frischen Agenten nachzuholen, wurde vom Sicherheits-Klassifikator gestoppt
   falls Instatic so etwas vorsieht — das wäre vor H7 zu prüfen.
 - **Agenten bekommen ab sofort keine Zugangsdaten mehr in den Auftrag.** Das war ein Fehler des
   Orchestrators in der H1-Runde und ist korrigiert.
+
+## 8 · Nachtrag H2: Anker über Klassen — und die zweite Step-Up-Wand
+
+**Der Anker-Vertrag ändert sich** (Entscheidung des Orchestrators, technisch, nicht produktpolitisch):
+statt `data-og-id` als HTML-Attribut nutzen wir eine **Klassen-Konvention** `fcank-<id>`. Begründung
+ist gemessen, nicht geschmacklich: Attribute sind Opt-in je Modul (5 von ~11 Typen), Klassen laufen
+zentral durch die Render-Pipeline für **jeden** Node. Aufwand im Renderkern: der Selektor in
+`GrafikLayer.tsx` (heute `[data-og-id]`) wird zu einer Klassen-Abfrage — plus die Stelle, die den
+Anker setzt. **Nebeneffekt: Entscheidung E5 (SVG/Video animierbar) erledigt sich** — kein
+automatisch eingezogener Container nötig, kein Eingriff in die Baumstruktur des Nutzers.
+
+**Zweite Step-Up-Wand gefunden:** `POST /admin/api/cms/publish` verlangt ebenfalls
+Passwort-Wiedereingabe (`server/handlers/cms/publish.ts:40`). **Ein Agent kann in Instatic nicht
+publizieren** — Abschnitt 7 war zu eng formuliert (dort stand nur „Plugin-Installation"). Der in H2
+genutzte Ersatzweg (`POST /admin/api/cms/runtime/preview`) ruft nachweislich **dieselbe**
+`publishPage()`-Funktion auf; die Optionsdifferenz betrifft nur CSS-/Loop-Auslieferung, nicht den
+Node-Render-Pfad. Für die Anker-Frage ist das aussagekräftig — für die **Auslieferungs-Messung in H3**
+(Publish-Dauer, Bytes) ist es das **nicht**, weil genau die CSS-/Asset-Pipeline dort das Thema ist.
+→ **H3 braucht einen echten Publish, also einen manuellen Bestätigungs-Klick von Leon** (einmal;
+danach bleibt die Step-Up-Freigabe eine Weile gültig).
+
+**Offen aus H2** (ehrlich, nicht geprüft): Duplizieren (entstehen zwei gleiche Anker?), Löschen
+(verwaister Anker), Stabilität über mehrere echte Publishes. Der Verify-Agent konnte nichts davon
+prüfen — seine Browser-Instanz war tot und eine frische landet auf der Login-Wand, die er
+(korrekt) nicht überwinden darf. Diese Randfälle wandern in H3 bzw. in den ersten Editor-Schritt.
+
+**Betriebs-Folgerung:** Agenten können in Instatic **bauen und messen, aber nicht veröffentlichen und
+keine Plugins installieren**. Beides sind bewusste Sicherheitsgrenzen. Für die Portierung heißt das:
+An zwei Stellen im Ablauf braucht es jeweils einen kurzen manuellen Klick von Leon — das ist
+einzuplanen, nicht zu umgehen.
 
 ## 6 · Provenienz
 
