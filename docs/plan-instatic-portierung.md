@@ -69,7 +69,8 @@ Kapselung und Editor-UI zuletzt, wenn man weiß, was zu kapseln ist.
 | **H0** | **Boden herstellen.** `git fetch --unshallow` im Klon, `instatic-pin.json` (Version + Commit + Bun-Range) ins Builder-Repo committen, Änderungsrate der 6 kritischen Host-Dateien der letzten 60 Tage messen | „Wir können jederzeit exakt denselben Instatic-Stand wiederherstellen — und kennen die echte Änderungsrate, statt sie zu schätzen." | S |
 | **H1** ✅ | **Persistenz-Probe.** *Fund A BESTÄTIGT und verschärft* (2026-07-29): `transaction` macht die Seite nie „schmutzig", landet nie im Save-PUT (leerer `changedPages`-Array im mitgeschnittenen Body), überlebt keinen Reload und hängt nicht im Undo. `updateNodeProps` tut alles vier. **Verschärfung:** der „Trittbrettfahrer-Effekt" — eine `transaction`-Schreibung überlebt DOCH, sobald irgendetwas anderes dieselbe Seite schmutzig macht (dreimal unabhängig reproduziert, u. a. durch bloßes Wegnavigieren). Damit ist der Fehler *sporadisch* statt deterministisch — der teuerste Fehlermodus. **Konsequenz:** `transaction` für Node-Props in der Wirt-Schicht hart **verbieten**. | erreicht (via echtem Store gemessen, nicht via Plugin — siehe §7) | S |
 | **H2** ✅ | **Anker-Kette bis in den Output.** *Fund B BESTÄTIGT, aber eleganter gelöst als geplant* (2026-07-29): `htmlAttributes` ist **Opt-in im jeweiligen Modul** — emittiert nur von container/text/image/button/link (+ body). Auf SVG, Video, Liste, Outlet wird `data-og-id` **still verworfen** (gemessen: 0 Treffer im HTML, das `<svg>` selbst ist da). **ABER: CSS-Klassen kommen universell durch** — `injectNodeClassIds` läuft in `renderNode.ts:196` **bedingungslos für jeden Node**, anders als `injectNodeId` (hängt an einem Flag, das nur der Agenten-Pfad setzt). Sauberste Einzelmessung am selben SVG-Node: `data-og-id` → 0 Treffer, `class="fcank-svg"` → **1 Treffer**. → **Der Anker-Vertrag wechselt von `data-og-id` auf eine Klassen-Konvention** (`fcank-<id>`); im Renderkern ist das eine Selektor-Zeile. **Damit erledigt sich E5 ohne Container-Workaround.** | erreicht (Kern-Beweis; Randfälle offen — siehe §8) | M |
-| **H3** | **Walking Skeleton: Runtime auf der publizierten Seite.** Nackter Renderkern (Scroll → Transform, keine Editor-UI), Keyframes von Hand ins Prop, Publish mit 5 Seiten, **Bundle-Zeit und Bytes messen**; Loader-Variante gegen Voll-Bundle vergleichen | **„Auf der veröffentlichten Seite bewegt sich ein Element beim Scrollen — und der Publish dauert nicht spürbar länger."** ← erster echter Nutzen | M |
+| **H3a** | **Walking Skeleton (agenten-tauglich).** Renderkern auf Klassen-Anker umgestellt, Keyframes von Hand ins Prop, Runtime als Site-Script — Beweis am **server-gerenderten HTML** (derselbe `publishPage()`-Pfad wie Publish): Element bewegt sich beim Scrollen, an ≥3 Positionen gemessen | **„Eine echte Instatic-Seite, auf der sich beim Scrollen etwas bewegt."** ← erster Nutzen | M |
+| **H3b** | **Publish-Messung** (braucht Leons einmaligen Bestätigungs-Klick): 5 Seiten veröffentlichen, **Bundle-Zeit und Bytes messen**, Loader-Variante gegen Voll-Bundle | „Der Publish dauert nicht spürbar länger, und die Runtime liegt nicht 5-mal auf der Platte." | S |
 | **H4** | **Scroll-Achse in allen drei Welten.** Design-Frame (ausgerollt, `100vh` auf 800 px gepinnt), Live-Frame (scrollt intern), publizierte Seite (`window`) — Scroll-Quelle wird injiziert statt `window.scrollY` zu lesen. *Entscheidet nebenbei die Live-Selektions-Frage.* | „Bei gleichem Fortschritt steht dasselbe Element in Design-Vorschau, Live-Vorschau und veröffentlichter Seite an derselben Stelle." | M |
 | **H5** | **Datenmodell-Entscheid am Prototyp.** Bühnen-Node vs. Node-pro-Grafik mit je 3 Grafiken durchspielen: Ebenen-Baum, Undo-Schritte, Duplizieren, Anker-Kollision, JSON-Größe messen | **„Leon sieht zwei Ebenen-Bäume nebeneinander und sagt, welcher sich richtig anfühlt."** | M |
 | **H6** | **Wirt-Schicht + Smoke-Suite.** Die in H1–H5 *tatsächlich benutzten* Berührungspunkte kapseln (es werden ~6 sein), Grep-Gate („kein `@instatic/`-Import außerhalb der Wirt-Schicht", Ausnahme `host-ui`) + statische Vertragsprüfungen | „Ein Testlauf sagt in unter 5 Sekunden, ob ein Instatic-Update uns bricht." | S |
@@ -163,10 +164,26 @@ Node-Render-Pfad. Für die Anker-Frage ist das aussagekräftig — für die **Au
 → **H3 braucht einen echten Publish, also einen manuellen Bestätigungs-Klick von Leon** (einmal;
 danach bleibt die Step-Up-Freigabe eine Weile gültig).
 
-**Offen aus H2** (ehrlich, nicht geprüft): Duplizieren (entstehen zwei gleiche Anker?), Löschen
-(verwaister Anker), Stabilität über mehrere echte Publishes. Der Verify-Agent konnte nichts davon
-prüfen — seine Browser-Instanz war tot und eine frische landet auf der Login-Wand, die er
-(korrekt) nicht überwinden darf. Diese Randfälle wandern in H3 bzw. in den ersten Editor-Schritt.
+**Randfälle — nachgeliefert und unabhängig verifiziert** (der Verify-Agent kam nach einer Fix-Runde
+doch noch an einen Browser; 7 von 9 Checks OK, die 2 offenen betreffen ausschließlich die
+Publish-Wand):
+
+- **Duplizieren erzeugt kollidierende Anker — BESTÄTIGT und frisch reproduziert.** Ein Link-Node
+  wurde über das Kontextmenü dupliziert; danach existierten **zwei Elemente mit identischem
+  Anker**. Ursache im Code: `duplicateNode` (`src/core/page-tree/mutations.ts` ~:249-263) vergibt
+  neue Node-IDs, übernimmt aber die Props **wörtlich** — inklusive unseres Ankers. **Das ist kein
+  Randfall, sondern ein Blocker für die Produktionsreife der Anker-Kette:** ein Nutzer, der eine
+  animierte Ebene dupliziert, bekommt stillschweigend zwei Ziele für dieselbe Animation.
+  → Gegenmaßnahme (vor dem ersten echten Einsatz): Kollisionsprüfung beim Setzen/Speichern plus
+  sichtbare Warnung; beim Duplizieren automatisch einen frischen Anker vergeben.
+- **Löschen ist sauber:** keine DOM-Waisen, Server-Zustand nach Autosave korrekt.
+- **Rendering ist idempotent:** zwei aufeinanderfolgende Renderings lieferten byteidentisches HTML.
+- Alle Test-Mutationen wurden vom Verify-Agenten zurückgerollt, die Seite ist im Ursprungszustand
+  (server-seitig geprüft). Keine Passwörter, kein Bypass — die Step-Up-Wand wurde nur bewusst
+  angetestet und mit „Abbrechen" verlassen.
+- **Ehrliche Lücke:** Der **Klassen-Ausweg** wurde vom Bau-Agenten gemessen und vom Orchestrator im
+  Code gegengeprüft (`injectNodeClassIds` läuft bedingungslos), aber **nicht** vom Verify-Agenten
+  unabhängig nachgemessen. Das gehört in den ersten Schritt, der die Klassen wirklich benutzt.
 
 **Betriebs-Folgerung:** Agenten können in Instatic **bauen und messen, aber nicht veröffentlichen und
 keine Plugins installieren**. Beides sind bewusste Sicherheitsgrenzen. Für die Portierung heißt das:
