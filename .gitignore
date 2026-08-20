@@ -58,8 +58,24 @@ public/import/.papierkorb/
 # liefert es statisch aus). Reines Dev-Artefakt, jederzeit neu erzeugbar.
 /public/export/
 
-# Instatic-Klon (Sichtung/Referenz, eigenes Upstream-Repo — nicht mitversionieren)
-/instatic/
+# Instatic-Klon: Quellcode wird vendort (kompletter Editor+Plugin soll aus diesem
+# Repo herunterladbar sein), nur Laufzeit-/Build-Artefakte bleiben aussen vor.
+/instatic/node_modules/
+/instatic/.tmp/
+/instatic/.tmp-lint/
+/instatic/dist/
+/instatic/dist-ssr/
+/instatic/coverage/
+/instatic/.coverage/
+/instatic/.worktrees/
+/instatic/.superpowers/
+/instatic/.claude/
+/instatic/.agents/
+/instatic/.matrix/
+/instatic/.env
+/instatic/.env.*
+!/instatic/.env.example
+!/instatic/.env.production.example
 
 # Spike-Build-Artefakt
 spike-plugin.zip
